@@ -2,7 +2,7 @@
 	"name": "devdb",
 	"displayName": "DevDb",
 	"description": "A zero-config VS Code extension that auto-loads your database",
-	"version": "0.0.2",
+	"version": "0.1.0",
 	"repository": "https://github.com/damms005/devdb-vscode",
 	"engines": {
 		"vscode": "^1.83.0"
