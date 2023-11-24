@@ -1,0 +1,123 @@
+{
+	"name": "devdb",
+	"displayName": "DevDb",
+	"description": "A zero-config VS Code extension that auto-loads your database",
+	"version": "0.0.2",
+	"repository": "https://github.com/damms005/devdb-vscode",
+	"engines": {
+		"vscode": "^1.83.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Other"
+	],
+	"keywords": [
+		"devdb",
+		"database",
+		"mysql",
+		"mariadb",
+		"sqlite",
+		"postgresql",
+		"postgres",
+		"sql",
+		"database",
+		"database management",
+		"database management system",
+		"database manager",
+		"database manager",
+		"database manager"
+	],
+	"preview": true,
+	"activationEvents": [
+		"workspaceContains:**/.devdb.json",
+		"onLanguage:php"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "devdb.context-menu.open-table-at-cursor",
+				"title": "Open table at cursor in DevDB"
+			}
+		],
+		"viewsContainers": {
+			"panel": [
+				{
+					"id": "devdb-container",
+					"title": "DevDB",
+					"icon": "resources/devdb.png"
+				}
+			]
+		},
+		"views": {
+			"devdb-container": [
+				{
+					"type": "webview",
+					"id": "devdb",
+					"name": "DevDB"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "workbench.view.extension.devdb-container",
+				"key": "CTRL+K CTRL+D",
+				"mac": "CMD+K CMD+D"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "devdb.context-menu.open-table-at-cursor",
+					"when": "editorTextFocus"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js",
+		"test-services": "./node_modules/.bin/mocha --require ts-node/register ./src/test/suite/services/**/*.test.ts --bail"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.2",
+		"@types/node": "^18.18.5",
+		"@types/pluralize": "^0.0.33",
+		"@types/vscode": "^1.83.0",
+		"@typescript-eslint/eslint-plugin": "^6.7.3",
+		"@typescript-eslint/parser": "^6.7.3",
+		"@vscode/test-electron": "^2.3.4",
+		"chokidar-cli": "^3.0.0",
+		"eslint": "^8.50.0",
+		"glob": "^10.3.3",
+		"mocha": "^10.2.0",
+		"prettier": "^3.0.3",
+		"prettier-plugin-tailwindcss": "^0.5.6",
+		"ts-node": "^10.9.1",
+		"typescript": "^5.2.2"
+	},
+	"dependencies": {
+		"cosmiconfig": "^8.3.6",
+		"dotenv": "^16.3.1",
+		"mysql2": "^3.6.2",
+		"pluralize": "^8.0.0",
+		"sequelize": "^6.33.0",
+		"sql-formatter": "^13.1.0",
+		"sqlite3": "^5.1.6",
+		"stringcase": "^4.3.1",
+		"yaml": "^2.3.3"
+	},
+	"prettier": {
+		"plugins": [
+			"prettier-plugin-tailwindcss"
+		],
+		"useTabs": true,
+		"semi": false,
+		"printWidth": 165,
+		"singleQuote": true,
+		"arrowParens": "avoid"
+	}
+}

@@ -1,0 +1,31 @@
+{
+  "name": "ui",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "chokidar '../src/**/*.ts' './src/**/*.{vue,js,ts,css}' 'node_modules/devdb-ui/dist/**' -c \"clear && echo 'Building Vue assets\\n' && pwd && npm run build && cd .. && pwd && echo 'Compiling extension code\\n' && npm run compile && cd - && echo 'Back to Vue project folder\\n' && pwd && echo 'Done\\n' \"",
+    "preview": "vite preview",
+    "test:e2e": "start-server-and-test preview http://localhost:4173 'cypress run --e2e'",
+    "test:e2e:dev": "start-server-and-test 'vite dev --port 4173' http://localhost:4173 'cypress open --e2e'",
+    "test:unit": "cypress run --component",
+    "test:unit:dev": "cypress open --component"
+  },
+  "dependencies": {
+    "devdb-ui": "file:../../devdb-ui",
+    "pinia": "^2.1.6",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.3.4",
+    "autoprefixer": "^10.4.16",
+    "chokidar-cli": "^3.0.0",
+    "cypress": "^13.2.0",
+    "postcss": "^8.4.31",
+    "start-server-and-test": "^2.0.0",
+    "tailwindcss": "^3.3.3",
+    "vite": "^4.4.9"
+  }
+}
