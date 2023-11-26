@@ -6,7 +6,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	name: 'Laravel Mysql (with Sail support)',
 	type: 'mysql',
 	id: 'laravel-mysql',
-	description: 'Laravel Mysql with default .env config or Sail config in docker-compose.yml',
+	description: 'Laravel MySQL with default .env config or Sail config in docker-compose.yml',
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
