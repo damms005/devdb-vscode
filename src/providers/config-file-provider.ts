@@ -70,6 +70,7 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 		return {
 			id: sqliteConnection.path,
 			description: brief(sqliteConnection.path),
+			details: sqliteConnection.path,
 			engine: engine
 		}
 	}

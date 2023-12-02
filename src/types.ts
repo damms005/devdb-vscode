@@ -15,7 +15,12 @@ export type EngineProviderOption = {
 	option: { id: string, description: string }
 }
 
-export type EngineProviderCache = { id: string, description: string, engine: MysqlEngine }
+export type EngineProviderCache = {
+	id: string,
+	description: string,
+	details?: string,
+	engine: MysqlEngine,
+}
 
 export type DatabaseEngineProvider = {
 	name: string
