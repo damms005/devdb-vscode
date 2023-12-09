@@ -61,4 +61,10 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		this.setActiveTable(tableName);
 	}
 
+	public notifyConfigChange(event: vscode.ConfigurationChangeEvent) {
+		if (!this._view) return console.log(`Config changed but webview not available`)
+
+		const newSettings = vscode.workspace.getConfiguration('Devdb');
+		sendMessageToWebview(this._view.webview, { type: 'config-changed', value: newSettings })
+	}
 }

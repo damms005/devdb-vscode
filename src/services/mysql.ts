@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { Sequelize } from "sequelize";
 
 export async function connectToMysql(host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
@@ -6,6 +7,7 @@ export async function connectToMysql(host: string, port: number, username: strin
 		await sequelize.authenticate();
 		return sequelize
 	} catch (error) {
+		vscode.window.showErrorMessage(`MySQL connection error: ${String(error)}`)
 		return
 	}
 }

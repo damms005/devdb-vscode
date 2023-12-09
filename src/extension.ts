@@ -42,4 +42,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const codelensProvider = new CodelensProvider();
 	vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, codelensProvider);
+
+	vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+		if (event.affectsConfiguration('Devdb')) {
+			devDbViewProvider?.notifyConfigChange(event);
+		}
+	});
 }

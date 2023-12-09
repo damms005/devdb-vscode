@@ -21,12 +21,14 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 	const command = data.type.substring(data.type.indexOf(':') + 1);
 
 	const actions: Record<string, () => unknown> = {
+		'request:get-user-preferences' : async () => vscode.workspace.getConfiguration('Devdb'),
 		'request:get-available-providers': async () => await getAvailableProviders(),
 		'request:select-provider': async () => await selectProvider(data.value),
 		'request:select-provider-option': async () => await selectProviderOption(data.value),
 		'request:get-tables': async () => getTables(),
 		'request:get-table-data': async () => await getTableData(data.value),
 		'request:get-data-for-page': async () => await loadRowsForPage(data.value),
+		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', 'DevDb.DevDb'),
 	}
 
 	const action = actions[data.type]
@@ -53,7 +55,7 @@ function acknowledge(webview: vscode.Webview, command: string) {
  * Returns a list of all providers that can be used in the current workspace.
  */
 async function getAvailableProviders() {
-	const availableProviders = await Promise.all(providers.map(async (provider) => {
+		const availableProviders = await Promise.all(providers.map(async (provider) => {
 		if (provider.boot) await provider.boot()
 
 		const canBeUsed = await provider.canBeUsedInCurrentWorkspace()
@@ -85,7 +87,7 @@ async function selectProvider(providerId: string): Promise<boolean> {
 	database = await provider.getDatabaseEngine() as DatabaseEngine
 
 	if (!database) {
-		await vscode.window.showErrorMessage(`Could not get database engine for ${providerId}`)
+		await vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
 		return false
 	}
 
@@ -103,7 +105,7 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	database = await provider.getDatabaseEngine(option) as DatabaseEngine
 
 	if (!database) {
-		await vscode.window.showErrorMessage(`Could not get database engine for ${option.provider}`)
+		await vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
 		return false
 	}
 

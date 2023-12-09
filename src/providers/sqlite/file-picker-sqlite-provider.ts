@@ -16,7 +16,10 @@ export const FilePickerSqliteProvider: DatabaseEngineProvider = {
 
 	async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
 		const filePath = await selectFile();
-		if (!filePath) return
+		if (!filePath) {
+			await vscode.window.showErrorMessage('No file selected.')
+			return
+		}
 
 		this.engine = new SqliteEngine(filePath);
 

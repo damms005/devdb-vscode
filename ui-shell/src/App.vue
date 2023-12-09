@@ -13,12 +13,14 @@ const tables = ref()
 const displayedTables = ref({})
 const activeTable = ref()
 const filters = ref({})
+const userPreferences = ref({})
 
 const itemsPerPage = 10
 
 onMounted(() => {
 	vscode.value = acquireVsCodeApi()
-	listen()
+	setupEventHandlers()
+	vscode.value.postMessage({ type: 'request:get-user-preferences' })
 	vscode.value.postMessage({ type: 'request:get-available-providers' })
 })
 
@@ -26,11 +28,15 @@ onUnmounted(() => {
 	window.removeEventListener('message')
 })
 
-function listen() {
+function setupEventHandlers() {
 	window.addEventListener('message', event => {
 		const payload = event.data
 
 		switch (payload.type) {
+			case 'response:get-user-preferences':
+				userPreferences.value = payload.value
+				break
+
 			case 'response:get-available-providers':
 				providers.value = payload.value
 				break
@@ -73,6 +79,10 @@ function listen() {
 
 			case 'codelens-action:set-active-table':
 				activeTable.value = payload.value
+				break
+
+			case 'config-changed':
+				userPreferences.value = payload.value
 				break
 		}
 	})
@@ -135,6 +145,10 @@ function setFilter(tableFilters, table, itemsPerPage) {
 
 	getTableData(table, itemsPerPage, whereClause)
 }
+
+function openSettings(theme) {
+	vscode.value.postMessage({ type: 'request:open-settings', value: theme })
+}
 </script>
 
 <template>
@@ -144,6 +158,7 @@ function setFilter(tableFilters, table, itemsPerPage) {
 			:tables="tables"
 			:displayedTables="displayedTables"
 			:activeTable="activeTable"
+			:user-preferences="userPreferences"
 			@close="close"
 			@select-provider="selectProvider"
 			@select-provider-option="selectProviderOption"
@@ -154,6 +169,7 @@ function setFilter(tableFilters, table, itemsPerPage) {
 			@get-data-for-page="getDataForPage"
 			@close-table="closeTable"
 			@items-per-page-changed="value => (itemsPerPage = value)"
+			@open-settings="openSettings"
 		/>
 
 		<div class="fixed bottom-1 right-8">

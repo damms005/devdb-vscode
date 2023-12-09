@@ -37,14 +37,14 @@
 		"commands": [
 			{
 				"command": "devdb.context-menu.open-table-at-cursor",
-				"title": "Open table at cursor in DevDB"
+				"title": "Open table at cursor in DevDb"
 			}
 		],
 		"viewsContainers": {
 			"panel": [
 				{
 					"id": "devdb-container",
-					"title": "DevDB",
+					"title": "DevDb",
 					"icon": "resources/devdb.png"
 				}
 			]
@@ -54,7 +54,7 @@
 				{
 					"type": "webview",
 					"id": "devdb",
-					"name": "DevDB"
+					"name": "DevDb"
 				}
 			]
 		},
@@ -72,6 +72,21 @@
 					"when": "editorTextFocus"
 				}
 			]
+		},
+		"configuration": {
+			"title": "DevDb",
+			"properties": {
+				"Devdb.colorTheme": {
+					"title": "Color Theme",
+					"type": "string",
+					"default": "light",
+					"description": "The color theme for the webview",
+					"enum": [
+						"light",
+						"dark"
+					]
+				}
+			}
 		}
 	},
 	"scripts": {
