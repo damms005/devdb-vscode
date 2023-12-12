@@ -14,7 +14,7 @@ export const LaravelCodelensService = {
 
 	/**
 	 * Returns a CodeLens for the Eloquent model class definition in the
-	 * given document. The CodeLens provides opening the table in DevDB.
+	 * given document. The CodeLens provides opening the table in DevDb.
 	 */
 	async getForEloquentModelIn(document: vscode.TextDocument): Promise<vscode.CodeLens | undefined> {
 		const isNotPhpFile = document.languageId !== 'php'

@@ -1,12 +1,13 @@
 {
 	"name": "devdb",
-	"displayName": "DevDb",
-	"description": "A zero-config VS Code extension that auto-loads your database",
 	"version": "0.1.0",
-	"repository": "https://github.com/damms005/devdb-vscode",
+	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
 	},
+	"license": "SEE LICENSE IN LICENSE.txt",
+	"displayName": "DevDb",
+	"description": "A zero-config VS Code extension that auto-loads your database and displays the data right inside VS Code",
 	"categories": [
 		"Programming Languages",
 		"Other"
@@ -27,12 +28,26 @@
 		"database manager",
 		"database manager"
 	],
+	"galleryBanner": {
+		"color": "#f9fafb",
+		"theme": "light"
+	},
 	"preview": true,
+	"main": "./out/extension.js",
+	"homepage": "https://github.com/damms005/devdb-vscode/blob/main/README.md",
+	"bugs": {
+		"url": "https://github.com/damms005/devdb-vscode/discussions",
+		"email": "damms005@gmail.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/damms005/devdb-vscode.git"
+	},
+	"icon": "resources/devdb-128x128.png",
 	"activationEvents": [
 		"workspaceContains:**/.devdb.json",
 		"onLanguage:php"
 	],
-	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
