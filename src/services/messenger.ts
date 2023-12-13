@@ -28,7 +28,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-tables': async () => getTables(),
 		'request:get-table-data': async () => await getTableData(data.value),
 		'request:get-data-for-page': async () => await loadRowsForPage(data.value),
-		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', 'DevDb.'),
+		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
 	}
 
 	const action = actions[data.type]
