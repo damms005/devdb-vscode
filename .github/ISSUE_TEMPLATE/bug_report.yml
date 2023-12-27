@@ -5,11 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before opening a bug report, please search the existing issues (both open and closed).
-
-        ---
-
-        Thank you for taking the time to file a bug report. To address this bug as fast as possible, we need some information.
+        Thank you for taking the time to file a bug report. Before opening a bug report, please search the existing issues (both open and closed).
+        To address this bug, please provide these information:
   - type: input
     id: extension-version
     attributes:
@@ -32,6 +29,8 @@ body:
       label: VS Code Version
       description: Please provide the full version of your VS Code.
       placeholder: v1.85.1
+    validations:
+      required: true
   - type: input
     id: database-and-version
     attributes:
@@ -45,7 +44,13 @@ body:
     attributes:
       label: Steps to reproduce
       description: Which steps do we need to take to reproduce the problem? Any code examples need to be **as short as possible**, remove any code that is unrelated to the bug.  **This issue will be automatically closed and not reviewed if detailed replication steps are missing.**
-      placeholder: "Steps to reproduce the behavior: \n1. Open VS Code \n2. Go to '...' \n3. Click on '....' \n4. Scroll down to '....' \n5. See error"
+      placeholder: |
+        Steps to reproduce the behavior:
+          1. Launch VS Code 
+          2. Open a '...' 
+          3. Click on '....'
+          4. Scroll to '....'
+          5. See ... error
     validations:
       required: true
   - type: textarea
@@ -57,12 +62,14 @@ body:
     validations:
       required: true
   - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Please add screenshots to help explain your problem.
+    validations:
+      required: true
+  - type: textarea
     id: additional-context
     attributes:
       label: Additional context
       description: Add any other context about the problem here.
-  - type: markdown
-    id: screenshot
-    attributes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain your problem.
