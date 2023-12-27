@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a problem you're experiencing
+labels: bug,unconfirmed,low priority
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a bug report, please search the existing issues (both open and closed).
+
+        ---
+
+        Thank you for taking the time to file a bug report. To address this bug as fast as possible, we need some information.
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension Version
+      description: Please provide the full version of your installed DevDb.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS and Version
+      description: Please provide your OS and version.
+      placeholder: Ubuntu v23.10
+    validations:
+      required: true
+  - type: input
+    id: vs-code-version
+    attributes:
+      label: VS Code Version
+      description: Please provide the full version of your VS Code.
+      placeholder: v1.85.1
+  - type: input
+    id: database-and-version
+    attributes:
+      label: Database name and Version
+      description: Please provide your database name and version. e.g. for MySQL, output of `mysql --version`.
+      placeholder: mysql  Ver 8.0.35 for Linux on x86_64 (MySQL Community Server - GPL)
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: Which steps do we need to take to reproduce the problem? Any code examples need to be **as short as possible**, remove any code that is unrelated to the bug.  **This issue will be automatically closed and not reviewed if detailed replication steps are missing.**
+      placeholder: "Steps to reproduce the behavior: \n1. Open VS Code \n2. Go to '...' \n3. Click on '....' \n4. Scroll down to '....' \n5. See error"
+    validations:
+      required: true
+  - type: textarea
+    id: expectation
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+      placeholder: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+  - type: markdown
+    id: screenshot
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
