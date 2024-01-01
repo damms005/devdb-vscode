@@ -46,8 +46,8 @@ body:
       description: Which steps do we need to take to reproduce the problem? Any code examples need to be **as short as possible**, remove any code that is unrelated to the bug.  **This issue will be automatically closed and not reviewed if detailed replication steps are missing.**
       placeholder: |
         Steps to reproduce the behavior:
-          1. Launch VS Code 
-          2. Open a '...' 
+          1. Launch VS Code
+          2. Open a '...'
           3. Click on '....'
           4. Scroll to '....'
           5. See ... error
@@ -65,7 +65,7 @@ body:
     id: screenshots
     attributes:
       label: Screenshots
-      description: Please add screenshots to help explain your problem.
+      description: Please add screen recording or screenshots to help explain your problem.
     validations:
       required: true
   - type: textarea
