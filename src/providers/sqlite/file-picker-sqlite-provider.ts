@@ -17,7 +17,7 @@ export const FilePickerSqliteProvider: DatabaseEngineProvider = {
 	async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
 		const filePath = await selectFile();
 		if (!filePath) {
-			await vscode.window.showErrorMessage('No file selected.')
+			vscode.window.showErrorMessage('No file selected.')
 			return
 		}
 
@@ -27,12 +27,12 @@ export const FilePickerSqliteProvider: DatabaseEngineProvider = {
 		try {
 			isOkay = (await this.engine.isOkay())
 		} catch (error) {
-			await vscode.window.showErrorMessage(`Error opening ${filePath}: ${String(error)}`)
+			vscode.window.showErrorMessage(`Error opening ${filePath}: ${String(error)}`)
 			return
 		}
 
 		if (!isOkay) {
-			await vscode.window.showErrorMessage('The selected file is not a valid SQLite database.')
+			vscode.window.showErrorMessage('The selected file is not a valid SQLite database.')
 			return
 		}
 

@@ -80,14 +80,14 @@ async function selectProvider(providerId: string): Promise<boolean> {
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === providerId))
 
 	if (!provider) {
-		await vscode.window.showErrorMessage(`Could not find provider with id ${providerId}`)
+		vscode.window.showErrorMessage(`Could not find provider with id ${providerId}`)
 		return false
 	}
 
 	database = await provider.getDatabaseEngine() as DatabaseEngine
 
 	if (!database) {
-		await vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
+		vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
 		return false
 	}
 
@@ -98,14 +98,14 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === option.provider))
 
 	if (!provider) {
-		await vscode.window.showErrorMessage(`Could not find provider with id ${option}`)
+		vscode.window.showErrorMessage(`Could not find provider with id ${option}`)
 		return false
 	}
 
 	database = await provider.getDatabaseEngine(option) as DatabaseEngine
 
 	if (!database) {
-		await vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
+		vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
 		return false
 	}
 
