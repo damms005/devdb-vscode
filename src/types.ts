@@ -8,6 +8,12 @@ export interface Column {
 	type: string,
 	isPrimaryKey: boolean,
 	isOptional: boolean,
+	foreignKey?: ForeignKey
+}
+
+export interface ForeignKey {
+	table: string,
+	column: string,
 }
 
 export type EngineProviderOption = {

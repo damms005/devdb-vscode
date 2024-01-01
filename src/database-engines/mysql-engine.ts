@@ -63,14 +63,23 @@ export class MysqlEngine implements DatabaseEngine {
 			type: QueryTypes.SELECT,
 			raw: true,
 			logging: false
-		});
+		}) as any[];
 
-		return columns.map((column: any) => ({
-			name: column.Field,
-			type: column.Type,
-			isPrimaryKey: column.Key === 'PRI',
-			isOptional: column.Null === 'YES',
-		}));
+		const computedColumns = []
+
+		for (const column of columns) {
+			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
+
+			computedColumns.push({
+				name: column.Field,
+				type: column.Type,
+				isPrimaryKey: column.Key === 'PRI',
+				isOptional: column.Null === 'YES',
+				foreignKey
+			})
+		}
+
+		return computedColumns
 	}
 
 	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | null> {
@@ -80,4 +89,26 @@ export class MysqlEngine implements DatabaseEngine {
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqliteService.getRows(this.sequelize, table, limit, offset, whereClause);
 	}
+}
+
+async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {
+	const foreignKeys = await sequelize.query(`
+		SELECT
+			REFERENCED_TABLE_NAME AS \`table\`,
+			REFERENCED_COLUMN_NAME AS \`column\`
+		FROM
+			INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+		WHERE
+			TABLE_NAME = '${table}'
+			AND COLUMN_NAME = '${column}'
+			AND REFERENCED_TABLE_NAME IS NOT NULL
+	`, {
+		type: QueryTypes.SELECT,
+		raw: true,
+		logging: false
+	});
+
+	if (foreignKeys.length === 0) return;
+
+	return foreignKeys[0] as any as { table: string, column: string };
 }

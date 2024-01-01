@@ -1,7 +1,6 @@
 import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
-import { Column, DatabaseEngine, QueryResponse } from '../types';
-import { PaginationData } from '../services/pagination';
+import { Column, DatabaseEngine, ForeignKey, QueryResponse } from '../types';
 import { SqliteService } from '../services/sql';
 
 export class SqliteEngine implements DatabaseEngine {
@@ -51,14 +50,23 @@ export class SqliteEngine implements DatabaseEngine {
 	async getColumns(table: string): Promise<Column[]> {
 		if (!this.sequelize) return [];
 
-		const columns = await this.sequelize.query(`PRAGMA table_info(\`${table}\`)`, { type: QueryTypes.SELECT });
+		const columns = await this.sequelize.query(`PRAGMA table_info(\`${table}\`)`, { type: QueryTypes.SELECT }) as any[];
 
-		return columns.map((column: any) => ({
-			name: column.name,
-			type: column.type,
-			isPrimaryKey: column.pk === 1,
-			isOptional: column.notnull === 0,
-		}));
+		const computedColumns = []
+
+		for (const column of columns) {
+			const foreignKey = await getForeignKeyFor(table, column.name, this.sequelize as Sequelize)
+
+			computedColumns.push({
+				name: column.name,
+				type: column.type,
+				isPrimaryKey: column.pk === 1,
+				isOptional: column.notnull === 0,
+				foreignKey
+			})
+		}
+
+		return computedColumns
 	}
 
 	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | null> {
@@ -68,4 +76,21 @@ export class SqliteEngine implements DatabaseEngine {
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqliteService.getRows(this.sequelize, table, limit, offset, whereClause);
 	}
+}
+
+async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<ForeignKey | undefined> {
+	const query = `PRAGMA foreign_key_list(${table});`;
+
+	const foreignKeys = await sequelize.query(query, {
+		type: QueryTypes.RAW,
+	});
+
+	if (!foreignKeys || !foreignKeys.length) return;
+
+	const foreignKey = foreignKeys[0] as any as { table: string, from: string, to: string };
+
+	return {
+		table: foreignKey.table,
+		column: foreignKey.to,
+	};
 }

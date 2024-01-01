@@ -46,6 +46,8 @@ async function selectFile(): Promise<string | undefined> {
 	const fileUri = await vscode.window.showOpenDialog({
 		canSelectMany: false,
 		openLabel: 'Open SQLite File',
+		canSelectFolders: false,
+		title: 'Select SQLite File',
 		filters: { 'SQLite': ['sqlite', 'db'], 'All Files': ['*'] }
 	})
 
