@@ -1,7 +1,6 @@
 import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
-import { PaginationData } from '../services/pagination';
 import { SqliteService } from '../services/sql';
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }

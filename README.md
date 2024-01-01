@@ -1,4 +1,4 @@
-# DevDb
+# [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
 ![image](resources/screenshots/main-view.png)
 
