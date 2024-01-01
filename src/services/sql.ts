@@ -1,6 +1,5 @@
 import { QueryTypes, Sequelize } from "sequelize";
 import { QueryResponse } from "../types";
-import { PaginationData } from "./pagination";
 
 export const SqliteService = {
 

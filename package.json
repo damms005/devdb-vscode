@@ -45,8 +45,7 @@
 	},
 	"icon": "resources/devdb-128x128.png",
 	"activationEvents": [
-		"workspaceContains:**/.devdb.json",
-		"onLanguage:php"
+		"workspaceContains:**/.devdbrc"
 	],
 	"contributes": {
 		"commands": [

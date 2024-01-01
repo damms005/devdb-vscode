@@ -41,7 +41,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		if (!this._view) return console.log(`Message received but the webview not available`)
 		if (!tableExists(table)) return vscode.window.showErrorMessage(`Table ${table} does not exist`)
 
-		sendMessageToWebview(this._view.webview, { type: 'codelens-action:set-active-table', value: table })
+		sendMessageToWebview(this._view.webview, { type: 'ide-action:show-table-data', value: table })
 		this._view.show()
 	}
 

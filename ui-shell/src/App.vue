@@ -77,8 +77,8 @@ function setupEventHandlers() {
 				displayedTables.value[payload.value.table].pagination = payload.value.pagination
 				break
 
-			case 'codelens-action:set-active-table':
-				activeTable.value = payload.value
+			case 'ide-action:show-table-data':
+				setActiveTable(payload.value)
 				break
 
 			case 'config-changed':
