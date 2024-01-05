@@ -99,6 +99,11 @@
 						"light",
 						"dark"
 					]
+				},
+				"Devdb.dontShowNewVersionMessage": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
 				}
 			}
 		}
@@ -106,6 +111,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
+    "hot-watch": "chokidar './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile && echo 'Done\\n' \"",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",

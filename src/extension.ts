@@ -2,10 +2,14 @@ import * as vscode from 'vscode';
 import { DevDbViewProvider } from './devdb-view-provider';
 import { getVueAssets } from './services/html';
 import { CodelensProvider } from './services/codelens/code-lens-service';
+import { showWelcomeMessage } from './services/welcome-message-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
+
+	showWelcomeMessage(context);
+
 	let assets;
 
 	try {
