@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
@@ -111,7 +111,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-    "hot-watch": "chokidar './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile && echo 'Done\\n' \"",
+		"hot-watch": "chokidar './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile && echo 'Done\\n' \"",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
