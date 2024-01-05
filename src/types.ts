@@ -30,7 +30,7 @@ export type EngineProviderCache = {
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql'
+	type: 'sqlite' | 'mysql' |'postgres'
 	id: string
 	description: string
 	engine?: DatabaseEngine

@@ -34,7 +34,9 @@ The following environments are currently supported:
 
 1. Laravel with local default SQLite database
 1. Laravel MySQL with default .env config
+1. Laravel Postgres with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
+1. Containerized Laravel Postgres (Laravel Sail) with config in default .env/docker-compose.yml
 
 ### Config-base database loading
 
@@ -60,6 +62,23 @@ The content of the configuration file should be a single array containing databa
   {
     "name": "My test MySQL database", // <-- to identify the connection
     "type": "mysql",
+    "host": "<host>",
+    "port": "<port>",
+    "username": "<username>",
+    "password": "<password>",
+    "database": "test" // <-- the database to show in VS Code DevDb view
+  }
+]
+```
+
+
+#### Postgres database configuration file example
+
+```
+[
+  {
+    "name": "My test Postgres database", // <-- to identify the connection
+    "type": "postgres",
     "host": "<host>",
     "port": "<port>",
     "username": "<username>",
@@ -101,8 +120,9 @@ Press `Ctrl+K Ctrl+D` to bring up DevDb view
 
 The following databases are currently supported:
 
-- MySQL
 - SQLite
+- MySQL
+- Postgres
 
 Support for Postgres and MongoDB will likely be added in a future release.
 

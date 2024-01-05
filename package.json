@@ -138,6 +138,8 @@
 		"cosmiconfig": "^8.3.6",
 		"dotenv": "^16.3.1",
 		"mysql2": "^3.6.2",
+		"pg": "^8.11.3",
+		"pg-hstore": "^2.3.4",
 		"pluralize": "^8.0.0",
 		"sequelize": "^6.33.0",
 		"sql-formatter": "^13.1.0",
