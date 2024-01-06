@@ -126,7 +126,7 @@ The following databases are currently supported:
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
 > [!NOTE]
 > * For Postgres, these features will be added in a future upgrade:
-> foreign key hotlinking, primary and optional status of columns, as well as table creation SQL
+> foreign key reference hotlinking, primary and optional status of columns, as well as table creation SQL
 
 ## Language and Framework Integrations
 
