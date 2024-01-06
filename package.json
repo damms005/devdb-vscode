@@ -74,7 +74,7 @@
 		},
 		"keybindings": [
 			{
-				"command": "workbench.view.extension.devdb-container",
+				"command": "devdb.focus",
 				"key": "CTRL+K CTRL+D",
 				"mac": "CMD+K CMD+D"
 			}
