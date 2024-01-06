@@ -5,6 +5,7 @@ import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite
 import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
+import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
 
 const workspaceTables: string[] = [];
 
@@ -13,6 +14,7 @@ const providers: DatabaseEngineProvider[] = [
 	FilePickerSqliteProvider,
 	ConfigFileProvider,
 	LaravelMysqlProvider,
+	LaravelPostgresProvider,
 ]
 
 let database: DatabaseEngine | null = null;
@@ -21,7 +23,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 	const command = data.type.substring(data.type.indexOf(':') + 1);
 
 	const actions: Record<string, () => unknown> = {
-		'request:get-user-preferences' : async () => vscode.workspace.getConfiguration('Devdb'),
+		'request:get-user-preferences': async () => vscode.workspace.getConfiguration('Devdb'),
 		'request:get-available-providers': async () => await getAvailableProviders(),
 		'request:select-provider': async () => await selectProvider(data.value),
 		'request:select-provider-option': async () => await selectProviderOption(data.value),
@@ -55,7 +57,7 @@ function acknowledge(webview: vscode.Webview, command: string) {
  * Returns a list of all providers that can be used in the current workspace.
  */
 async function getAvailableProviders() {
-		const availableProviders = await Promise.all(providers.map(async (provider) => {
+	const availableProviders = await Promise.all(providers.map(async (provider) => {
 		if (provider.boot) await provider.boot()
 
 		const canBeUsed = await provider.canBeUsedInCurrentWorkspace()

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
-import { SqliteService } from '../../../services/sql';
+import { SqlService } from '../../../services/sql';
 import { SqliteEngine } from '../../../database-engines/sqlite-engine';
 import { MysqlEngine } from '../../../database-engines/mysql-engine';
 
@@ -17,14 +17,14 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const { where, replacements } = SqliteService.buildWhereClause(undefined);
+		const { where, replacements } = SqlService.buildWhereClause(undefined);
 		assert.deepStrictEqual(where, []);
 		assert.deepStrictEqual(replacements, []);
 	});
 
 	it('ensures buildWhereClause returns correct arrays when whereClause is defined', () => {
 		const whereClause = { name: 'John', age: 30 };
-		const { where, replacements } = SqliteService.buildWhereClause(whereClause);
+		const { where, replacements } = SqlService.buildWhereClause(whereClause);
 		assert.deepStrictEqual(where, ['name LIKE ?', 'age LIKE ?']);
 		assert.deepStrictEqual(replacements, ['%John%', '%30%']);
 	});
@@ -46,7 +46,7 @@ describe('SqliteService Tests', () => {
 		`);
 
 		const whereClause = { name: 'J' };
-		const result = await SqliteService.getRows(sequelize, 'users', 2, 0, whereClause);
+		const result = await SqlService.getRows('sqlite', sequelize, 'users', 2, 0, whereClause);
 
 		assert.deepStrictEqual(result?.rows, [
 			{ id: 1, name: 'John', age: 30 },
@@ -57,7 +57,7 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures initializePaginationFor returns null when sequelize is null', async () => {
-		const result = await SqliteService.getTotalRows(null, 'users');
+		const result = await SqlService.getTotalRows('sqlite', null, 'users');
 		assert.strictEqual(result, null);
 	});
 
@@ -77,7 +77,7 @@ describe('SqliteService Tests', () => {
 			('Bob', 40)
 		`);
 
-		const result = await SqliteService.getTotalRows(sequelize, 'users');
+		const result = await SqlService.getTotalRows('sqlite', sequelize, 'users');
 
 		assert.equal(result, 3);
 	});

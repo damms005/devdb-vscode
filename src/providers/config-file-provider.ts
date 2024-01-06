@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfigFileEntry, SqliteConfig } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig } from '../types';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { getConfigFileContent } from '../services/config-service';
 import { brief } from '../services/string';
 import { MysqlEngine } from '../database-engines/mysql-engine';
-import { connectToMysql } from '../services/mysql';
+import { getConnectionFor } from '../services/sequelize-connector';
+import { PostgresEngine } from '../database-engines/postgres-engine';
 
 export const ConfigFileProvider: DatabaseEngineProvider = {
 	name: 'Config File',
@@ -21,7 +22,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
 
-		const configContent: (SqliteConfig | MysqlConfigFileEntry)[] | undefined = await getConfigFileContent()
+		const configContent: (SqliteConfig | MysqlConfig | PostgresConfig)[] | undefined = await getConfigFileContent()
 		if (!configContent) return false
 		if (!configContent.length) return false
 		if (!this.cache) this.cache = []
@@ -38,6 +39,15 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 					return false
 				}
 				const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)
+				if (connection) this.cache.push(connection)
+			}
+
+			if (config.type === 'postgres') {
+				if (!config.name) {
+					await vscode.window.showErrorMessage(`The Postgres config file entry ${config.name || ''} does not have a name.`)
+					return false
+				}
+				const connection: EngineProviderCache | undefined = await postgresConfigResolver(config)
 				if (connection) this.cache.push(connection)
 			}
 		}
@@ -76,8 +86,8 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 	}
 }
 
-async function mysqlConfigResolver(mysqlConfig: MysqlConfigFileEntry): Promise<EngineProviderCache | undefined> {
-	const connection = await connectToMysql(mysqlConfig.host, mysqlConfig.port, mysqlConfig.username, mysqlConfig.password, mysqlConfig.database)
+async function mysqlConfigResolver(mysqlConfig: MysqlConfig): Promise<EngineProviderCache | undefined> {
+	const connection = await getConnectionFor('mysql', mysqlConfig.host, mysqlConfig.port, mysqlConfig.username, mysqlConfig.password, mysqlConfig.database)
 	if (!connection) return
 
 	const engine: MysqlEngine = new MysqlEngine(connection)
@@ -90,6 +100,24 @@ async function mysqlConfigResolver(mysqlConfig: MysqlConfigFileEntry): Promise<E
 	return {
 		id: mysqlConfig.name,
 		description: mysqlConfig.name,
+		engine: engine
+	}
+}
+
+async function postgresConfigResolver(postgresConfig: PostgresConfig): Promise<EngineProviderCache | undefined> {
+	const connection = await getConnectionFor('postgres', postgresConfig.host, postgresConfig.port, postgresConfig.username, postgresConfig.password, postgresConfig.database)
+	if (!connection) return
+
+	const engine: PostgresEngine = new PostgresEngine(connection)
+	const isOkay = (await engine.isOkay())
+	if (!isOkay || !engine.sequelize) {
+		await vscode.window.showErrorMessage(`The Postgres connection ${postgresConfig.name || ''} specified in your config file is not valid.`)
+		return
+	}
+
+	return {
+		id: postgresConfig.name,
+		description: postgresConfig.name,
 		engine: engine
 	}
 }

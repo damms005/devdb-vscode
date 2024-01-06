@@ -1,6 +1,6 @@
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
-import { getMysqlConnection } from '../../services/laravel/sail';
+import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
 
 export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	name: 'Laravel Mysql (with Sail support)',
@@ -10,7 +10,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
-		const connection = await getMysqlConnection()
+		const connection = await getConnectionInEnvFile('mysql', 'mysql')
 		if (!connection) return false
 
 		this.engine = new MysqlEngine(connection);

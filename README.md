@@ -34,9 +34,8 @@ The following environments are currently supported:
 
 1. Laravel with local default SQLite database
 1. Laravel MySQL with default .env config
-1. Laravel Postgres with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
-1. Containerized Laravel Postgres (Laravel Sail) with config in default .env/docker-compose.yml
+1. Laravel Postgres with default .env config
 
 ### Config-base database loading
 
@@ -122,9 +121,12 @@ The following databases are currently supported:
 
 - SQLite
 - MySQL
-- Postgres
+- *Postgres
 
-Support for Postgres and MongoDB will likely be added in a future release.
+<!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
+> [NOTE]
+> * For Postgres, these features will be added in a future upgrade:
+> foreign key hotlinking, primary and Optional status of columns, as well as table creation SQL
 
 ## Language and Framework Integrations
 

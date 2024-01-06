@@ -1,3 +1,4 @@
+import { Dialect } from "sequelize"
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 
@@ -30,7 +31,7 @@ export type EngineProviderCache = {
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql' |'postgres'
+	type: 'sqlite' | 'mysql' | 'postgres'
 	id: string
 	description: string
 	engine?: DatabaseEngine
@@ -64,7 +65,7 @@ export interface DatabaseEngine {
 
 	getColumns(table: string): Promise<Column[]>
 
-	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | null>
+	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
 	/**
 	 * Gets the rows in a table
@@ -95,8 +96,9 @@ export type SqliteConfig = {
 	path: string
 }
 
-export type MysqlConfig = {
-	type: 'mysql'
+export type SqlConfig = {
+	name: string
+	type: Dialect
 	host: string
 	port: number
 	username: string
@@ -104,6 +106,12 @@ export type MysqlConfig = {
 	database: string
 }
 
-export interface MysqlConfigFileEntry extends MysqlConfig {
-	name: string
+export interface MysqlConfig extends SqlConfig {
+	type: 'mysql'
 }
+
+export interface PostgresConfig extends SqlConfig {
+	type: 'postgres'
+}
+
+export type LaravelConnection = 'pgsql' | 'mysql'

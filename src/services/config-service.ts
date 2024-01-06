@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SqliteConfig, MysqlConfig, MysqlConfigFileEntry } from '../types';
+import { SqliteConfig, MysqlConfig } from '../types';
 import { getPathToWorkspaceFile } from './workspace';
 import { CosmiconfigResult, cosmiconfig } from 'cosmiconfig';
 
@@ -9,7 +9,7 @@ function getConfigFilePath() {
 	return getPathToWorkspaceFile(DEVDB_CONFIG_FILE_NAME)
 }
 
-export async function getConfigFileContent(): Promise<(SqliteConfig | MysqlConfigFileEntry)[] | undefined> {
+export async function getConfigFileContent(): Promise<(SqliteConfig | MysqlConfig)[] | undefined> {
 	const configFilePath = getConfigFilePath()
 	if (!configFilePath) return
 
@@ -17,7 +17,7 @@ export async function getConfigFileContent(): Promise<(SqliteConfig | MysqlConfi
 		const result: CosmiconfigResult = await cosmiconfig('devdb').load(configFilePath)
 		if (!result) return
 
-		return result.config as (SqliteConfig | MysqlConfigFileEntry)[]
+		return result.config as (SqliteConfig | MysqlConfig)[]
 	} catch (error) {
 	}
 }

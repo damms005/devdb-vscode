@@ -1,7 +1,7 @@
 import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
-import { SqliteService } from '../services/sql';
+import { SqlService } from '../services/sql';
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
@@ -81,12 +81,12 @@ export class MysqlEngine implements DatabaseEngine {
 		return computedColumns
 	}
 
-	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | null> {
-		return SqliteService.getTotalRows(this.sequelize, table, whereClause);
+	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined> {
+		return SqlService.getTotalRows('mysql', this.sequelize, table, whereClause);
 	}
 
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqliteService.getRows(this.sequelize, table, limit, offset, whereClause);
+		return SqlService.getRows('mysql',this.sequelize, table, limit, offset, whereClause);
 	}
 }
 
