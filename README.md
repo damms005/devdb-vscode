@@ -4,7 +4,7 @@
 
 ![image](resources/screenshots/light-dark-mode.png)
 
-A lightweight VS Code extension that auto-loads your database. It provides a beautiful database GUI client experience. It brings [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) into database management.
+A lightweight VS Code extension that auto-loads your database. It provides a beautiful database GUI client experience, bringing [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) into database management.
 
 Built with 💖 for developers.
 
@@ -22,24 +22,24 @@ Built with 💖 for developers.
 
 
 > [!NOTE]
-> DevDb provides some [Language and Framework Integrations](#language-and-framework-integrations)
+> Additionally, DevDb provides some [Language and Framework Integrations](#language-and-framework-integrations)
 
 ## Loading databases
 
-DevDb can automatically load your database using connection details from your project.
+DevDb can automatically load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When zero-config support is not available for your development environment, [configuration file](#2-config-based-database-loading) option is available. These two options are explained below:
 
-### Automatic database loading (zero-config)
+### 1. Zero-config (automatic database loading)
 
-The following environments are currently supported:
+No [configuration file](#1-config-based-database-loading) is needed for these environments:
 
 1. Laravel with local default SQLite database
 1. Laravel MySQL with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
 1. Laravel Postgres with default .env config
 
-### Config-base database loading
+### 2. Config-based database loading
 
-If there is no [zero-config support](#automatic-database-loading-zero-config) for your environment, then simply provide a `.devdbrc` file in the root of your project. DevDb will connect to and load your database using this configuration file.
+If there is no [zero-config](#1-zero-config-automatic-database-loading) support for your environment, simply provide a `.devdbrc` file in the root of your project containing your database connection details.
 
 The content of the configuration file should be a single array containing database connection objects as shown below:
 
@@ -126,19 +126,19 @@ The following databases are currently supported:
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
 > [!NOTE]
 > * For Postgres, these features will be added in a future upgrade:
-> foreign key reference hotlinking, primary and optional status of columns, as well as table creation SQL
+> primary and optional status of columns, as well as table creation SQL
 
 ## Language and Framework Integrations
-
-- Laravel model Code Lens for viewing Eloquent model underlying table
-
-  ![image](resources/screenshots/laravel-code-lens.png)
-
-- Context Menu entry for any table (framework/programming language-agnostic)
-
+### Context Menu entry
+  You can load a table by right-clicking on its name/model/entity from the editor (framework/programming language-agnostic)
   Example from a Node JS app (a [Sequelize model definition](https://sequelize.org/docs/v6/core-concepts/model-basics/#model-definition))
 
   ![image](resources/screenshots/context-menu-contribution.png)
+
+### Laravel model Code Lens
+   If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table
+
+  ![image](resources/screenshots/laravel-code-lens.png)
 
 ## Why DevDb?
 
