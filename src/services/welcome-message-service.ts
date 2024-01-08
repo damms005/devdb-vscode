@@ -25,6 +25,8 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		.split(".")
 		.map((s: string) => Number(s));
 
+	console.log({ previousVersion, currentVersion, previousVersionArray, currentVersionArray })
+
 	if (previousVersion === undefined || previousVersion.length === 0) {
 		message = `Thanks for using DevDb.`;
 	} else if (
