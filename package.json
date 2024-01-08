@@ -32,7 +32,7 @@
 		"color": "#f9fafb",
 		"theme": "light"
 	},
-	"preview": true,
+	"preview": false,
 	"main": "./out/extension.js",
 	"homepage": "https://github.com/damms005/devdb-vscode/blob/main/README.md",
 	"bugs": {
