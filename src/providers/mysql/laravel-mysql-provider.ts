@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
@@ -13,7 +14,12 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 		const connection = await getConnectionInEnvFile('mysql', 'mysql')
 		if (!connection) return false
 
-		this.engine = new MysqlEngine(connection);
+		try {
+			this.engine = new MysqlEngine(connection);
+		} catch (error) {
+			vscode.window.showErrorMessage(`MySQL connection error: ${String(error)}`)
+			return false
+		}
 
 		return (await this.engine.getTables()).length > 0
 	},
