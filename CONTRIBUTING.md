@@ -38,6 +38,7 @@ Before submitting a pull request:
 
 - Check the codebase to ensure that your feature doesn't already exist.
 - Check the pull requests to ensure that another person hasn't already submitted the feature or fix.
+- Ensure your commit messages are descriptive. This is because [it is our changelog](https://github.com/damms005/devdb-vscode/blob/4fb5ccc2cbf81f79a334e89be2a39f4280fadfa6/CHANGELOG.md#L1)
 
 ## Requirements
 
