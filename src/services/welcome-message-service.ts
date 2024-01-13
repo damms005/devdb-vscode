@@ -67,7 +67,7 @@ function showMessage(message: string) {
 						"https://github.com/damms005/devdb-vscode/issues/new?assignees=&labels=bug%2Cunconfirmed%2Clow+priority&projects=&template=bug_report.yml",
 					),
 				);
-			} else if (val === "⭐️ Star on Github") {
+			} else if (val === "⭐️ Star on GitHub") {
 				vscode.env.openExternal(
 					vscode.Uri.parse(
 						"https://github.com/damms005/devdb-vscode",
