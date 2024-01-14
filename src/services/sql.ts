@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
 import { Dialect, QueryTypes, Sequelize } from "sequelize";
 import { QueryResponse } from "../types";
+import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
@@ -32,7 +32,7 @@ export const SqlService = {
 
 		const { where, replacements } = this.buildWhereClause(whereClause);
 
-		let limitConstraint = limit ? ` LIMIT ${limit}` : '';
+		let limitConstraint = limit ? `LIMIT ${limit}` : '';
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
 
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -48,7 +48,7 @@ export const SqlService = {
 				logging: query => { sql = query }
 			});
 		} catch (error) {
-			vscode.window.showErrorMessage(`${String(error)}`)
+			reportError(String(error));
 			return
 		}
 
@@ -75,7 +75,7 @@ export const SqlService = {
 				logging: false
 			});
 		} catch (error) {
-			vscode.window.showErrorMessage(`${String(error)}`)
+			reportError(String(error))
 			return
 		}
 

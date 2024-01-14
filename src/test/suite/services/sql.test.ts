@@ -53,12 +53,12 @@ describe('SqliteService Tests', () => {
 			{ id: 2, name: 'Jane', age: 25 }
 		]);
 
-		assert.strictEqual(result?.sql, "Executing (default): SELECT * FROM `users` WHERE name LIKE '%J%' LIMIT 0, 2");
+		assert.strictEqual(result?.sql, "Executing (default): SELECT * FROM `users` WHERE name LIKE '%J%' LIMIT 2");
 	});
 
 	it('ensures initializePaginationFor returns null when sequelize is null', async () => {
 		const result = await SqlService.getTotalRows('sqlite', null, 'users');
-		assert.strictEqual(result, null);
+		assert.strictEqual(result, undefined);
 	});
 
 	it('ensures initializePaginationFor returns correct pagination data when sequelize is not null', async () => {

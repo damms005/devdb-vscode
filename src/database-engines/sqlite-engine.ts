@@ -2,13 +2,18 @@ import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, ForeignKey, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
+import { reportError } from '../services/initialization-error-service';
 
 export class SqliteEngine implements DatabaseEngine {
 
 	public sequelize: Sequelize | null = null;
 
 	constructor(sqliteFilePath: string) {
-		this.sequelize = new Sequelize({ dialect: 'sqlite', storage: sqliteFilePath });
+		try {
+			this.sequelize = new Sequelize({ dialect: 'sqlite', storage: sqliteFilePath });
+		} catch (error) {
+			reportError(String(error));
+		}
 	}
 
 	async isOkay(): Promise<boolean> {
