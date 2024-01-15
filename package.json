@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "1.0.8",
+	"version": "1.0.9",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
@@ -143,7 +143,7 @@
 		"pluralize": "^8.0.0",
 		"sequelize": "^6.33.0",
 		"sql-formatter": "^13.1.0",
-		"sqlite3": "^5.1.6",
+		"sqlite3": "^5.1.7",
 		"stringcase": "^4.3.1",
 		"yaml": "^2.3.3"
 	},
