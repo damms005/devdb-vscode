@@ -6,6 +6,7 @@ import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
+import { WordPressMysqlProvider } from '../providers/mysql/wordpress-mysql-provider'
 
 const workspaceTables: string[] = [];
 
@@ -15,6 +16,7 @@ const providers: DatabaseEngineProvider[] = [
 	ConfigFileProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
+	WordPressMysqlProvider,
 ]
 
 let database: DatabaseEngine | null = null;
