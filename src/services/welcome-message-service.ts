@@ -54,25 +54,24 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 }
 
 function showMessage(message: string) {
-	vscode.window
-		.showInformationMessage(
-			message,
-			"⭐️ Star on GitHub",
-			"🐞 Report Bug",
-		)
+	vscode.window.showInformationMessage(message, "⭐️ Star on GitHub", "🐦 Follow me", "🐞 Report bug")
 		.then(function (val: string | undefined) {
-			if (val === "🐞 Report Bug") {
-				vscode.env.openExternal(
-					vscode.Uri.parse(
-						"https://github.com/damms005/devdb-vscode/issues/new?assignees=&labels=bug%2Cunconfirmed%2Clow+priority&projects=&template=bug_report.yml",
-					),
-				);
-			} else if (val === "⭐️ Star on GitHub") {
-				vscode.env.openExternal(
-					vscode.Uri.parse(
-						"https://github.com/damms005/devdb-vscode",
-					),
-				);
+			switch (val) {
+				case "⭐️ Star on GitHub":
+					goToUrl("https://github.com/damms005/devdb-vscode");
+					break;
+
+				case "🐦 Follow me":
+					goToUrl("https://twitter.com/_damms005");
+					break;
+
+				case "🐞 Report bug":
+					goToUrl("https://github.com/damms005/devdb-vscode/issues/new?assignees=&labels=bug%2Cunconfirmed%2Clow+priority&projects=&template=bug_report.yml");
+					break;
 			}
 		})
+}
+
+function goToUrl(url: string) {
+	vscode.env.openExternal(vscode.Uri.parse(url));
 }
