@@ -12,6 +12,7 @@
     "cSpell.words": [
         "devdbrc",
         "notnull",
+        "snakecase",
         "testcontainers"
     ]
 }

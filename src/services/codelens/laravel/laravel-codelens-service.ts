@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as pluralize from 'pluralize'
+import pluralize from 'pluralize';
 import { getWorkspaceTables } from '../../messenger';
 import * as stringcase from 'stringcase';
 
@@ -16,7 +16,7 @@ export const LaravelCodelensService = {
 	 * Returns a CodeLens for the Eloquent model class definition in the
 	 * given document. The CodeLens provides opening the table in DevDb.
 	 */
-	async getForEloquentModelIn(document: vscode.TextDocument): Promise<vscode.CodeLens | undefined> {
+	async getCodelensFor(document: vscode.TextDocument): Promise<vscode.CodeLens | undefined> {
 		const isNotPhpFile = document.languageId !== 'php'
 		const isNotAppModelsNamespace = document.fileName.indexOf('app/Models') === -1
 		if (isNotPhpFile || isNotAppModelsNamespace) {
@@ -29,37 +29,35 @@ export const LaravelCodelensService = {
 			return Promise.resolve(undefined);
 		}
 
-		return getTableModelMapForCurrentWorkspace()
-			.then((tableModelMap: ModelMap) => {
-				const text = document.getText();
-				const filePath = document.fileName;
+		const tableModelMap: ModelMap = await getTableModelMapForCurrentWorkspace()
+		const text = document.getText();
+		const filePath = document.fileName;
 
-				for (const [model, entry] of Object.entries(tableModelMap)) {
-					if (filePath !== entry.filePath) continue;
+		for (const [model, entry] of Object.entries(tableModelMap)) {
+			if (filePath !== entry.filePath) continue;
 
-					const classNameDefinitionRegex = new RegExp(`class\\s+\\b${model}\\b`);
-					let matches = classNameDefinitionRegex.exec(text)
-					if (!matches) {
-						return Promise.resolve(undefined);
-					}
+			const classNameDefinitionRegex = new RegExp(`class\\s+\\b${model}\\b`);
+			let matches = classNameDefinitionRegex.exec(text)
+			if (!matches) {
+				return Promise.resolve(undefined);
+			}
 
-					const line = document.lineAt(document.positionAt(matches.index).line);
-					const indexOf = line.text.indexOf(matches[0]);
-					const position = new vscode.Position(line.lineNumber, indexOf);
-					const range = document.getWordRangeAtPosition(position, new RegExp(classNameDefinitionRegex));
+			const line = document.lineAt(document.positionAt(matches.index).line);
+			const indexOf = line.text.indexOf(matches[0]);
+			const position = new vscode.Position(line.lineNumber, indexOf);
+			const range = document.getWordRangeAtPosition(position, new RegExp(classNameDefinitionRegex));
 
-					if (range) {
-						const command: vscode.Command = {
-							title: "View table",
-							tooltip: `Open ${entry.table} table`,
-							command: "devdb.codelens.open-laravel-model-table",
-							arguments: [entry.table]
-						};
+			if (range) {
+				const command: vscode.Command = {
+					title: "View table",
+					tooltip: `Open ${entry.table} table`,
+					command: "devdb.codelens.open-laravel-model-table",
+					arguments: [entry.table]
+				};
 
-						return Promise.resolve(new vscode.CodeLens(range, command))
-					}
-				}
-			})
+				return Promise.resolve(new vscode.CodeLens(range, command))
+			}
+		}
 	}
 }
 
@@ -73,21 +71,32 @@ async function getTableModelMapForCurrentWorkspace(): Promise<ModelMap> {
 	const modelFiles = await vscode.workspace.findFiles('app/Models/*.php', null, 1000);
 	const modelTableMap: ModelMap = {};
 
-	modelFiles.forEach(file => {
+	for (const file of modelFiles) {
 		const fileName = file.fsPath.split('/').pop();
-		if (!fileName) return;
+		if (!fileName) continue;
 
 		const modelName = fileName.replace('.php', '');
-		const modelSnakeCase = stringcase.snakecase(modelName)
-		const table = pluralize(modelSnakeCase);
+		const table = await getTable(file.fsPath, modelName)
 
 		modelTableMap[modelName] = {
 			filePath: file.fsPath,
 			table
 		};
-	});
+	}
 
 	return modelTableMap
 }
 
+async function getTable(fsPath: string, modelName: string): Promise<string> {
+	const fileContent = (await vscode.workspace.fs.readFile(vscode.Uri.file(fsPath))).toString()
+	const tablePropertyDefinition = /protected\s+\$table\s*=\s*['"](.+?)['"]/
+	const matches = fileContent.match(tablePropertyDefinition)
 
+	if (matches) {
+		return matches[1]
+	}
+
+	const modelSnakeCase = stringcase.snakecase(modelName)
+
+	return pluralize(modelSnakeCase);
+}

@@ -136,7 +136,8 @@ The following databases are currently supported:
   ![image](resources/screenshots/context-menu-contribution.png)
 
 ### Laravel model Code Lens
-   If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table
+   If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table.
+   *NOTE:* You need to first connect to a database in DevDb for Laravel Code Lens to be available.
 
   ![image](resources/screenshots/laravel-code-lens.png)
 

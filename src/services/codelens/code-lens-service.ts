@@ -13,7 +13,7 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 		this.codeLenses = [];
 
 		return Promise.all([
-			LaravelCodelensService.getForEloquentModelIn(document),
+			LaravelCodelensService.getCodelensFor(document),
 		])
 			.then(laravelCodeLenses => {
 				laravelCodeLenses.filter(Boolean).forEach(laravelCodeLens => {
