@@ -8,9 +8,9 @@ export class SqliteEngine implements DatabaseEngine {
 
 	public sequelize: Sequelize | null = null;
 
-	constructor(sqliteFilePath: string) {
+	constructor(sqliteFilePath?: string) {
 		try {
-			this.sequelize = new Sequelize({ dialect: 'sqlite', storage: sqliteFilePath });
+			this.sequelize = new Sequelize({ dialect: 'sqlite', storage: sqliteFilePath, logging: false });
 		} catch (error) {
 			reportError(String(error));
 		}

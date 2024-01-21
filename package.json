@@ -115,9 +115,11 @@
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
-		"test-services": "./node_modules/.bin/mocha --require ts-node/register ./src/test/suite/services/**/*.test.ts --bail"
+		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
+		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts"
 	},
 	"devDependencies": {
+		"@testcontainers/mysql": "^10.6.0",
 		"@types/mocha": "^10.0.2",
 		"@types/node": "^18.18.5",
 		"@types/pluralize": "^0.0.33",
@@ -131,6 +133,7 @@
 		"mocha": "^10.2.0",
 		"prettier": "^3.0.3",
 		"prettier-plugin-tailwindcss": "^0.5.6",
+		"testcontainers": "^10.6.0",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.2.2"
 	},

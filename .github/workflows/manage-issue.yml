@@ -15,7 +15,7 @@ jobs:
             const issue = context.payload.issue;
             const body = issue.body;
             const STEPS_TO_REPRO_REGEXP = /### Steps to reproduce[\r\n]+([^#]+)###/m;
-            const SCREENSHOT_REGEXP = /### Screenshots[\r\n]+(?:.*?\((.*?github\.com\/.+\/)[^)]*\))+/m;
+            const SCREENSHOT_REGEXP = /### Screenshots[\r\n]+(.+.github\.com\/.+[\r\n]+)+### Additional context/m; //No need for any strcitness here. Just loose sanity check
             const LABEL_NEEDS_MORE_INFORMATION = "needs more info";
             const LABEL_UNCONFIRMED = "unconfirmed";
 

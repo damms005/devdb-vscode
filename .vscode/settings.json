@@ -11,6 +11,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "cSpell.words": [
         "devdbrc",
-        "notnull"
+        "notnull",
+        "testcontainers"
     ]
 }
