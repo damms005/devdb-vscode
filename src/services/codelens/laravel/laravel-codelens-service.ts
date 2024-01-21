@@ -23,14 +23,33 @@ export const LaravelCodelensService = {
 			return Promise.resolve(undefined);
 		}
 
+		const text = document.getText();
 		const tables = getWorkspaceTables()
 
 		if (tables.length === 0) {
-			return Promise.resolve(undefined);
+
+			const command: vscode.Command = {
+				title: `Please connect to a database for Eloquent Codelens`,
+				tooltip: `Eloquent Model Codelens requires database connection`,
+				command: "",
+			};
+
+			const classNameDefinitionRegex = new RegExp(`class\\s+\\b[aA-zZ_]+\\b`);
+			let matches = classNameDefinitionRegex.exec(text)
+			if (!matches) {
+				return Promise.resolve(undefined);
+			}
+
+			const line = document.lineAt(document.positionAt(matches.index).line);
+			const indexOf = line.text.indexOf(matches[0]);
+			const position = new vscode.Position(line.lineNumber, indexOf);
+			const range = document.getWordRangeAtPosition(position, new RegExp(classNameDefinitionRegex));
+			if (range) {
+				return Promise.resolve(new vscode.CodeLens(range, command))
+			}
 		}
 
 		const tableModelMap: ModelMap = await getTableModelMapForCurrentWorkspace()
-		const text = document.getText();
 		const filePath = document.fileName;
 
 		for (const [model, entry] of Object.entries(tableModelMap)) {
