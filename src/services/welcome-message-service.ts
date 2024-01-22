@@ -54,14 +54,14 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 }
 
 function showMessage(message: string) {
-	vscode.window.showInformationMessage(message, "⭐️ Star on GitHub", "🐦 Follow me", "🐞 Report bug")
+	vscode.window.showInformationMessage(message, "⭐️ Star on GitHub", "𝕏 Follow me", "🐞 Report bug")
 		.then(function (val: string | undefined) {
 			switch (val) {
 				case "⭐️ Star on GitHub":
 					goToUrl("https://github.com/damms005/devdb-vscode");
 					break;
 
-				case "🐦 Follow me":
+				case "𝕏 Follow me":
 					goToUrl("https://twitter.com/_damms005");
 					break;
 
