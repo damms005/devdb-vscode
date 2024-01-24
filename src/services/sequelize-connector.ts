@@ -5,11 +5,11 @@ export async function getConnectionFor(dialect: Dialect, host: string, port: num
 	try {
 		const sequelize = new Sequelize({
 			dialect,
-			host,
-			port,
-			username,
-			password,
-			database,
+			host: host ? String(host) : host,
+			port: port ? Number(port) : port,
+			username: username ? String(username) : username,
+			password: password ? String(password) : password,
+			database: database ? String(database) : database,
 			logging: false,
 		});
 		await sequelize.authenticate();

@@ -33,9 +33,10 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 				if (connection) this.cache.push(connection)
 			}
 
-			if (config.type === 'mysql') {
+			if (config.type === 'mysql' || config.type === 'mariadb') {
 				if (!config.name) {
-					await vscode.window.showErrorMessage(`The MySQL config file entry ${config.name || ''} does not have a name.`)
+					const db = config.type === 'mysql' ? 'MySQL' : 'MariaDB'
+					await vscode.window.showErrorMessage(`The ${db} config file entry ${config.name || ''} does not have a name.`)
 					return false
 				}
 				const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)

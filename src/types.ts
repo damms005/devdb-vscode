@@ -107,7 +107,7 @@ export type SqlConfig = {
 }
 
 export interface MysqlConfig extends SqlConfig {
-	type: 'mysql'
+	type: 'mysql' | 'mariadb'
 }
 
 export interface PostgresConfig extends SqlConfig {

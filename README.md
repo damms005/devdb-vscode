@@ -33,7 +33,7 @@ DevDb can automatically load your database using connection details from your VS
 No [configuration file](#1-config-based-database-loading) is needed for these environments:
 
 1. Laravel with local default SQLite database
-1. Laravel MySQL with default .env config
+1. Laravel MySQL/MariaDB with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
 1. Laravel Postgres with default .env config
 
@@ -54,13 +54,13 @@ The content of the configuration file should be a single array containing databa
 ]
 ```
 
-#### MySQL database configuration file example
+#### MySQL/MariaDB database configuration file example
 
 ```
 [
   {
     "name": "My test MySQL database", // <-- to identify the connection
-    "type": "mysql",
+    "type": "mysql", // <- or "mariadb" if you are using MariaDB
     "host": "<host>",
     "port": "<port>",
     "username": "<username>",
@@ -121,6 +121,7 @@ The following databases are currently supported:
 
 - SQLite
 - MySQL
+- MariaDB
 - *Postgres
 
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->

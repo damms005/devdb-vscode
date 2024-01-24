@@ -120,6 +120,7 @@
 	},
 	"devDependencies": {
 		"@testcontainers/mysql": "^10.6.0",
+		"@testcontainers/postgresql": "^10.6.0",
 		"@types/mocha": "^10.0.2",
 		"@types/node": "^18.18.5",
 		"@types/pluralize": "^0.0.33",

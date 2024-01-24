@@ -21,7 +21,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 			return false
 		}
 
-		return (await this.engine.getTables()).length > 0
+		return (await this.engine.isOkay())
 	},
 
 	async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
