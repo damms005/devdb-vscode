@@ -116,7 +116,8 @@
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
 		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
-		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts"
+		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts",
+		"publish": "npm rebuild && vsce publish"
 	},
 	"devDependencies": {
 		"@testcontainers/mysql": "^10.6.0",
