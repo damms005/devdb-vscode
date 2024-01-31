@@ -15,6 +15,7 @@
   "dependencies": {
     "devdb-ui": "file:../../devdb-ui",
     "pinia": "^2.1.6",
+    "primevue": "^3.47.2",
     "vue": "^3.3.4",
     "vue-router": "^4.2.4"
   },

@@ -1,5 +1,6 @@
 <script setup>
 import 'devdb-ui/style.css'
+import './assets/base.css'
 import './assets/style.css'
 import { DevDB } from 'devdb-ui'
 import { RouterView } from 'vue-router'
