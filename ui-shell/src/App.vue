@@ -114,8 +114,8 @@ function refreshProviders() {
 	vscode.value.postMessage({ type: 'request:get-available-providers' })
 }
 
-function closeTable(table) {
-	delete displayedTabs.value[table]
+function removeTab(tabIndex) {
+	 displayedTabs.value.splice(tabIndex, 1)
 }
 
 function destroyUi() {
@@ -201,7 +201,7 @@ function openSettings(theme) {
 			@get-data-for-tab-page="getDataForTabPage"
 			@items-per-page-changed="itemsPerPageChanged"
 			@open-settings="openSettings"
-			@close-table="closeTable"
+			@remove-tab="removeTab"
 			@destroy-ui="destroyUi"
 		/>
 	</div>
