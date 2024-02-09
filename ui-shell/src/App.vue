@@ -4,7 +4,6 @@ import './assets/base.css'
 import './assets/style.css'
 import { DevDB } from 'devdb-ui'
 import { RouterView } from 'vue-router'
-import GitHub from './components/GitHub.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const vscode = ref()
