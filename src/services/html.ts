@@ -32,7 +32,7 @@ export function getWebviewHtml(webview: vscode.Webview, jsFile: string, cssFile:
 		<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src https://fonts.googleapis.com; img-src ${webview.cspSource} ${tailwindcss}; style-src ${webview.cspSource}; script-src 'nonce-${nonce1}' 'nonce-${nonce2}'; connect-src https://icanhazdadjoke.com/ ">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src https://fonts.googleapis.com; img-src ${webview.cspSource} ${tailwindcss}; style-src 'self' https://*.vscode-cdn.net ${webview.cspSource}; script-src 'nonce-${nonce1}' 'nonce-${nonce2}'; connect-src https://icanhazdadjoke.com/ ">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 				<link href="${styleVueAppUri}" rel="stylesheet">

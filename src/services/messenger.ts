@@ -28,8 +28,9 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:select-provider': async () => await selectProvider(data.value),
 		'request:select-provider-option': async () => await selectProviderOption(data.value),
 		'request:get-tables': async () => getTables(),
-		'request:get-table-data': async () => await getTableData(data.value),
-		'request:get-data-for-page': async () => await loadRowsForPage(data.value),
+		'request:get-fresh-table-data': async () => await getFreshTableData(data.value),
+		'request:get-filtered-table-data': async () => await getFilteredTableData(data.value),
+		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
 	}
 
@@ -114,21 +115,43 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	return true
 }
 
+async function getFreshTableData(requestPayload: {
+	table: string,
+	itemsPerPage: number,
+}): Promise<FreshTableQueryResponse | undefined> {
+	return getTableData({
+		table: requestPayload.table,
+		itemsPerPage: requestPayload.itemsPerPage,
+	})
+}
+
+async function getFilteredTableData(requestPayload: {
+	table: string,
+	itemsPerPage: number,
+	filters: Record<string, any>,
+}): Promise<FreshTableQueryResponse | undefined> {
+	return getTableData({
+		table: requestPayload.table,
+		itemsPerPage: requestPayload.itemsPerPage,
+		filters: requestPayload.filters,
+	})
+}
+
 async function getTableData(requestPayload: {
 	table: string,
 	itemsPerPage: number,
-	whereClause: Record<string, any>,
+	filters?: Record<string, any>,
 }): Promise<FreshTableQueryResponse | undefined> {
 
 	if (!database) return
 
-	const totalRows = (await database?.getTotalRows(requestPayload.table, requestPayload.whereClause)) || 0
+	const totalRows = (await database?.getTotalRows(requestPayload.table, requestPayload.filters)) || 0
 	const pagination = getPaginationFor(requestPayload.table, 1, totalRows, requestPayload.itemsPerPage)
 	const limit = pagination.itemsPerPage
 	const offset = 0
 	const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
 	const columns = await database.getColumns(requestPayload.table)
-	const queryResponse = await database.getRows(requestPayload.table, limit, offset, requestPayload.whereClause)
+	const queryResponse = await database.getRows(requestPayload.table, limit, offset, requestPayload.filters)
 
 	if (!queryResponse) return
 
