@@ -111,7 +111,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-		"hot-reload": "chokidar './package.json' './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile && notify-send 'DevDb compiled' \"",
+		"hot-reload": "chokidar './package.json' './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile \"",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "watch": "chokidar '../src/**/*.ts' './src/**/*.{vue,js,ts,css}' 'node_modules/devdb-ui/dist/**' -c \"clear && echo 'Building Vue assets\\n' && pwd && npm run build && cd .. && pwd && echo 'Compiling extension code\\n' && npm run compile && cd - && echo 'Back to Vue project folder\\n' && pwd && echo 'Done\\n' \"",
+    "watch": "chokidar '../src/**/*.ts' './src/**/*.{vue,js,ts,css}' 'node_modules/devdb-ui/dist/**' -c './watch-command.sh'",
     "preview": "vite preview",
     "test:e2e": "start-server-and-test preview http://localhost:4173 'cypress run --e2e'",
     "test:e2e:dev": "start-server-and-test 'vite dev --port 4173' http://localhost:4173 'cypress open --e2e'",
