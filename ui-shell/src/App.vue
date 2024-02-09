@@ -10,13 +10,12 @@ import { onMounted, onUnmounted, ref } from 'vue'
 const vscode = ref()
 
 const providers = ref([])
-const tables = ref()
-const displayedTables = ref({})
-const activeTable = ref()
-const filters = ref({})
+const tables = ref([])
+const displayedTabs = ref([])
+const activeTabIndex = ref()
 const userPreferences = ref({})
 
-const itemsPerPage = 10
+const itemsPerPage = ref(10)
 
 onMounted(() => {
 	vscode.value = acquireVsCodeApi()
@@ -54,32 +53,31 @@ function setupEventHandlers() {
 				tables.value = payload.value
 				break
 
-			case 'response:get-table-data':
-				if (!payload.value) return
-				const table = payload.value.table
+			case 'response:get-fresh-table-data':
+				const tab = buildTabFromPayload(payload)
+				if (!tab) return
 
-				if (!displayedTables.value[table]) {
-					displayedTables.value[table] = {}
-				}
-
-				displayedTables.value[table].tableCreationSql = payload.value.tableCreationSql
-				displayedTables.value[table].lastQuery = payload.value.lastQuery
-				displayedTables.value[table].columns = payload.value.columns
-				displayedTables.value[table].rows = payload.value.rows
-				displayedTables.value[table].totalRows = payload.value.totalRows
-				displayedTables.value[table].pagination = payload.value.pagination
+				displayedTabs.value.push(tab)
+				activeTabIndex.value = displayedTabs.value.length - 1
 				break
 
-			case 'response:get-data-for-page':
+			case 'response:get-filtered-table-data':
+				const updatedTab = buildTabFromPayload(payload)
+				if (!updatedTab) return
+
+				displayedTabs.value[activeTabIndex.value] = updatedTab
+				break
+
+			case 'response:get-data-for-tab-page':
 				if (!payload.value) return
 
-				displayedTables.value[payload.value.table].lastQuery = payload.value.lastQuery
-				displayedTables.value[payload.value.table].rows = payload.value.rows
-				displayedTables.value[payload.value.table].pagination = payload.value.pagination
+				displayedTabs.value[activeTabIndex.value].lastQuery = payload.value.lastQuery
+				displayedTabs.value[activeTabIndex.value].rows = payload.value.rows
+				displayedTabs.value[activeTabIndex.value].pagination = payload.value.pagination
 				break
 
 			case 'ide-action:show-table-data':
-				setActiveTable(payload.value)
+				getFreshTableData(payload.value, itemsPerPage)
 				break
 
 			case 'config-changed':
@@ -87,6 +85,22 @@ function setupEventHandlers() {
 				break
 		}
 	})
+}
+
+function buildTabFromPayload(payload) {
+	if (!payload.value) return
+
+	const tab = {
+		table: payload.value.table,
+		tableCreationSql: payload.value.tableCreationSql,
+		lastQuery: payload.value.lastQuery,
+		columns: payload.value.columns,
+		rows: payload.value.rows,
+		totalRows: payload.value.totalRows,
+		pagination: payload.value.pagination,
+	}
+
+	return tab
 }
 
 function selectProvider(id) {
@@ -102,13 +116,12 @@ function refreshProviders() {
 }
 
 function closeTable(table) {
-	delete displayedTables.value[table]
+	delete displayedTabs.value[table]
 }
 
-function close() {
+function destroyUi() {
 	tables.value = []
-	displayedTables.value = {}
-	activeTable.value = null
+	displayedTabs.value = []
 }
 
 // JSON strip this so we prevent "[object Object] could not be cloned" error
@@ -116,35 +129,55 @@ function removeProxyWrap(value) {
 	return JSON.parse(JSON.stringify(value))
 }
 
-function setActiveTable(table) {
-	activeTable.value = table
+function getFreshTableData(table, itemsPerPage) {
+	vscode.value.postMessage({ type: 'request:get-fresh-table-data', value: { table, itemsPerPage } })
 }
 
-function getTableData(table, itemsPerPage, whereClause) {
-	whereClause = whereClause ? removeProxyWrap(whereClause) : null
-	vscode.value.postMessage({ type: 'request:get-table-data', value: { table, itemsPerPage, whereClause } })
+function getFilteredData(filters, itemsPerPage) {
+	if (activeTabIndex.value === undefined || activeTabIndex.value === null) return
+
+	displayedTabs.value[activeTabIndex.value].filters = filters
+	displayedTabs.value[activeTabIndex.value].itemsPerPage = itemsPerPage
+
+	const tab = displayedTabs.value[activeTabIndex.value]
+
+	updateCurrentTabFilter(tab.table, itemsPerPage, filters)
 }
 
-function getDataForPage(table, page, whereClause, totalRows, itemsPerPage) {
-	whereClause = whereClause ? removeProxyWrap(whereClause) : null
+function updateCurrentTabFilter(table, itemsPerPage, filters) {
+	filters = filters ? removeProxyWrap(filters) : null
+	vscode.value.postMessage({ type: 'request:get-filtered-table-data', value: { table, itemsPerPage, filters } })
+}
+
+function switchToTab(tabIndex) {
+	activeTabIndex.value = tabIndex
+	const tab = displayedTabs.value[tabIndex]
+	getDataForTabPage(tab, tab.pagination.currentPage)
+}
+
+function getDataForTabPage(tab, page) {
+	tab = removeProxyWrap(tab)
 
 	vscode.value.postMessage({
-		type: 'request:get-data-for-page',
+		type: 'request:get-data-for-tab-page',
 		value: {
-			table,
+			table: tab.table,
 			page,
-			whereClause,
-			totalRows,
-			itemsPerPage,
+			whereClause: tab.filters,
+			totalRows: tab.totalRows,
+			itemsPerPage: tab.pagination.itemsPerPage,
 		},
 	})
 }
 
-function setFilter(tableFilters, table, itemsPerPage) {
-	filters.value[table] = tableFilters
-	const whereClause = removeProxyWrap(tableFilters)
+function itemsPerPageChanged(value) {
+	if (activeTabIndex.value === undefined) return
 
-	getTableData(table, itemsPerPage, whereClause)
+	itemsPerPage.value = value
+	const tab = displayedTabs.value[activeTabIndex.value]
+	tab.pagination.itemsPerPage = value
+
+	getDataForTabPage(tab, 1)
 }
 
 function openSettings(theme) {
@@ -157,25 +190,21 @@ function openSettings(theme) {
 		<DevDB
 			:providers="providers"
 			:tables="tables"
-			:displayedTables="displayedTables"
-			:activeTable="activeTable"
+			:tabs="displayedTabs"
+			:activeTabIndex="activeTabIndex"
 			:user-preferences="userPreferences"
-			@close="close"
 			@select-provider="selectProvider"
 			@select-provider-option="selectProviderOption"
 			@refresh-providers="refreshProviders"
-			@set-active-table="setActiveTable"
-			@get-table-data="getTableData"
-			@filters="setFilter"
-			@get-data-for-page="getDataForPage"
-			@close-table="closeTable"
-			@items-per-page-changed="value => (itemsPerPage = value)"
+			@get-fresh-table-data="getFreshTableData"
+			@update-current-tab-filter="getFilteredData"
+			@switch-to-tab="switchToTab"
+			@get-data-for-tab-page="getDataForTabPage"
+			@items-per-page-changed="itemsPerPageChanged"
 			@open-settings="openSettings"
+			@close-table="closeTable"
+			@destroy-ui="destroyUi"
 		/>
-
-		<div class="fixed bottom-1 right-8">
-			<GitHub />
-		</div>
 	</div>
 	<RouterView />
 </template>
