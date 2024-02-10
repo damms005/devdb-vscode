@@ -76,7 +76,7 @@ function setupEventHandlers() {
 				break
 
 			case 'ide-action:show-table-data':
-				getFreshTableData(payload.value, itemsPerPage)
+				getFreshTableData(payload.value, itemsPerPage.value)
 				break
 
 			case 'config-changed':
