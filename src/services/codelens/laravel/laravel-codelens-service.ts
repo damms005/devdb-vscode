@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import pluralize from 'pluralize';
 import { getWorkspaceTables } from '../../messenger';
-import * as stringcase from 'stringcase';
+import Case from 'case';
 
 type ModelMap = {
 	[model: string]: {
@@ -80,7 +80,6 @@ export const LaravelCodelensService = {
 	}
 }
 
-
 /**
  * It uses heuristics based on Laravel conventions to get Laravel
  * models in current workspace and their tables.
@@ -115,7 +114,7 @@ async function getTable(fsPath: string, modelName: string): Promise<string> {
 		return matches[1]
 	}
 
-	const modelSnakeCase = stringcase.snakecase(modelName)
+	const modelSnakeCase = Case.snake(modelName)
 
 	return pluralize(modelSnakeCase);
 }

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { getWebviewHtml } from './services/html';
-import { handleIncomingMessage, sendMessageToWebview, tableExists } from './services/messenger';
+import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExists } from './services/messenger';
 import { plural } from 'pluralize';
-import * as stringcase from 'stringcase';
+import Case from 'case';
 
 export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'devdb';
@@ -39,6 +39,11 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 
 	public setActiveTable(table: string) {
 		if (!this._view) return console.log(`Message received but the webview not available`)
+
+		if (!isTablesLoaded()) {
+			return vscode.window.showErrorMessage(`Tables not loaded yet. Selected a database yet?`)
+		}
+
 		if (!tableExists(table)) return vscode.window.showErrorMessage(`Table ${table} does not exist`)
 
 		sendMessageToWebview(this._view.webview, { type: 'ide-action:show-table-data', value: table })
@@ -49,6 +54,10 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	 * Gets the word at the current cursor location and opens the table in the DevDb view
 	 */
 	public openTableAtCurrentCursor() {
+		if (!isTablesLoaded()) {
+			return vscode.window.showErrorMessage(`Tables not loaded yet. Selected a database yet?`)
+		}
+
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) return;
 
@@ -56,7 +65,15 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		const cursorPosition = editor.selection.active;
 		const wordRange = document.getWordRangeAtPosition(cursorPosition);
 		const word = document.getText(wordRange)
-		const tableName = plural(stringcase.snakecase(word));
+		let tableName = Case.snake(word);
+
+		if (!tableExists(tableName)) {
+			tableName = plural(tableName);
+
+			if (!tableExists(tableName)) {
+				return vscode.window.showErrorMessage(`Table ${word} does not exist`)
+			}
+		}
 
 		this.setActiveTable(tableName);
 	}

@@ -208,3 +208,7 @@ export function getWorkspaceTables() {
 export function tableExists(tableName: string) {
 	return workspaceTables.includes(tableName)
 }
+
+export function isTablesLoaded() {
+	return workspaceTables.length > 0
+}
