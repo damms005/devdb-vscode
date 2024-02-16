@@ -87,9 +87,17 @@ export interface PaginatedTableQueryResponse {
 	columns?: Column[]
 }
 
-export interface FreshTableQueryResponse extends PaginatedTableQueryResponse {
+export interface TableQueryResponse extends PaginatedTableQueryResponse {
 	tableCreationSql: string,
 }
+
+export interface TableFilterPayload {
+	table: string,
+	itemsPerPage: number,
+	filters: Record<string, any>,
+}
+
+export interface TableFilterResponse extends Omit<TableFilterPayload, 'itemsPerPage'>, TableQueryResponse { }
 
 export type SqliteConfig = {
 	type: 'sqlite'

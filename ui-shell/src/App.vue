@@ -91,12 +91,13 @@ function buildTabFromPayload(payload) {
 
 	const tab = {
 		table: payload.value.table,
-		tableCreationSql: payload.value.tableCreationSql,
-		lastQuery: payload.value.lastQuery,
+		filters: payload.value.filters || {},
 		columns: payload.value.columns,
 		rows: payload.value.rows,
 		totalRows: payload.value.totalRows,
 		pagination: payload.value.pagination,
+		tableCreationSql: payload.value.tableCreationSql,
+		lastQuery: payload.value.lastQuery,
 	}
 
 	return tab
@@ -115,7 +116,7 @@ function refreshProviders() {
 }
 
 function removeTab(tabIndex) {
-	 displayedTabs.value.splice(tabIndex, 1)
+	displayedTabs.value.splice(tabIndex, 1)
 }
 
 function destroyUi() {

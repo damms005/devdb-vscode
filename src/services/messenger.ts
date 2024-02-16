@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, FreshTableQueryResponse, PaginatedTableQueryResponse, QueryResponse } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -118,30 +118,33 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 async function getFreshTableData(requestPayload: {
 	table: string,
 	itemsPerPage: number,
-}): Promise<FreshTableQueryResponse | undefined> {
+}): Promise<TableQueryResponse | undefined> {
 	return getTableData({
 		table: requestPayload.table,
 		itemsPerPage: requestPayload.itemsPerPage,
 	})
 }
 
-async function getFilteredTableData(requestPayload: {
-	table: string,
-	itemsPerPage: number,
-	filters: Record<string, any>,
-}): Promise<FreshTableQueryResponse | undefined> {
-	return getTableData({
+async function getFilteredTableData(requestPayload: TableFilterPayload): Promise<TableFilterResponse | undefined> {
+	const tableData: TableQueryResponse | undefined = await getTableData({
 		table: requestPayload.table,
 		itemsPerPage: requestPayload.itemsPerPage,
 		filters: requestPayload.filters,
 	})
+
+	if (!tableData) return
+
+	return {
+		...tableData,
+		filters: requestPayload.filters,
+	}
 }
 
 async function getTableData(requestPayload: {
 	table: string,
 	itemsPerPage: number,
 	filters?: Record<string, any>,
-}): Promise<FreshTableQueryResponse | undefined> {
+}): Promise<TableQueryResponse | undefined> {
 
 	if (!database) return
 
