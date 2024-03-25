@@ -117,9 +117,7 @@
 		"test": "node ./out/test/runTest.js",
 		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
 		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts",
-		"check-branch": "node -e \"const branch = require('child_process').execSync('git rev-parse --abbrev-ref HEAD').toString().trim(); if (branch === 'main') { console.log('Running from the main branch.'); process.exit(0); } else { console.error('\\x1b[31mError:\\x1b[0m The publish script can only be run from the main branch.'); process.exit(1); }\"",
-		"publish": "npm run check-branch && npm version",
-		"postpublish": "git push --follow-tags"
+		"publish": "./publish.sh"
 	},
 	"devDependencies": {
 		"@testcontainers/mysql": "^10.6.0",
