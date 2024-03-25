@@ -117,7 +117,8 @@
 		"test": "node ./out/test/runTest.js",
 		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
 		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts",
-		"publish": "git branch --show-current | grep -q '^main$' && npm version || echo 'Publishing is only allowed from the main branch.'",
+		"check-branch": "node -e \"if (process.env.npm_config_user_agent.includes('npm/7')) { console.log('Running npm 7+'); process.exit(0); } else { console.error('\\x1b[31mThe publish script can only be run from the main branch.'); process.exit(1); }\"",
+		"publish": "npm run check-branch && npm version",
 		"postpublish": "git push --follow-tags"
 	},
 	"devDependencies": {
