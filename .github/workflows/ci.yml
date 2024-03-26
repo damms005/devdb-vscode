@@ -17,10 +17,6 @@ jobs:
             platform: win32
             arch: x64
             npm_config_arch: x64
-          - os: windows-latest
-            platform: win32
-            arch: arm64
-            npm_config_arch: arm
           - os: ubuntu-latest
             platform: linux
             arch: x64
@@ -51,7 +47,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 20.x
-      - run: npm install --build-from-source
+      - run: npm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
