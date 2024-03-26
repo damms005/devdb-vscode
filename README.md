@@ -14,6 +14,12 @@ Built with 💖 for developers.
 - A VS Code project that uses any of the [supported databases](#supported-databases)
 
 ## Quick Start
+Supported OSes/Platforms:
+- Linux (Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
+- macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
+- Windows (Win32-x64)
+
+## Quick Start
 
 - In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly set up and you are able to connect to your database as usual from your normal app code.
 - DevDb [loads your database](#loading-databases). You can view your database by opening the DevDb (usually before the Terminal tab) as shown in the screenshot below, or by using the [shortcut](#keybinding):
