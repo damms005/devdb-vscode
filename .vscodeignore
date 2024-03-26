@@ -1,6 +1,12 @@
-.vscode/**
-.vscode-test/**
-src/**
+.aider*
+.github/
+.vscode/
+.vscode-test/
+out/test/
+resources/
+src/
+ui-shell/src/
+ui-shell/cypress/
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
