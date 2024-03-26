@@ -9,8 +9,15 @@ lerna-debug.log*
 
 node_modules
 .DS_Store
-dist
 dist-ssr
+dist
+
+# We use the assets folder so we don't have to build
+# because we are yet to publish the UI package on NPM
+# https://github.com/damms005/devdb-vscode/actions/runs/8435299388/job/23100385334#step:6:25
+# https://github.com/damms005/devdb-vscode/blob/d7220957422d1929aec3e51db18e60a54a2e37c2/src/services/html.ts#L57
+!dist/assets
+
 coverage
 *.local
 
