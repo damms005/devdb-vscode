@@ -3,6 +3,7 @@
 .vscode/
 .vscode-test/
 out/test/
+resources/screenshots/
 src/
 ui-shell/src/
 ui-shell/cypress/
