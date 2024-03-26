@@ -13,8 +13,7 @@ Built with 💖 for developers.
 - VS Code 1.83 or newer
 - A VS Code project that uses any of the [supported databases](#supported-databases)
 
-## Quick Start
-Supported OSes/Platforms:
+## Supported OSes/Platforms:
 - Linux (Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
 - macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
 - Windows (Win32-x64)
