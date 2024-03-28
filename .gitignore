@@ -4,3 +4,39 @@ node_modules
 .vscode-test/
 *.vsix
 .aider*
+
+# Logs
+ui-shell/logs
+ui-shell/*.log
+ui-shell/npm-debug.log*
+ui-shell/yarn-debug.log*
+ui-shell/yarn-error.log*
+ui-shell/pnpm-debug.log*
+ui-shell/lerna-debug.log*
+
+ui-shell/node_modules
+ui-shell/.DS_Store
+ui-shell/dist
+
+# We use the assets folder so we don't have to build
+# because we are yet to publish the UI package on NPM
+# https://github.com/damms005/devdb-vscode/actions/runs/8435299388/job/23100385334#step:6:25
+# https://github.com/damms005/devdb-vscode/blob/d7220957422d1929aec3e51db18e60a54a2e37c2/src/services/html.ts#L57
+!ui-shell/dist/assets
+
+ui-shell/dist-ssr
+ui-shell/coverage
+ui-shell/*.local
+
+ui-shell/cypress/videos/
+ui-shell/cypress/screenshots/
+
+# Editor directories and files
+ui-shell/.vscode/*
+ui-shell/!.vscode/extensions.json
+ui-shell/.idea
+ui-shell/*.suo
+ui-shell/*.ntvs*
+ui-shell/*.njsproj
+ui-shell/*.sln
+ui-shell/*.sw?
