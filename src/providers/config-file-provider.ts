@@ -80,8 +80,8 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 	} else {
 		return {
 			id: sqliteConnection.path,
-			description: brief(sqliteConnection.path),
 			details: sqliteConnection.path,
+			description: brief(sqliteConnection.path),
 			engine: engine
 		}
 	}

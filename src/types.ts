@@ -24,8 +24,8 @@ export type EngineProviderOption = {
 
 export type EngineProviderCache = {
 	id: string,
-	description: string,
 	details?: string,
+	description: string,
 	engine: MysqlEngine,
 }
 
