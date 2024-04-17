@@ -153,4 +153,7 @@ function getSafeRandomShareTweet(): string {
 	const message = messages[Math.floor(Math.random() * messages.length)];
 
 	return message;
+	const message = messages[Math.floor(Math.random() * messages.length)];
+
+	return message;
 }
