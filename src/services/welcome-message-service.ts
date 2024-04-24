@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
 
 const BUTTON_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
-const BUTTON_FOLLOW_ON_X = "𝕏 Follow me"
+const BUTTON_FOLLOW_ON_X = "𝕏 Follow"
 const BUTTON_SHARE_ON_X = "𝕏 Share"
 const BUTTON_REPORT_BUG = "🐞 Report bug";
 
@@ -10,18 +10,20 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const extensionConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
 		'Devdb'
 	);
-
 	if (extensionConfig.dontShowNewVersionMessage) {
 		return;
 	}
 
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
+
+	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
+
 	const previousVersionArray = getPreviousVersionArray(previousVersion);
 	const currentVersionArray = getCurrentVersionArray(currentVersion);
 
 	if (previousVersion === undefined || previousVersion.length === 0) {
-		showMessage(`Thanks for using DevDb.`, context)
+		showMessageAndButtons(`Thanks for using DevDb.`, context)
 		return
 	}
 
@@ -29,31 +31,29 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		return;
 	}
 
-	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
-
 	if (
 		isMajorUpdate(previousVersionArray, currentVersionArray) ||
 		isMinorUpdate(previousVersionArray, currentVersionArray) ||
 		isPatchUpdate(previousVersionArray, currentVersionArray)
 	) {
-		showMessage(`DevDb updated to ${currentVersion}.`, context);
+		showMessageAndButtons(`DevDb updated to ${currentVersion}.`, context);
 	}
 }
 
-function showMessage(message: string, context: vscode.ExtensionContext) {
+function showMessageAndButtons(message: string, context: vscode.ExtensionContext) {
 	const buttons = []
 	const userHasClickedGitHubStarring = hasClickedGitHubStarring(context)
-	const userHasClickedToShareOnX = hasClickedToShareOnX(context)
+	const userHasClickedToFollowOnX = hasClickedToFollowOnX(context)
 
 	if (!userHasClickedGitHubStarring) {
 		buttons.push(BUTTON_STAR_GITHUB_REPO)
 	}
 
-	if (!userHasClickedToShareOnX) {
+	if (!userHasClickedToFollowOnX) {
 		buttons.push(BUTTON_FOLLOW_ON_X)
 	}
 
-	if (userHasClickedGitHubStarring || userHasClickedToShareOnX) {
+	if (userHasClickedGitHubStarring || userHasClickedToFollowOnX) {
 		buttons.push(BUTTON_SHARE_ON_X)
 	}
 
@@ -68,15 +68,14 @@ function showMessage(message: string, context: vscode.ExtensionContext) {
 					break;
 
 				case BUTTON_FOLLOW_ON_X:
-					context.globalState.update(ExtensionConstants.clickedToShareOnX, true);
+					context.globalState.update(ExtensionConstants.clickedToFollowOnX, true);
 					vscode.env.openExternal(vscode.Uri.parse("https://twitter.com/_damms005"))
 					break;
 
 				case BUTTON_SHARE_ON_X:
 					context.globalState.update(ExtensionConstants.clickedToShareOnX, true);
-					const message = getRandomShareTweet()
+					const message = getSafeRandomShareTweet()
 					// https://developer.twitter.com/en/docs/twitter-for-websites/tweet-button/overview
-					// const message = "DevDb page: https://marketplace.visualstudio.com/items?itemName=damms005.devdb"
 					const twitterIntentUri = vscode.Uri.from({ scheme: 'https', path: 'twitter.com/intent/tweet', query: `text=${message}` });
 					vscode.env.openExternal(twitterIntentUri)
 					break;
@@ -129,24 +128,26 @@ function hasClickedGitHubStarring(context: vscode.ExtensionContext) {
 	return context.globalState.get<boolean>(ExtensionConstants.clickedGitHubStarring);
 }
 
-function hasClickedToShareOnX(context: vscode.ExtensionContext) {
-	return context.globalState.get<boolean>(ExtensionConstants.clickedToShareOnX);
+function hasClickedToFollowOnX(context: vscode.ExtensionContext) {
+	return context.globalState.get<boolean>(ExtensionConstants.clickedToFollowOnX);
 }
 
 /**
- * @returns A random message to share on X, within the 280 X character limit
+ * Gets a random message to share on X, within the 280 X character limit.
+ * For the string to be 'safe', it must not contain any special characters because the URI may
+ * get broken like so. VS Code opening link->Twitter decoding same is wacky, and neither
+ * encodeUri nor encodeUriComponent is helpful for this. It is some bug in VS Code and/or Twitter
+ * and I am not digging into that rabbit hole.
  */
-function getRandomShareTweet(): string {
+function getSafeRandomShareTweet(): string {
 	const messages = [
-		// https://bit.ly/devdb
-		"If you work with databases and use VS Code, you may want to check out DevDb. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"Working with databases in your VS Code workspace? You should give DevDb a try. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"DevDb is a VS Code extension that helps you work with databases. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"DevDb makes working with databases in VS Code so much easier. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"I just found this amazing VS Code extension for working with databases. It's called DevDb and it's awesome! https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"If you're a developer who works with databases, you should definitely check out DevDb for VS Code. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"DevDb is a must-have VS Code extension for anyone who works with databases. https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
-		"I use DevDb to work with databases in VS Code. It's a game changer! https://marketplace.visualstudio.com/items?itemName=damms005.devdb",
+		"If you work with databases and use VS Code, you may want to check out DevDb. https://bit.ly/devdb",
+		"DevDb is a VS Code extension that helps you work with databases. https://bit.ly/devdb",
+		"DevDb makes working with databases in VS Code so much easier. https://bit.ly/devdb",
+		"I just found this amazing VS Code extension for working with databases. It's called DevDb and it's awesome! https://bit.ly/devdb",
+		"If you're a developer who works with databases, you should definitely check out DevDb for VS Code. https://bit.ly/devdb",
+		"DevDb is a must-have VS Code extension for anyone who works with databases. https://bit.ly/devdb",
+		"I use DevDb to work with databases in VS Code. It's a game changer! https://bit.ly/devdb",
 	];
 
 	const message = messages[Math.floor(Math.random() * messages.length)];

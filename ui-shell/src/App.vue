@@ -9,6 +9,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 const vscode = ref()
 
 const providers = ref([])
+const connected = ref(false)
 const tables = ref([])
 const displayedTabs = ref([])
 const activeTabIndex = ref()
@@ -44,6 +45,7 @@ function setupEventHandlers() {
 			case 'response:select-provider-option':
 				const successfullySelected = payload.value
 				if (successfullySelected) {
+					connected.value = true
 					vscode.value.postMessage({ type: 'request:get-tables' })
 				}
 				break
@@ -122,6 +124,7 @@ function removeTab(tabIndex) {
 function destroyUi() {
 	tables.value = []
 	displayedTabs.value = []
+	connected.value = false
 }
 
 // JSON strip this so we prevent "[object Object] could not be cloned" error
@@ -188,8 +191,9 @@ function openSettings(theme) {
 <template>
 	<div class="h-full min-h-full w-full min-w-full bg-white">
 		<DevDB
-			:providers="providers"
-			:tables="tables"
+			:providers
+			:connected
+			:tables
 			:tabs="displayedTabs"
 			:activeTabIndex="activeTabIndex"
 			:user-preferences="userPreferences"
