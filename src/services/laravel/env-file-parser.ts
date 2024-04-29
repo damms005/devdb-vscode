@@ -3,7 +3,7 @@ import { getEnvFileValue } from "./laravel-core";
 import { Dialect, Sequelize } from "sequelize";
 import { getConnectionFor } from "../sequelize-connector";
 import { LaravelConnection } from '../../types';
-import { getPortFromDockerCompose, isLaravelSailWorkspace } from './sail';
+import { getPortFromDockerCompose, hasLaravelSailDockerComposeFile } from './sail';
 
 export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
 	const envConnection = await getEnvFileValue('DB_CONNECTION')
@@ -37,7 +37,9 @@ async function connectUsingHostConfiguredInEnvFile(dialect: Dialect, host: strin
 async function getHost() {
 	const localhost = '127.0.0.1'
 
-	if (await isLaravelSailWorkspace()) {
+	const isALaravelSailWorkspace = await hasLaravelSailDockerComposeFile()
+
+	if (isALaravelSailWorkspace) {
 		return localhost
 	}
 
@@ -45,7 +47,7 @@ async function getHost() {
 }
 
 async function getPort(service: 'mysql' | 'postgres'): Promise<number | undefined> {
-	if (await isLaravelSailWorkspace()) {
+	if (await hasLaravelSailDockerComposeFile()) {
 		return getPortFromDockerCompose(service)
 	}
 

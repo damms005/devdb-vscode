@@ -3,7 +3,7 @@ import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent } from "../w
 import { getEnvFileValue } from "./laravel-core";
 import { parse } from 'yaml'
 
-export async function isLaravelSailWorkspace() {
+export async function hasLaravelSailDockerComposeFile() {
 	const workspacePath = getFirstWorkspacePath()
 	if (!workspacePath) return false
 
