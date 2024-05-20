@@ -76,7 +76,7 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 					context.globalState.update(ExtensionConstants.clickedToShareOnX, true);
 					const message = getSafeRandomShareTweet()
 					// https://developer.twitter.com/en/docs/twitter-for-websites/tweet-button/overview
-					const twitterIntentUri = vscode.Uri.from({ scheme: 'https', path: 'twitter.com/intent/tweet', query: `text=${message}` });
+					const twitterIntentUri = vscode.Uri.parse(`https://twitter.com/intent/tweet?text=${message}`);
 					vscode.env.openExternal(twitterIntentUri)
 					break;
 
