@@ -41,6 +41,7 @@ No [configuration file](#1-config-based-database-loading) is needed for these en
 1. Laravel MySQL/MariaDB with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
 1. Laravel Postgres with default .env config
+1. Laravel Microsoft SQL Server with default .env config
 
 ### 2. Config-based database loading
 
@@ -128,6 +129,7 @@ The following databases are currently supported:
 - MySQL
 - MariaDB
 - *Postgres
+- Microsoft SQL Server
 
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
 > [!NOTE]
