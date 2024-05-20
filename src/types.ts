@@ -122,4 +122,8 @@ export interface PostgresConfig extends SqlConfig {
 	type: 'postgres'
 }
 
+export interface MssqlConfig extends SqlConfig {
+	type: 'mssql'
+}
+
 export type LaravelConnection = 'pgsql' | 'mysql'

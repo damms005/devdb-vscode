@@ -120,6 +120,7 @@
 		"publish": "./publish.sh"
 	},
 	"devDependencies": {
+		"@testcontainers/mssqlserver": "^10.9.0",
 		"@testcontainers/mysql": "^10.6.0",
 		"@testcontainers/postgresql": "^10.6.0",
 		"@types/mocha": "^10.0.2",
@@ -151,6 +152,7 @@
 		"sequelize": "^6.33.0",
 		"sql-formatter": "^13.1.0",
 		"sqlite3": "^5.1.7",
+		"tedious": "^18.2.0",
 		"yaml": "^2.3.3"
 	},
 	"prettier": {
