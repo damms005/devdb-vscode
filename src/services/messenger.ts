@@ -61,11 +61,15 @@ async function getAvailableProviders() {
 	const availableProviders = await Promise.all(providers.map(async (provider) => {
 		if (provider.boot) await provider.boot()
 
-		const canBeUsed = await provider.canBeUsedInCurrentWorkspace()
-		return canBeUsed ? provider : null
+		try {
+			const canBeUsed = await provider.canBeUsedInCurrentWorkspace()
+			return canBeUsed ? provider : null
+		} catch (error) {
+			vscode.window.showErrorMessage(`Error resolving provider '${provider.name}': ${String(error)}`)
+		}
 	}))
 
-	return (availableProviders.filter((provider) => provider !== null) as DatabaseEngineProvider[])
+	return (availableProviders.filter((provider) => provider) as DatabaseEngineProvider[])
 		.map((provider) => ({
 			name: provider.name,
 			type: provider.type,
