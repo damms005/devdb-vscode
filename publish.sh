@@ -37,6 +37,8 @@ pwd
 npm version "$1" || exit 1
 
 # Push the tags with git push --follow-tags. This ensure that the tags are pushed to the remote repository.
-# This works because npm version creates annotated tags, and git push --follow-tags pushes annotated tags.
+# This works because `npm version` creates annotated tags, and `git push --follow-tags` pushes annotated tags.
 # CI/CD pipeline handles publishing to VS Code Marketplace (GitHub Actions).
 git push --follow-tags
+
+echo "CD pipeline will now handle publishing to VS Code Marketplace."
