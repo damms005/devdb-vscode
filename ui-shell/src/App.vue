@@ -62,6 +62,13 @@ function setupEventHandlers() {
 				activeTabIndex.value = displayedTabs.value.length - 1
 				break
 
+			case 'response:get-refreshed-table-data':
+				const refreshedTab = buildTabFromPayload(payload)
+				if (!refreshedTab) return
+
+				displayedTabs.value.splice(activeTabIndex.value, 1, refreshedTab)
+				break
+
 			case 'response:get-filtered-table-data':
 				const updatedTab = buildTabFromPayload(payload)
 				if (!updatedTab) return
@@ -136,6 +143,16 @@ function getFreshTableData(table, itemsPerPage) {
 	vscode.value.postMessage({ type: 'request:get-fresh-table-data', value: { table, itemsPerPage } })
 }
 
+function refreshActiveTab(activeTab) {
+	vscode.value.postMessage({
+		type: 'request:get-refreshed-table-data',
+		value: {
+			table: activeTab.table,
+			itemsPerPage: activeTab.pagination.itemsPerPage,
+		},
+	})
+}
+
 function getFilteredData(filters, itemsPerPage) {
 	if (activeTabIndex.value === undefined || activeTabIndex.value === null) return
 
@@ -204,9 +221,10 @@ function openSettings(theme) {
 			@update-current-tab-filter="getFilteredData"
 			@switch-to-tab="switchToTab"
 			@get-data-for-tab-page="getDataForTabPage"
+			@refresh-active-tab="refreshActiveTab"
+			@remove-tab="removeTab"
 			@items-per-page-changed="itemsPerPageChanged"
 			@open-settings="openSettings"
-			@remove-tab="removeTab"
 			@destroy-ui="destroyUi"
 		/>
 	</div>
