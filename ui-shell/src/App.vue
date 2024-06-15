@@ -63,10 +63,11 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-refreshed-table-data':
-				const refreshedTab = buildTabFromPayload(payload)
-				if (!refreshedTab) return
+			case 'response:load-table-into-current-tab':
+				const alternativeTab = buildTabFromPayload(payload)
+				if (!alternativeTab) return
 
-				displayedTabs.value.splice(activeTabIndex.value, 1, refreshedTab)
+				displayedTabs.value.splice(activeTabIndex.value, 1, alternativeTab)
 				break
 
 			case 'response:get-filtered-table-data':
@@ -153,6 +154,20 @@ function refreshActiveTab(activeTab) {
 	})
 }
 
+function loadTableIntoCurrentTab(table) {
+	if (activeTabIndex.value === undefined || activeTabIndex.value === null) {
+		return getFreshTableData(table, itemsPerPage.value)
+	}
+
+	vscode.value.postMessage({
+		type: 'request:load-table-into-current-tab',
+		value: {
+			table: table,
+			itemsPerPage: itemsPerPage.value,
+		},
+	})
+}
+
 function getFilteredData(filters, itemsPerPage) {
 	if (activeTabIndex.value === undefined || activeTabIndex.value === null) return
 
@@ -222,6 +237,7 @@ function openSettings(theme) {
 			@switch-to-tab="switchToTab"
 			@get-data-for-tab-page="getDataForTabPage"
 			@refresh-active-tab="refreshActiveTab"
+			@load-table-into-current-tab="loadTableIntoCurrentTab"
 			@remove-tab="removeTab"
 			@items-per-page-changed="itemsPerPageChanged"
 			@open-settings="openSettings"

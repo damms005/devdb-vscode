@@ -30,6 +30,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-tables': async () => getTables(),
 		'request:get-fresh-table-data': async () => await getFreshTableData(data.value),
 		'request:get-refreshed-table-data': async () => await getFreshTableData(data.value),
+		'request:load-table-into-current-tab': async () => await getFreshTableData(data.value),
 		'request:get-filtered-table-data': async () => await getFilteredTableData(data.value),
 		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),

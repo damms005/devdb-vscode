@@ -149,6 +149,9 @@ The following databases are currently supported:
 
   ![image](resources/screenshots/laravel-code-lens.png)
 
+### Other features
+- `Ctrl + Click` (`Meta + Click` on macOS) on a table in the list of tables in the sidebar to open the table in the current tab
+
 ## Why DevDb?
 
 Two words: Better DX.
