@@ -15,15 +15,15 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const { where, replacements } = SqlService.buildWhereClause(undefined);
+		const { where, replacements } = SqlService.buildWhereClause('`',undefined);
 		assert.deepStrictEqual(where, []);
 		assert.deepStrictEqual(replacements, []);
 	});
 
 	it('ensures buildWhereClause returns correct arrays when whereClause is defined', () => {
 		const whereClause = { name: 'John', age: 30 };
-		const { where, replacements } = SqlService.buildWhereClause(whereClause);
-		assert.deepStrictEqual(where, ['name LIKE ?', 'age LIKE ?']);
+		const { where, replacements } = SqlService.buildWhereClause('`',whereClause);
+		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` LIKE ?']);
 		assert.deepStrictEqual(replacements, ['%John%', '%30%']);
 	});
 
@@ -51,7 +51,7 @@ describe('SqliteService Tests', () => {
 			{ id: 2, name: 'Jane', age: 25 }
 		]);
 
-		assert.strictEqual(result?.sql, "Executing (default): SELECT * FROM `users` WHERE name LIKE '%J%' LIMIT 2");
+		assert.strictEqual(result?.sql, "Executing (default): SELECT * FROM `users` WHERE `name` LIKE '%J%' LIMIT 2");
 	});
 
 	it('ensures initializePaginationFor returns null when sequelize is null', async () => {

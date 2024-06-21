@@ -4,7 +4,7 @@ import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
-	buildWhereClause(whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
+	buildWhereClause(delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
 		if (!whereClause) return {
 			where: [],
 			replacements: []
@@ -15,7 +15,7 @@ export const SqlService = {
 
 		Object.entries(whereClause)
 			.forEach(([column, value]) => {
-				where.push(`${column} LIKE ?`)
+				where.push(`${delimiter}${column}${delimiter} LIKE ?`)
 				replacements.push(`%${value}%`);
 			})
 
@@ -30,7 +30,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(whereClause);
+		const { where, replacements } = this.buildWhereClause(delimiter, whereClause);
 
 		let limitConstraint = limit ? `LIMIT ${limit}` : '';
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
@@ -63,7 +63,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(whereClause);
+		const { where, replacements } = this.buildWhereClause(delimiter, whereClause);
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let count;
 
