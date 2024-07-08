@@ -175,3 +175,18 @@ Hence, DevDb 🚀
 ## Disclaimer
 
 DevDb does not aim to provide feature-parity with popular GUI database clients. This extension is focused on improving the experience of working with databases during application development.
+
+## Contribution
+> [!WARNING]
+> Contributions are currently only accepted for the extension core code only.
+
+> [!NOTE]
+> In order to contribute to the extension core, you may need to be conversant with [VS Code Extension Guide](https://code.visualstudio.com/api/extension-guides/overview).
+
+- Fork this repo, then clone your fork to local
+- Make you contributions to the codebase locally
+- Press `F5` to launch the debugger to test your changes locally
+- Run the test suites with `npm run test-services` and ensure existing tests pass (if you added tests with your changes, ensure those pass too)
+- Push your changes back to your fork
+- Open a PR with your changes to this repo
+- Take your flowers! 💐💐🎊🎊🎊
