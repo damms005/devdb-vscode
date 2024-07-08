@@ -64,7 +64,7 @@ export class MysqlEngine implements DatabaseEngine {
 			logging: false
 		}) as any[];
 
-		const computedColumns = []
+		const computedColumns: Column[] = []
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
@@ -86,7 +86,7 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows('mysql',this.sequelize, table, limit, offset, whereClause);
+		return SqlService.getRows('mysql', this.sequelize, table, limit, offset, whereClause);
 	}
 }
 
