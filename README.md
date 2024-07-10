@@ -184,6 +184,7 @@ DevDb does not aim to provide feature-parity with popular GUI database clients. 
 > In order to contribute to the extension core, you may need to be conversant with [VS Code Extension Guide](https://code.visualstudio.com/api/extension-guides/overview).
 
 - Fork this repo, then clone your fork to local
+- Run `npm install` to install dependencies
 - Make you contributions to the codebase locally
 - Press `F5` to launch the debugger to test your changes locally
 - Run the test suites with `npm run test-services` and ensure existing tests pass (if you added tests with your changes, ensure those pass too)
