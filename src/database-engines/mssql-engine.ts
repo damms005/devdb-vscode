@@ -119,6 +119,9 @@ export class MssqlEngine implements DatabaseEngine {
 
 		return { rows };
 	}
+
+	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> { }
+
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {

@@ -103,6 +103,8 @@ export class PostgresEngine implements DatabaseEngine {
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqlService.getRows('postgres',this.sequelize, table, limit, offset, whereClause);
 	}
+
+	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> { }
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {
