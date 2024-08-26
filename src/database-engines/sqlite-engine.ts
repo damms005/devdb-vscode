@@ -81,19 +81,6 @@ export class SqliteEngine implements DatabaseEngine {
 	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqlService.getRows('sqlite', this.sequelize, table, limit, offset, whereClause);
 	}
-
-	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> {
-		if (!records.length) return undefined;
-
-		const columns = Object.keys(records[0]);
-		const values = records.map(record => 
-			`(${columns.map(column => `'${record[column]}'`).join(', ')})`
-		).join(',\n');
-
-		const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES\n${values};`;
-
-		return format(sql, { language: 'sql' });
-	}
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<ForeignKey | undefined> {

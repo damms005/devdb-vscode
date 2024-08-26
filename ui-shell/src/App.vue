@@ -205,17 +205,10 @@ function getDataForTabPage(tab, page) {
 	})
 }
 
-function exportTableData() {
-
+function exportTableData(exportData) {
 	vscode.value.postMessage({
 		type: 'request:export-table-data',
-		value: {
-			table: tab.table,
-			page,
-			whereClause: tab.filters,
-			totalRows: tab.totalRows,
-			itemsPerPage: tab.pagination.itemsPerPage,
-		},
+		value: removeProxyWrap(exportData),
 	})
 }
 
@@ -235,7 +228,9 @@ function openSettings(theme) {
 </script>
 
 <template>
+	<!-- eslint-disable vue/no-multiple-template-root -->
 	<div class="h-full min-h-full w-full min-w-full bg-white">
+		<!-- eslint-disable vue/valid-v-bind -->
 		<DevDB
 			:providers
 			:connected

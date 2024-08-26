@@ -35,7 +35,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-filtered-table-data': async () => await getFilteredTableData(data.value),
 		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
-		'request:export-table-data': async () => await exportTableData(data.value), // Updated action for export
+		'request:export-table-data': async () => await exportTableData(data.value,database),
 	}
 
 	const action = actions[data.type]

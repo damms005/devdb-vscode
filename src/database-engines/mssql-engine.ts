@@ -118,20 +118,6 @@ export class MssqlEngine implements DatabaseEngine {
 
 		return { rows };
 	}
-
-	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> {
-		if (!records.length) return undefined;
-
-		const columns = Object.keys(records[0]);
-		const values = records.map(record =>
-			`(${columns.map(column => `'${record[column]}'`).join(', ')})`
-		).join(',\n');
-
-		const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES\n${values};`;
-
-		return format(sql, { language: 'sql' });
-	}
-
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {

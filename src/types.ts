@@ -68,8 +68,6 @@ export interface DatabaseEngine {
 	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
 	getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
-
-	convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined>
 }
 
 export type QueryResponse = {
