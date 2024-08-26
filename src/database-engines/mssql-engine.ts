@@ -1,7 +1,6 @@
 import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
-import { SqlService } from '../services/sql';
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
@@ -120,7 +119,18 @@ export class MssqlEngine implements DatabaseEngine {
 		return { rows };
 	}
 
-	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> { }
+	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> {
+		if (!records.length) return undefined;
+
+		const columns = Object.keys(records[0]);
+		const values = records.map(record =>
+			`(${columns.map(column => `'${record[column]}'`).join(', ')})`
+		).join(',\n');
+
+		const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES\n${values};`;
+
+		return format(sql, { language: 'sql' });
+	}
 
 }
 

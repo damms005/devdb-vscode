@@ -1,6 +1,7 @@
 import { Sequelize, QueryTypes } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
+import { format } from 'sql-formatter';
 
 export class PostgresEngine implements DatabaseEngine {
 	public sequelize: Sequelize | null = null;
@@ -104,7 +105,18 @@ export class PostgresEngine implements DatabaseEngine {
 		return SqlService.getRows('postgres',this.sequelize, table, limit, offset, whereClause);
 	}
 
-	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> { }
+	async convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined> {
+		if (!records.length) return undefined;
+
+		const columns = Object.keys(records[0]);
+		const values = records.map(record =>
+			`(${columns.map(column => `'${record[column]}'`).join(', ')})`
+		).join(',\n');
+
+		const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES\n${values};`;
+
+		return format(sql, { language: 'sql' });
+	}
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {
