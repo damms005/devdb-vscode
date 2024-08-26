@@ -67,10 +67,9 @@ export interface DatabaseEngine {
 
 	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
-	/**
-	 * Gets the rows in a table
-	 */
 	getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
+
+	convertToSqlInsertStatement(table: string, records: Record<string, any>[]): Promise<string | undefined>
 }
 
 export type QueryResponse = {
@@ -79,7 +78,7 @@ export type QueryResponse = {
 }
 
 export interface PaginatedTableQueryResponse {
-	rows: any[]
+	rows: Record<string, any>[]
 	totalRows: number
 	lastQuery?: string,
 	table: string
@@ -95,6 +94,13 @@ export interface TableFilterPayload {
 	table: string,
 	itemsPerPage: number,
 	filters: Record<string, any>,
+}
+
+export type FileExportType = 'sql' | 'json';
+
+export interface TableFilterExportPayload extends TableFilterPayload {
+	exportTo: 'file' | 'clipboard'
+	exportType?: FileExportType
 }
 
 export interface TableFilterResponse extends Omit<TableFilterPayload, 'itemsPerPage'>, TableQueryResponse { }

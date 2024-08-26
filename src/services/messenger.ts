@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
+import { exportTableData } from './export-table-data'; // Import the new export function
 
 const workspaceTables: string[] = [];
 
@@ -34,6 +35,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-filtered-table-data': async () => await getFilteredTableData(data.value),
 		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
+		'request:export-table-data': async () => await exportTableData(data.value), // Updated action for export
 	}
 
 	const action = actions[data.type]
@@ -131,7 +133,7 @@ async function getFreshTableData(requestPayload: {
 	})
 }
 
-async function getFilteredTableData(requestPayload: TableFilterPayload): Promise<TableFilterResponse | undefined> {
+export async function getFilteredTableData(requestPayload: TableFilterPayload): Promise<TableFilterResponse | undefined> {
 	const tableData: TableQueryResponse | undefined = await getTableData({
 		table: requestPayload.table,
 		itemsPerPage: requestPayload.itemsPerPage,

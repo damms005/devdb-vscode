@@ -205,6 +205,20 @@ function getDataForTabPage(tab, page) {
 	})
 }
 
+function exportTableData() {
+
+	vscode.value.postMessage({
+		type: 'request:export-table-data',
+		value: {
+			table: tab.table,
+			page,
+			whereClause: tab.filters,
+			totalRows: tab.totalRows,
+			itemsPerPage: tab.pagination.itemsPerPage,
+		},
+	})
+}
+
 function itemsPerPageChanged(value) {
 	if (activeTabIndex.value === undefined) return
 
@@ -242,6 +256,7 @@ function openSettings(theme) {
 			@items-per-page-changed="itemsPerPageChanged"
 			@open-settings="openSettings"
 			@destroy-ui="destroyUi"
+			@export-table-data="exportTableData"
 		/>
 	</div>
 	<RouterView />
