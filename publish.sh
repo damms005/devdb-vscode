@@ -41,4 +41,4 @@ npm version "$1" || exit 1
 # CI/CD pipeline handles publishing to VS Code Marketplace (GitHub Actions).
 git push --follow-tags
 
-echo "CD pipeline will now handle publishing to VS Code Marketplace."
+echo "\n\nCD pipeline will now handle publishing to VS Code Marketplace.\n\n"
