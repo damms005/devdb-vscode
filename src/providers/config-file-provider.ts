@@ -7,6 +7,7 @@ import { MysqlEngine } from '../database-engines/mysql-engine';
 import { getConnectionFor } from '../services/sequelize-connector';
 import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MssqlEngine } from '../database-engines/mssql-engine';
+import { existsSync } from 'fs';
 
 export const ConfigFileProvider: DatabaseEngineProvider = {
 	name: 'Config File',
@@ -99,6 +100,13 @@ async function mssqlConfigResolver(mssqlConfig: MssqlConfig): Promise<EngineProv
 }
 
 async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<EngineProviderCache | undefined> {
+
+	if (!existsSync(sqliteConnection.path)) {
+		vscode.window.showErrorMessage(`A path to an SQLite database file specified in your config file is not valid: ${sqliteConnection.path}`)
+
+		return Promise.resolve(undefined);
+	}
+
 	const engine: SqliteEngine = new SqliteEngine(sqliteConnection.path)
 	const isOkay = (await engine.isOkay())
 	if (!isOkay || !engine.sequelize) {
