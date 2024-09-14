@@ -40,6 +40,7 @@ No [configuration file](#1-config-based-database-loading) is needed for these en
 1. Laravel with local default SQLite database
 1. Laravel MySQL/MariaDB with default .env config
 1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml
+   - VS Code attached to container or DevContainer supported
 1. Laravel Postgres with default .env config
 1. Laravel Microsoft SQL Server with default .env config
 
