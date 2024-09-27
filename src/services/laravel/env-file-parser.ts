@@ -39,7 +39,7 @@ async function getHost() {
 
 	const isALaravelSailWorkspace = await hasLaravelSailDockerComposeFile()
 
-	if (isALaravelSailWorkspace) {
+	if (isALaravelSailWorkspace && vscode.env.remoteName != "dev-container") {
 		return localhost
 	}
 
