@@ -40,3 +40,5 @@ node_modules
 /ui-shell/*.njsproj
 /ui-shell/*.sln
 /ui-shell/*.sw?
+
+.DS_Store

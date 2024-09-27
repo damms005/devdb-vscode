@@ -1,6 +1,6 @@
 # [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
-![image](resources/screenshots/main-view.png)
+![image](resources/screenshots/devdb.png)
 
 ![image](resources/screenshots/light-dark-mode.png)
 
@@ -23,7 +23,7 @@ Built with 💖 for developers.
 - In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly set up and you are able to connect to your database as usual from your normal app code.
 - DevDb [loads your database](#loading-databases). You can view your database by opening the DevDb (usually before the Terminal tab) as shown in the screenshot below, or by using the [shortcut](#keybinding):
 
-![image](resources/screenshots/sample-view-location.png)
+![image](resources/screenshots/sample-view-location-plain.png)
 
 
 > [!NOTE]
@@ -133,9 +133,9 @@ The following databases are currently supported:
 - Microsoft SQL Server
 
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
-> [!NOTE]
-> * For Postgres, these features will be added in a future upgrade:
-> primary and optional status of columns, as well as table creation SQL
+<small>
+* features in the works for Postgres: table column status (i.e. indicates whether primary or optional column), and display of the table creation SQL
+</small>
 
 ## Language and Framework Integrations
 ### Context Menu entry
@@ -176,6 +176,9 @@ Hence, DevDb 🚀
 ## Disclaimer
 
 DevDb does not aim to provide feature-parity with popular GUI database clients. This extension is focused on improving the experience of working with databases during application development.
+
+> [!NOTE]
+> VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) are not currently supported. Progress of this feature is [tracked here](https://github.com/damms005/devdb-vscode/issues/68).
 
 ## Contribution
 > [!WARNING]
