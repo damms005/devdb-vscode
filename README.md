@@ -176,6 +176,9 @@ Hence, DevDb 🚀
 
 DevDb does not aim to provide feature-parity with popular GUI database clients. This extension is focused on improving the experience of working with databases during application development.
 
+> [!NOTE]
+> VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) are not currently supported. Progress of this feature is [tracked here](https://github.com/damms005/devdb-vscode/issues/68).
+
 ## Contribution
 > [!WARNING]
 > Contributions are currently only accepted for the extension core code only.
