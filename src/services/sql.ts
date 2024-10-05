@@ -109,23 +109,29 @@ function buildWhereClause(whereClause: Record<string, any>, columns: Column[], d
 				? ' is '
 				: ' LIKE '
 
-			if (targetColumn.type === 'boolean') {
-				if (typeof value === 'number') {
-					value = Boolean(value)
-				} else if (!String(value).trim()) {
-					value = Boolean(false)
-				} else if (String(value).trim().toLowerCase() === 'false') {
-					value = false
-				} else if (!isNaN(value)) {
-					value = Boolean(Number(value))
-				} else {
-					value = Boolean(value)
-				}
-			}
+
+			value = transformValue(targetColumn, value)
 
 			where.push(`${delimiter}${column}${delimiter} ${operator} ?`)
 			replacements.push(value);
 		})
 
 	return { where, replacements }
+}
+
+function transformValue(targetColumn: Column, value: any) {
+	if (targetColumn.type === 'boolean') {
+		if (typeof value === 'number') {
+			value = Boolean(value)
+		} else if (!String(value).trim()) {
+			value = Boolean(false)
+		} else if (String(value).trim().toLowerCase() === 'false') {
+			value = false
+		} else if (!isNaN(value)) {
+			value = Boolean(Number(value))
+		} else {
+			value = Boolean(value)
+		}
+	}
+
 }
