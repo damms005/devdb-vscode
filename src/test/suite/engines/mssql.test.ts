@@ -5,7 +5,14 @@ import { MSSQLServerContainer } from '@testcontainers/mssqlserver';
 
 describe('MSSQL Tests', () => {
 	it('mssql: should return correct foreign key definitions', async () => {
-		const container = await new MSSQLServerContainer()
+		/**
+		 * We use a predefined image like this because mssql docker image download can be ery very slow, hence
+		 * on new computer/initial setup when the image is not already existing, it takes a very long time
+		 * to run this test. Using a predefined image name like this makes it possible to us to manually
+		 * download the image (e.g. using `docker run ...`) to ensure it exists in the system before running the test.
+		 */
+		const mssqlImage = 'mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04'
+		const container = await new MSSQLServerContainer(mssqlImage)
 			.acceptLicense()
 			.withPassword('yourStrong(!)Password')
 			.start();

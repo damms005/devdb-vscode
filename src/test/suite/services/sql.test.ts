@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { SqlService } from '../../../services/sql';
+import { Column } from '../../../types';
 
 describe('SqliteService Tests', () => {
 	let sequelize: Sequelize;
@@ -15,14 +16,27 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const { where, replacements } = SqlService.buildWhereClause([], '`', undefined);
+		const { where, replacements } = SqlService.buildWhereClause('sqlite', [], '`', undefined);
 		assert.deepStrictEqual(where, []);
 		assert.deepStrictEqual(replacements, []);
 	});
 
 	it('ensures buildWhereClause returns correct arrays when whereClause is defined', () => {
 		const whereClause = { name: 'John', age: 30 };
-		const { where, replacements } = SqlService.buildWhereClause([], '`', whereClause);
+
+		const columns: Column[] = [{
+			name: 'name',
+			type: 'text',
+			isPrimaryKey: false,
+			isOptional: true,
+		}, {
+			name: 'age',
+			type: 'integer',
+			isPrimaryKey: false,
+			isOptional: true,
+		}]
+
+		const { where, replacements } = SqlService.buildWhereClause('sqlite', columns, '`', whereClause);
 		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` LIKE ?']);
 		assert.deepStrictEqual(replacements, ['%John%', '%30%']);
 	});
@@ -44,7 +58,20 @@ describe('SqliteService Tests', () => {
 		`);
 
 		const whereClause = { name: 'J' };
-		const result = await SqlService.getRows('sqlite', sequelize, 'users', [], 2, 0, whereClause);
+
+		const columns: Column[] = [{
+			name: 'name',
+			type: 'text',
+			isPrimaryKey: false,
+			isOptional: true,
+		}, {
+			name: 'age',
+			type: 'integer',
+			isPrimaryKey: false,
+			isOptional: true,
+		}]
+
+		const result = await SqlService.getRows('sqlite', sequelize, 'users', columns, 2, 0, whereClause);
 
 		assert.deepStrictEqual(result?.rows, [
 			{ id: 1, name: 'John', age: 30 },

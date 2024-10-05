@@ -4,13 +4,13 @@ import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
-	buildWhereClause(columns: Column[], delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
+	buildWhereClause(dialect: Dialect, columns: Column[], delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
 		if (!whereClause) return {
 			where: [],
 			replacements: []
 		}
 
-		return buildWhereClause(whereClause, columns, delimiter);
+		return buildWhereClause(dialect, whereClause, columns, delimiter);
 	},
 
 	async getRows(dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
@@ -21,7 +21,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(dialect, columns, delimiter, whereClause);
 
 		let limitConstraint = limit ? `LIMIT ${limit}` : '';
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
@@ -29,10 +29,6 @@ export const SqlService = {
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let sql;
 		let rows
-
-		console.log({ where, replacements })
-		console.log(`SELECT * FROM ${delimiter}${table}${delimiter} ${whereString} ${limitConstraint}`)
-
 
 		try {
 			rows = await sequelize.query(
@@ -58,7 +54,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(dialect, columns, delimiter, whereClause);
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let count;
 
@@ -86,7 +82,7 @@ export const SqlService = {
 	},
 }
 
-function buildWhereClause(whereClause: Record<string, any>, columns: Column[], delimiter: string) {
+function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, columns: Column[], delimiter: string) {
 	const where: string[] = [];
 	const replacements: string[] = [];
 
@@ -99,39 +95,48 @@ function buildWhereClause(whereClause: Record<string, any>, columns: Column[], d
 				throw new Error(`Invalid column name: ${column}`)
 			}
 
-			const noop = targetColumn.type === 'boolean' && value === '';
+			let noop = targetColumn.type === 'boolean' && value === '';
 
 			if (noop) {
-				return
+				return;
 			}
 
-			const operator = targetColumn.type === 'boolean'
-				? ' is '
-				: ' LIKE '
+			let operator = 'LIKE';
 
+			if (targetColumn.type === 'boolean') {
+				operator = ' is ';
+			}
 
-			value = transformValue(targetColumn, value)
+			const isStringablePostgresComparison = ['uuid', 'integer'].includes(targetColumn.type) && dialect === 'postgres';
+			if (isStringablePostgresComparison) {
+				column = `${column}::text`;
+				delimiter = ''
+			}
 
-			where.push(`${delimiter}${column}${delimiter} ${operator} ?`)
+			value = getTransformedValue(targetColumn, value, operator);
+
+			where.push(`${delimiter}${column}${delimiter} ${operator} ?`);
 			replacements.push(value);
 		})
 
 	return { where, replacements }
 }
 
-function transformValue(targetColumn: Column, value: any) {
+function getTransformedValue(targetColumn: Column, value: any, operator: string) {
 	if (targetColumn.type === 'boolean') {
 		if (typeof value === 'number') {
-			value = Boolean(value)
+			return Boolean(value)
 		} else if (!String(value).trim()) {
-			value = Boolean(false)
+			return Boolean(false)
 		} else if (String(value).trim().toLowerCase() === 'false') {
-			value = false
+			return false
 		} else if (!isNaN(value)) {
-			value = Boolean(Number(value))
+			return Boolean(Number(value))
 		} else {
-			value = Boolean(value)
+			return Boolean(value)
 		}
 	}
 
+	return `%${value}%`
 }
+

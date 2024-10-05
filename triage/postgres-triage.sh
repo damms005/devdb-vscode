@@ -50,5 +50,6 @@ connect(
 )
 EXAMPLE_CONNECTION
 
+echo "You can connect to it from inside the container like: `psql sample_db postgres`"
 echo "To stop the PostgreSQL container, run the following command:"
 echo "docker stop postgres-devdb-triage && docker rm postgres-devdb-triage"
