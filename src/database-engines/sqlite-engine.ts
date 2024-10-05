@@ -74,12 +74,12 @@ export class SqliteEngine implements DatabaseEngine {
 		return computedColumns
 	}
 
-	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows('sqlite', this.sequelize, table, whereClause);
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
+		return SqlService.getTotalRows('sqlite', this.sequelize, table, columns, whereClause);
 	}
 
-	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows('sqlite', this.sequelize, table, limit, offset, whereClause);
+	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+		return SqlService.getRows('sqlite', this.sequelize, table, columns, limit, offset, whereClause);
 	}
 }
 

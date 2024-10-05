@@ -197,6 +197,7 @@ function getDataForTabPage(tab, page) {
 		type: 'request:get-data-for-tab-page',
 		value: {
 			table: tab.table,
+			columns: tab.columns,
 			page,
 			whereClause: tab.filters,
 			totalRows: tab.totalRows,
