@@ -103,7 +103,7 @@ export class MssqlEngine implements DatabaseEngine {
 		return result[0]?.count;
 	}
 
-	async getRows(table: string, limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		if (!this.sequelize) return undefined;
 
 		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `${key} = :${key}`).join(' AND ')}` : '';

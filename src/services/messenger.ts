@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload, Column } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -35,7 +35,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-filtered-table-data': async () => await getFilteredTableData(data.value),
 		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
-		'request:export-table-data': async () => await exportTableData(data.value,database),
+		'request:export-table-data': async () => await exportTableData(data.value, database),
 	}
 
 	const action = actions[data.type]
@@ -162,7 +162,7 @@ async function getTableData(requestPayload: {
 	const offset = 0
 	const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
 	const columns = await database.getColumns(requestPayload.table)
-	const queryResponse = await database.getRows(requestPayload.table, limit, offset, requestPayload.filters)
+	const queryResponse = await database.getRows(requestPayload.table, columns, limit, offset, requestPayload.filters)
 
 	if (!queryResponse) return
 
@@ -179,6 +179,7 @@ async function getTableData(requestPayload: {
 
 async function loadRowsForPage(requestPayload: {
 	table: string,
+	columns: Column[],
 	page: number,
 	whereClause: Record<string, any>
 	totalRows: number,
@@ -191,7 +192,7 @@ async function loadRowsForPage(requestPayload: {
 	const limit = pagination.itemsPerPage
 	const offset = (pagination.currentPage - 1) * limit
 
-	const rows = await database.getRows(requestPayload.table, limit, offset, requestPayload.whereClause)
+	const rows = await database.getRows(requestPayload.table, requestPayload.columns, limit, offset, requestPayload.whereClause)
 
 	return {
 		table: requestPayload.table,
