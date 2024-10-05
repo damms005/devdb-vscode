@@ -47,6 +47,9 @@ No [configuration file](#1-config-based-database-loading) is needed for these en
 
 If there is no [zero-config](#1-zero-config-automatic-database-loading) support for your environment, simply provide a `.devdbrc` file in the root of your project containing your database connection details.
 
+> [!WARNING]
+> Do not forget to exclude the `.devdbrc` config file from being version controlled. e.g. by adding it to the `.gitignore` file.
+
 The content of the configuration file should be a single array containing database connection objects as shown below:
 
 #### SQLite database configuration file example
