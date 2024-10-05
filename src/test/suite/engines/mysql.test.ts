@@ -97,7 +97,7 @@ describe('MySQL Tests', () => {
             ('Bob', 40)
         `);
 
-			const totalRows = await mysql.getTotalRows('users');
+			const totalRows = await mysql.getTotalRows('users', []);
 			assert.strictEqual(totalRows, 3);
 		})
 			;
@@ -110,7 +110,7 @@ describe('MySQL Tests', () => {
             ('Bob', 40)
         `);
 
-			const rows = await mysql.getRows('users', 2, 0);
+			const rows = await mysql.getRows('users', [], 2, 0);
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }
