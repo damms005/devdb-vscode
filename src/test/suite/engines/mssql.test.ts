@@ -118,7 +118,7 @@ describe('MSSQL Tests', () => {
             ('Bob', 40)
         `);
 
-			const rows = await mssql.getRows('users', 2, 0);
+			const rows = await mssql.getRows('users', [], 2, 0);
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }

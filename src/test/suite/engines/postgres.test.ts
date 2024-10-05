@@ -102,7 +102,7 @@ describe.skip('Postgres Tests', () => {
             ('Bob', 40)
         `);
 
-			const totalRows = await postgres.getTotalRows('users');
+			const totalRows = await postgres.getTotalRows('users', []);
 			assert.strictEqual(totalRows, 3);
 		})
 
@@ -114,7 +114,7 @@ describe.skip('Postgres Tests', () => {
             ('Bob', 40)
         `);
 
-			const rows = await postgres.getRows('users', 2, 0);
+			const rows = await postgres.getRows('users', [], 2, 0);
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }

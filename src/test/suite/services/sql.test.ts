@@ -15,14 +15,14 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const { where, replacements } = SqlService.buildWhereClause('`',undefined);
+		const { where, replacements } = SqlService.buildWhereClause([], '`', undefined);
 		assert.deepStrictEqual(where, []);
 		assert.deepStrictEqual(replacements, []);
 	});
 
 	it('ensures buildWhereClause returns correct arrays when whereClause is defined', () => {
 		const whereClause = { name: 'John', age: 30 };
-		const { where, replacements } = SqlService.buildWhereClause('`',whereClause);
+		const { where, replacements } = SqlService.buildWhereClause([], '`', whereClause);
 		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` LIKE ?']);
 		assert.deepStrictEqual(replacements, ['%John%', '%30%']);
 	});
@@ -44,7 +44,7 @@ describe('SqliteService Tests', () => {
 		`);
 
 		const whereClause = { name: 'J' };
-		const result = await SqlService.getRows('sqlite', sequelize, 'users', 2, 0, whereClause);
+		const result = await SqlService.getRows('sqlite', sequelize, 'users', [], 2, 0, whereClause);
 
 		assert.deepStrictEqual(result?.rows, [
 			{ id: 1, name: 'John', age: 30 },
@@ -55,7 +55,7 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures initializePaginationFor returns null when sequelize is null', async () => {
-		const result = await SqlService.getTotalRows('sqlite', null, 'users');
+		const result = await SqlService.getTotalRows('sqlite', null, 'users', []);
 		assert.strictEqual(result, undefined);
 	});
 
@@ -75,7 +75,7 @@ describe('SqliteService Tests', () => {
 			('Bob', 40)
 		`);
 
-		const result = await SqlService.getTotalRows('sqlite', sequelize, 'users');
+		const result = await SqlService.getTotalRows('sqlite', sequelize, 'users', []);
 
 		assert.equal(result, 3);
 	});
