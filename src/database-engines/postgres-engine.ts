@@ -32,15 +32,21 @@ export class PostgresEngine implements DatabaseEngine {
 
 		const tableCreationSql = await this.sequelize.query(`
         SELECT
-            pg_get_viewdef(pg_class.oid) AS create_sql
+            'CREATE TABLE ' || quote_ident(table_name) || ' (' ||
+            string_agg(column_name || ' ' ||
+                       CASE
+                           WHEN data_type = 'character varying' THEN
+                               'character varying(' || character_maximum_length || ')'
+                           ELSE
+                               data_type
+                       END, ', ') ||
+            ');' AS create_sql
         FROM
-            pg_class
-        JOIN
-            pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+            information_schema.columns
         WHERE
-            pg_class.relkind = 'r' AND
-            pg_namespace.nspname = 'public' AND
-            pg_class.relname = '${table}'
+            table_name = '${table}'
+        GROUP BY
+            table_name
     `, { type: QueryTypes.SELECT }) as any[];
 
 		return tableCreationSql[0]?.create_sql || '';
@@ -70,20 +76,19 @@ export class PostgresEngine implements DatabaseEngine {
 		}
 
 		const columns = await this.sequelize.query(`
-				SELECT
-						column_name AS name,
-						data_type AS type
-				FROM
-						information_schema.columns
-				WHERE
-						table_name = '${table}'
+			SELECT
+				column_name AS name,
+				data_type AS type
+			FROM
+				information_schema.columns
+			WHERE
+				LOWER(table_name) = LOWER('${table}')
 		`, { type: QueryTypes.SELECT }) as any[];
 
-		const computedColumns = []
+		const computedColumns = [];
 
 		for (const column of columns) {
-
-			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
+			const foreignKey = await getForeignKeyFor(table, column.name, this.sequelize as Sequelize);
 
 			computedColumns.push({
 				name: column.name,
@@ -91,10 +96,10 @@ export class PostgresEngine implements DatabaseEngine {
 				isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				isOptional: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				foreignKey
-			})
+			});
 		}
 
-		return computedColumns
+		return computedColumns;
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
@@ -107,19 +112,32 @@ export class PostgresEngine implements DatabaseEngine {
 }
 
 async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {
-	const foreignKeys = await sequelize.query(`
-            SELECT
-                conrelid::regclass AS table,
-                a.attname AS column
-            FROM
-                pg_attribute a
-            JOIN
-                pg_constraint c ON a.attnum = ANY(c.conkey)
-            WHERE
-                confrelid = '${table}'::regclass AND a.attname = '${column}'
-        `, { type: QueryTypes.SELECT });
 
-	if (foreignKeys.length === 0) return;
+	type Fk = {
+		referenced_table: string,
+		referenced_column: string,
+	}
 
-	return foreignKeys[0] as any as { table: string, column: string };
+	const foreignKeys: Fk[] = await sequelize.query(`
+			SELECT
+					ccu.table_name AS referenced_table,
+					ccu.column_name AS referenced_column
+			FROM
+					information_schema.table_constraints tc
+			JOIN information_schema.key_column_usage kcu
+					ON tc.constraint_name = kcu.constraint_name
+			JOIN information_schema.constraint_column_usage ccu
+					ON ccu.constraint_name = tc.constraint_name
+			WHERE
+					tc.constraint_type = 'FOREIGN KEY'
+					AND kcu.table_name = LOWER('${table}')
+					AND kcu.column_name = LOWER('${column}')
+	`, { type: QueryTypes.SELECT });
+
+	if (foreignKeys.length === 0) return undefined;
+
+	return {
+		table: foreignKeys[0].referenced_table as string,
+		column: foreignKeys[0].referenced_column as string
+	};
 }

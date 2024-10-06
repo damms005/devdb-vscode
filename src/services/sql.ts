@@ -107,7 +107,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				operator = ' is ';
 			}
 
-			const isStringablePostgresComparison = ['uuid', 'integer'].includes(targetColumn.type) && dialect === 'postgres';
+			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d)/.test(targetColumn.type) && dialect === 'postgres';
 			if (isStringablePostgresComparison) {
 				column = `${column}::text`;
 				delimiter = ''
