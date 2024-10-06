@@ -95,9 +95,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				throw new Error(`Invalid column name: ${column}`)
 			}
 
-			let noop = targetColumn.type === 'boolean' && value === '';
-
-			if (noop) {
+			if (value === '') { // if user clear the textbox, do not filter the column
 				return;
 			}
 
@@ -113,7 +111,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				delimiter = ''
 			}
 
-			value = getTransformedValue(targetColumn, value, operator);
+			value = getTransformedValue(targetColumn, value);
 
 			where.push(`${delimiter}${column}${delimiter} ${operator} ?`);
 			replacements.push(value);
@@ -122,7 +120,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 	return { where, replacements }
 }
 
-function getTransformedValue(targetColumn: Column, value: any, operator: string) {
+function getTransformedValue(targetColumn: Column, value: any) {
 	if (targetColumn.type === 'boolean') {
 		if (typeof value === 'number') {
 			return Boolean(value)
