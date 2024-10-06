@@ -97,7 +97,7 @@ The content of the configuration file should be a single array containing databa
 ```
 
 > [!TIP]
-> It's generally a good practice to avoid using key words like (USER, ORDER, etc) to prevent confusion and potential conflicts in your queries.
+> It's generally a good practice to avoid using key words like (USER, ORDER, etc) on table columns to prevent confusion and potential conflicts in your queries.
 > The full list of those key words can be found at: https://www.postgresql.org/docs/current/sql-keywords-appendix.html
 
 > [!WARNING]
