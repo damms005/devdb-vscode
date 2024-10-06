@@ -35,19 +35,21 @@ pwd
 
 # Determine commit message based on the second argument
 if [ "$2" == "no-closures" ]; then
-  commit_message=""  # Let npm version use its default message
+  commit_body=""  # No closure message
 elif [[ "$2" =~ ^closes-[0-9]+$ ]]; then
   issue_number="${2#closes-}"
-  commit_message="closes issue #$issue_number"
+  commit_body="Closes #$issue_number"  # GitHub auto-close format
 else
   echo -e "\x1b[31mInvalid argument for closures. Usage: $0 <version> [closes-<issue number> | no-closures]"
   exit 1
 fi
 
-# Bump the version using npm version with custom commit message if provided
-if [ -n "$commit_message" ]; then
-  npm version "$1" -m "$commit_message" || exit 1
+# Bump the version using npm version
+if [ -n "$commit_body" ]; then
+  # Use npm version with custom commit message body
+  npm version "$1" -m "%s\n\n$commit_body" || exit 1
 else
+  # Just use npm version without custom commit message body
   npm version "$1" || exit 1
 fi
 
