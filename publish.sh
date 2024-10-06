@@ -46,8 +46,9 @@ fi
 
 # Bump the version using npm version
 if [ -n "$commit_body" ]; then
-  # Use npm version with custom commit message body
-  npm version "$1" -m "%s\n\n$commit_body" || exit 1
+  # Construct the commit message with printf to handle newlines properly
+  commit_message=$(printf "%s\n\n%s" "$1" "$commit_body")
+  npm version "$1" -m "$commit_message" || exit 1
 else
   # Just use npm version without custom commit message body
   npm version "$1" || exit 1
