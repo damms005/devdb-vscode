@@ -27,23 +27,24 @@ export const SqlService = {
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
 
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
-		let sql;
+		let loggedSql = '';
 		let rows
 
+		const sql = `SELECT * FROM ${delimiter}${table}${delimiter} ${whereString} ${limitConstraint}`
+
 		try {
-			rows = await sequelize.query(
-				`SELECT * FROM ${delimiter}${table}${delimiter} ${whereString} ${limitConstraint}`, {
+			rows = await sequelize.query(sql, {
 				type: QueryTypes.SELECT,
 				raw: true,
 				replacements,
-				logging: query => { sql = query }
+				logging: query => loggedSql = `${loggedSql}\n${query}`
 			});
 		} catch (error) {
 			reportError(String(error));
 			return
 		}
 
-		return { rows, sql };
+		return { rows, sql: loggedSql };
 	},
 
 	async getTotalRows(dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
@@ -107,7 +108,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 
 			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d)/.test(targetColumn.type) && dialect === 'postgres';
 			if (isStringablePostgresComparison) {
-				column = `${column}::text`;
+				column = `"${column}"::text`;
 				delimiter = ''
 			}
 

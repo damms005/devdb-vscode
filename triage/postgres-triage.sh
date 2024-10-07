@@ -25,14 +25,16 @@ CREATE TABLE book (
     published_date DATE,
     isbn VARCHAR(13),
     pages INT,
-    available BOOLEAN DEFAULT TRUE
+    available BOOLEAN DEFAULT TRUE,
+    "user" UUID,
+    "order" INT
 );
-INSERT INTO book (title, author, published_date, isbn, pages, available) VALUES
-('The Great Gatsby', 'F. Scott Fitzgerald', '1925-04-10', '9780743273565', 180, TRUE),
-('1984', 'George Orwell', '1949-06-08', '9780451524935', 328, FALSE),
-('To Kill a Mockingbird', 'Harper Lee', '1960-07-11', '9780061120084', 281, TRUE),
-('Pride and Prejudice', 'Jane Austen', '1813-01-28', '9781503290563', 279, TRUE),
-('The Catcher in the Rye', 'J.D. Salinger', '1951-07-16', '9780316769488', 214, FALSE);
+INSERT INTO book (title, author, published_date, isbn, pages, available, "user", "order") VALUES
+('The Great Gatsby', 'F. Scott Fitzgerald', '1925-04-10', '9780743273565', 180, TRUE, uuid_generate_v4(), 1),
+('1984', 'George Orwell', '1949-06-08', '9780451524935', 328, FALSE, uuid_generate_v4(), 2),
+('To Kill a Mockingbird', 'Harper Lee', '1960-07-11', '9780061120084', 281, TRUE, uuid_generate_v4(), 3),
+('Pride and Prejudice', 'Jane Austen', '1813-01-28', '9781503290563', 279, TRUE, uuid_generate_v4(), 4),
+('The Catcher in the Rye', 'J.D. Salinger', '1951-07-16', '9780316769488', 214, FALSE, uuid_generate_v4(), 5);
 
 EOF
 
@@ -50,6 +52,6 @@ connect(
 )
 EXAMPLE_CONNECTION
 
-echo "You can connect to it from inside the container like: `psql sample_db postgres`"
+echo "You can connect to it from inside the container like: 'psql sample_db postgres'"
 echo "To stop the PostgreSQL container, run the following command:"
 echo "docker stop postgres-devdb-triage && docker rm postgres-devdb-triage"
