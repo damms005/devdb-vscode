@@ -149,18 +149,10 @@ describe('PostgreSQL Tests', () => {
 		('${uuid2}', 200)
 	`);
 
-			// const uuidFilteredRows = await postgres.getRows('test_table', [
-			// 	{ name: 'uuid_col', type: 'uuid', isPrimaryKey: false, isOptional: true },
-			// 	{ name: 'int_col', type: 'int4', isPrimaryKey: false, isOptional: true }
-			// ], 10, 0, { uuid_col: '33e09d' });
-
 			const integerFilteredRows = await postgres.getRows('test_table', [
 				{ name: 'uuid_col', type: 'uuid', isPrimaryKey: false, isOptional: true },
 				{ name: 'int_col', type: 'int4', isPrimaryKey: false, isOptional: true }
 			], 10, 0, { int_col: 20 });
-
-			// assert.strictEqual(uuidFilteredRows?.rows.length, 1);
-			// assert.strictEqual(uuidFilteredRows?.rows[0].uuid_col, uuid1);
 
 			assert.strictEqual(integerFilteredRows?.rows.length, 1);
 			assert.strictEqual(integerFilteredRows?.rows[0].int_col, 200);
