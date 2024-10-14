@@ -158,5 +158,26 @@ describe('PostgreSQL Tests', () => {
 			assert.strictEqual(integerFilteredRows?.rows[0].int_col, 200);
 		});
 
+		it('should filter values in timestamp column types', async () => {
+			await postgres.sequelize?.query(`
+				CREATE TABLE timestamp_test (
+					id SERIAL PRIMARY KEY,
+					created_at TIMESTAMP
+				)
+			`);
+
+			await postgres.sequelize?.query(`
+				INSERT INTO timestamp_test (created_at) VALUES
+				('2024-10-14 10:00:00'),
+				('2024-10-14 12:00:00')
+			`);
+
+			const timestampFilteredRows = await postgres.getRows('timestamp_test', [
+				{ name: 'created_at', type: 'timestamp', isPrimaryKey: false, isOptional: true }
+			], 10, 0, { created_at: '2024-10-14 10:00:00' });
+
+			assert.strictEqual(timestampFilteredRows?.rows.length, 1);
+			assert.strictEqual(timestampFilteredRows?.rows[0].created_at.toISOString(), new Date('2024-10-14 10:00:00').toISOString());
+		});
 	}).timeout(30000);
 });
