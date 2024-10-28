@@ -1,3 +1,4 @@
+import { Dialect } from "sequelize";
 import { join } from "path";
 import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent } from "../workspace";
 import { getEnvFileValue } from "./laravel-core";
@@ -14,13 +15,13 @@ export async function hasLaravelSailDockerComposeFile() {
 	return exists
 }
 
-export async function getPortFromDockerCompose(service: 'mysql' | 'postgres'): Promise<number | undefined> {
+export async function getPortFromDockerCompose(dialect: Dialect): Promise<number | undefined> {
 	const dockerComposeContent = (getWorkspaceFileContent('docker-compose.yml'))?.toString()
 	if (!dockerComposeContent) return
 
 	const dockerComposeParsed = parse(dockerComposeContent)
 
-	const portDefinition: string = dockerComposeParsed.services?.[service]?.ports[0].toString()
+	const portDefinition: string = dockerComposeParsed.services?.[dialect]?.ports[0].toString()
 	if (!portDefinition) return
 
 	// Match string like '${FORWARD_DB_PORT:-3307}:3306' where FORWARD_DB_PORT and 3307 are captured

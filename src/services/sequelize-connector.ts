@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Dialect, Sequelize } from "sequelize";
 import { log } from './logging-service';
 
-export async function getConnectionFor(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
+export async function getConnectionFor(dialect: Dialect, host: string, port: number, username: string, password: string, database: string | undefined = undefined): Promise<Sequelize | undefined> {
 	log(`Attempting to connect to database: dialect=${dialect}, host=${host}, port=${port}, username=${username}, database=${database}`);
 	try {
 		const sequelize = new Sequelize({
