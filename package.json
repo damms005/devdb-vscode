@@ -104,6 +104,11 @@
 					"type": "boolean",
 					"default": false,
 					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
+				},
+				"Devdb.showDebugInfo": {
+					"type": "boolean",
+					"default": false,
+					"description": "Show debugging information in the console."
 				}
 			}
 		}
