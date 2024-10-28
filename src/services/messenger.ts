@@ -7,6 +7,7 @@ import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider'
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
 import { exportTableData } from './export-table-data'; // Import the new export function
+import { log } from './logging-service';
 
 const workspaceTables: string[] = [];
 
@@ -62,18 +63,26 @@ function acknowledge(webview: vscode.Webview, command: string) {
  * Returns a list of all providers that can be used in the current workspace.
  */
 async function getAvailableProviders() {
+	log('Starting to get available providers...');
+
 	const availableProviders = await Promise.all(providers.map(async (provider) => {
+		log(`Checking provider: ${provider.name}`);
 		if (provider.boot) await provider.boot()
 
 		try {
 			const canBeUsed = await provider.canBeUsedInCurrentWorkspace()
+			log(`${provider.name} useable in workspace: ${canBeUsed ? 'yes' : 'no'}`);
 			return canBeUsed ? provider : null
 		} catch (error) {
+			log(`error: ${provider.name} - ${String(error)}`);
 			vscode.window.showErrorMessage(`Error resolving provider '${provider.name}': ${String(error)}`)
 		}
 	}))
 
-	return (availableProviders.filter((provider) => provider) as DatabaseEngineProvider[])
+	const filteredProviders = availableProviders.filter((provider) => provider) as DatabaseEngineProvider[];
+	log(`Available providers: ${filteredProviders.map(provider => provider.name).join(', ')}`);
+
+	return filteredProviders
 		.map((provider) => ({
 			name: provider.name,
 			type: provider.type,
