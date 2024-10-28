@@ -16,7 +16,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	log(`Connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
 
 	if (connection !== envConnection) {
-		log(`Connection type mismatch: expected ${connection}, found ${envConnection}`);
+		log(`Connection type mismatch: expected "${connection}", found "${envConnection}"`);
 		return;
 	}
 

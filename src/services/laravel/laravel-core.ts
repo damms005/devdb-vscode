@@ -35,5 +35,5 @@ export async function getEnvFileValue(envFileKey: string): Promise<string | unde
 	const appUrlWithoutProtocol = appUrlWithoutTrailingSlash.replace(/https?:\/\//, '')
 	const appUrlWithoutPort = appUrlWithoutProtocol.replace(/:\d+/, '')
 
-	return appUrlWithoutPort
+	return appUrlWithoutPort.trim()
 }
