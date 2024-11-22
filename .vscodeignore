@@ -1,17 +1,30 @@
-.aider*
-.github/
-.vscode/
-.vscode-test/
-out/test/
-resources/screenshots/
-src/
-ui-shell/src/
-ui-shell/cypress/
-.gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
+/* Ignore everything by default */
+*
+*/**
+
+/* Allow specific files and directories needed for the extension */
+!out/**/*.js
+!package.json
+!README.md
+!LICENSE*
+!CHANGELOG.md
+!resources/**/*.{png,gif,jpg,ico,svg}
+!node_modules/**
+!ui-shell/dist/**
+
+/* Re-ignore development-only node_modules */
+node_modules/.bin/**
+node_modules/**/test/**
+node_modules/**/*.d.ts
+node_modules/**/*.md
+node_modules/**/*.map
+node_modules/**/LICENSE*
+node_modules/**/license*
+node_modules/**/.npmignore
+node_modules/**/package.json
+node_modules/**/.github/**
+node_modules/**/docs/**
+
+/* Ensure source maps and TypeScript files are still ignored */
 **/*.map
 **/*.ts
-**/*.xcf
