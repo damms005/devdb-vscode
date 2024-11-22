@@ -77,3 +77,5 @@ jobs:
       - run: npx vsce publish --packagePath $(find . -iname *.vsix)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to OpenVSX Registry
+        run: npx ovsx publish $(find . -iname *.vsix) -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
