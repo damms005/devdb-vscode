@@ -1,4 +1,3 @@
-import { format } from 'sql-formatter';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
@@ -39,8 +38,13 @@ export class MysqlEngine implements DatabaseEngine {
 
 		const sql = (creationSql[0] as any)['Create Table'];
 
-		return format(sql, { language: 'sql' })
-
+		/**
+		 * Comes formatted, and any attempt to use format(...)
+		 * from the sql-formatter package causes an issue whereby
+		 * newline is added between "CHARACTER SET", which is still
+		 * readable but largely odd.
+		 */
+		return sql
 	}
 
 	async getTables(): Promise<string[]> {
