@@ -10,6 +10,7 @@
     "typescript.tsc.autoDetect": "off",
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "cSpell.words": [
+        "devdb",
         "devdbrc",
         "notnull",
         "snakecase",
