@@ -2,29 +2,27 @@
 *
 */**
 
-/* Allow specific files and directories needed for the extension */
-!out/**/*.js
+/* Include only necessary files */
 !package.json
 !README.md
 !LICENSE*
 !CHANGELOG.md
-!resources/**/*.{png,gif,jpg,ico,svg}
-!node_modules/**
+
+/* Include source and compiled files */
+!*.js
+!lib/**/*.js
+!src/**/*.js
+!out/**/*.js
 !ui-shell/dist/**
 
-/* Re-ignore development-only node_modules */
-node_modules/.bin/**
+/* Include resources */
+!resources/**/*.{png,gif,jpg,ico,svg}
+
+/* Include required node_modules */
+!node_modules/**
+
+/* Re-ignore unnecessary node_modules content */
 node_modules/**/test/**
 node_modules/**/*.d.ts
 node_modules/**/*.md
-node_modules/**/*.map
-node_modules/**/LICENSE*
-node_modules/**/license*
 node_modules/**/.npmignore
-node_modules/**/package.json
-node_modules/**/.github/**
-node_modules/**/docs/**
-
-/* Ensure source maps and TypeScript files are still ignored */
-**/*.map
-**/*.ts
