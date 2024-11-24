@@ -1,0 +1,72 @@
+{
+  "DevDB MySQL Configuration": {
+    "prefix": "devdb mysql",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My MySQL Connection}\",",
+      "\t\"type\": \"mysql\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:3306},",
+      "\t\"username\": \"${4:root}\",",
+      "\t\"password\": \"${5:password}\",",
+      "\t\"database\": \"${6:database_name}\"",
+      "}"
+    ],
+    "description": "Add a new MySQL database configuration"
+  },
+  "DevDB MariaDB Configuration": {
+    "prefix": "devdb mariadb",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My MariaDB Connection}\",",
+      "\t\"type\": \"mariadb\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:3306},",
+      "\t\"username\": \"${4:root}\",",
+      "\t\"password\": \"${5:password}\",",
+      "\t\"database\": \"${6:database_name}\"",
+      "}"
+    ],
+    "description": "Add a new MariaDB database configuration"
+  },
+  "DevDB PostgreSQL Configuration": {
+    "prefix": "devdb postgres",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My PostgreSQL Connection}\",",
+      "\t\"type\": \"postgres\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:5432},",
+      "\t\"username\": \"${4:postgres}\",",
+      "\t\"password\": \"${5:password}\",",
+      "\t\"database\": \"${6:database_name}\"",
+      "}"
+    ],
+    "description": "Add a new PostgreSQL database configuration"
+  },
+  "DevDB SQLite Configuration": {
+    "prefix": "devdb sqlite",
+    "body": [
+      "{",
+      "\t\"type\": \"sqlite\",",
+      "\t\"path\": \"${1:/path/to/database.db3}\"",
+      "}"
+    ],
+    "description": "Add a new SQLite database configuration"
+  },
+  "DevDB MSSQL Configuration": {
+    "prefix": "devdb mssql",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My MSSQL Connection}\",",
+      "\t\"type\": \"mssql\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:1433},",
+      "\t\"username\": \"${4:sa}\",",
+      "\t\"password\": \"${5:password}\",",
+      "\t\"database\": \"${6:database_name}\"",
+      "}"
+    ],
+    "description": "Add a new Microsoft SQL Server database configuration"
+  }
+}

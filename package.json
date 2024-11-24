@@ -60,6 +60,12 @@
 				"url": "./schemas/devdbrc.json"
 			}
 		],
+		"snippets": [
+			{
+				"language": "json",
+				"path": "./snippets/devdbrc.json"
+			}
+		],
 		"viewsContainers": {
 			"panel": [
 				{
