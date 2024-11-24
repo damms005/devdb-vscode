@@ -35,7 +35,7 @@ DevDb can automatically load your database using connection details from your VS
 
 ### 1. Zero-config (automatic database loading)
 
-No [configuration file](#1-config-based-database-loading) is needed for these environments:
+No [configuration file](#2-config-based-database-loading) is needed for these environments:
 
 1. Laravel with local default SQLite database
 1. Laravel MySQL/MariaDB with default .env config
