@@ -50,7 +50,16 @@ If there is no [zero-config](#1-zero-config-automatic-database-loading) support 
 > [!WARNING]
 > Do not forget to exclude the `.devdbrc` config file from being version controlled. e.g. by adding it to the `.gitignore` file.
 
-The content of the configuration file should be a single array containing database connection objects as shown below:
+The content of the configuration file should be a single array containing database connection objects. DevDb provides rich editing features for the `.devdbrc` file:
+
+- **JSON Schema Validation**: Your configuration is automatically validated against a schema
+- **IntelliSense**: Get autocompletion for all fields, including the `type` field
+- **Snippets**: Quickly insert configuration templates:
+  - `devdb mysql`: MySQL configuration
+  - `devdb mariadb`: MariaDB configuration
+  - `devdb postgres`: PostgreSQL configuration
+  - `devdb sqlite`: SQLite configuration
+  - `devdb mssql`: Microsoft SQL Server configuration
 
 #### SQLite database configuration file example
 
