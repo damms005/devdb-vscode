@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DevDb Configuration",
+  "description": "Configuration file for DevDb VS Code extension",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "oneOf": [
+      {
+        "title": "SQLite Configuration",
+        "required": ["type", "path"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["sqlite"],
+            "description": "Database type - SQLite"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to SQLite database file"
+          }
+        }
+      },
+      {
+        "title": "MySQL/MariaDB Configuration",
+        "required": ["type", "username", "password", "database"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Optional name for this connection"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["mysql", "mariadb"],
+            "description": "Database type - MySQL or MariaDB"
+          },
+          "host": {
+            "type": "string",
+            "description": "Database host",
+            "default": "localhost"
+          },
+          "port": {
+            "type": "number",
+            "description": "Database port",
+            "default": 3306
+          },
+          "username": {
+            "type": "string",
+            "description": "Database username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Database password"
+          },
+          "database": {
+            "type": "string",
+            "description": "Database name"
+          }
+        }
+      },
+      {
+        "title": "PostgreSQL Configuration",
+        "required": ["type", "username", "password", "database"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Optional name for this connection"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["postgres"],
+            "description": "Database type - PostgreSQL"
+          },
+          "host": {
+            "type": "string",
+            "description": "Database host",
+            "default": "localhost"
+          },
+          "port": {
+            "type": "number",
+            "description": "Database port",
+            "default": 5432
+          },
+          "username": {
+            "type": "string",
+            "description": "Database username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Database password"
+          },
+          "database": {
+            "type": "string",
+            "description": "Database name"
+          }
+        }
+      },
+      {
+        "title": "Microsoft SQL Server Configuration",
+        "required": ["type", "username", "password", "database"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Optional name for this connection"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["mssql"],
+            "description": "Database type - Microsoft SQL Server"
+          },
+          "host": {
+            "type": "string",
+            "description": "Database host",
+            "default": "localhost"
+          },
+          "port": {
+            "type": "number",
+            "description": "Database port",
+            "default": 1433
+          },
+          "username": {
+            "type": "string",
+            "description": "Database username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Database password"
+          },
+          "database": {
+            "type": "string",
+            "description": "Database name"
+          }
+        }
+      }
+    ]
+  }
+}

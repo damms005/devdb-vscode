@@ -54,6 +54,12 @@
 				"title": "Open table at cursor in DevDb"
 			}
 		],
+		"jsonValidation": [
+			{
+				"fileMatch": ".devdbrc",
+				"url": "./schemas/devdbrc.json"
+			}
+		],
 		"viewsContainers": {
 			"panel": [
 				{
