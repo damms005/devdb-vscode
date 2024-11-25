@@ -5,6 +5,7 @@ import { CodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
+let isDevDbPanelVisible = false;
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -24,13 +25,38 @@ export async function activate(context: vscode.ExtensionContext) {
 		devDbViewProvider = new DevDbViewProvider(context, assets.jsFile, assets.cssFile);
 	}
 
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(DevDbViewProvider.viewType, devDbViewProvider, {
+	// Register the webview provider
+	const provider = vscode.window.registerWebviewViewProvider(
+		DevDbViewProvider.viewType,
+		devDbViewProvider,
+		{
 			webviewOptions: {
 				retainContextWhenHidden: true,
 			}
+		}
+	);
+
+	context.subscriptions.push(provider);
+
+	// Track initial visibility state
+	context.subscriptions.push(
+		devDbViewProvider.onDidChangeVisibility(visible => {
+			console.log('Extension received visibility change:', { visible });
 		})
 	);
+
+	context.subscriptions.push(
+		devDbViewProvider.onDidChangeVisibility(visible => {
+			isDevDbPanelVisible = visible;
+			console.log('DevDb visibility changed:', { isDevDbPanelVisible });
+		})
+	);
+
+	context.subscriptions.push(vscode.commands.registerCommand('devdb.focus', () => {
+		if (!devDbViewProvider) return;
+		console.log('Toggle requested. Current visibility:', { isVisible: devDbViewProvider.isVisible });
+		devDbViewProvider.toggleVisibility();
+	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('devdb.codelens.open-laravel-model-table', tableName => {
 		if (!devDbViewProvider) return;

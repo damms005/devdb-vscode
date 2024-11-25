@@ -9,6 +9,9 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 
 	private _view?: vscode.WebviewView;
 	private _extensionUri: vscode.Uri;
+	private _onDidChangeVisibility = new vscode.EventEmitter<boolean>();
+	readonly onDidChangeVisibility = this._onDidChangeVisibility.event;
+	private _isVisible = false;
 
 	constructor(
 		private context: vscode.ExtensionContext,
@@ -18,10 +21,25 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		this._extensionUri = context.extensionUri;
 	}
 
+	public get isVisible(): boolean {
+		return this._isVisible;
+	}
+
+	public toggleVisibility() {
+		if (this._view?.visible) {
+			// Hide by removing focus, which will collapse the panel
+			vscode.commands.executeCommand('workbench.action.togglePanel');
+		} else {
+			// Show the view
+			vscode.commands.executeCommand('workbench.view.extension.devdb-container');
+		}
+	}
+
 	public async resolveWebviewView(webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext, _token: vscode.CancellationToken) {
 		if (!this.jsFile || !this.cssFile) throw new Error('DevDb bundled asset files not found')
 
 		this._view = webviewView;
+		this._isVisible = webviewView.visible;
 
 		webviewView.webview.options = {
 			enableScripts: true,
@@ -34,6 +52,11 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 			if (!this._view) return console.log(`Message received but the webview not available`)
 
 			await handleIncomingMessage(data, this._view)
+		});
+
+		webviewView.onDidChangeVisibility(() => {
+			this._isVisible = webviewView.visible;
+			this._onDidChangeVisibility.fire(this._isVisible);
 		});
 	}
 

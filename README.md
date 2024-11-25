@@ -131,7 +131,7 @@ You can also have more than one connections in the configuration file, e.g.
 
 ## Keybinding
 
-Press `Ctrl+K Ctrl+D` to bring up DevDb view
+Press `Ctrl+K Ctrl+D` to toggle DevDb view
 
 ## Supported Databases
 

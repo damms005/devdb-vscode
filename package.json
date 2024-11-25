@@ -88,7 +88,8 @@
 			{
 				"command": "devdb.focus",
 				"key": "CTRL+K CTRL+D",
-				"mac": "CMD+K CMD+D"
+				"mac": "CMD+K CMD+D",
+				"title": "Toggle DevDb Panel"
 			}
 		],
 		"menus": {
