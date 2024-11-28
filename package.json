@@ -52,7 +52,11 @@
 		"commands": [
 			{
 				"command": "devdb.context-menu.open-table-at-cursor",
-				"title": "Open table at cursor in DevDb"
+				"title": "Open table at cursor"
+			},
+			{
+				"command": "devdb.generate-laravel-factory",
+				"title": "Generate Laravel Factory"
 			}
 		],
 		"jsonValidation": [
@@ -96,11 +100,29 @@
 		"menus": {
 			"editor/context": [
 				{
+					"submenu": "devdb.submenu",
+					"group": "navigation@1"
+				}
+			],
+			"devdb.submenu": [
+				{
 					"command": "devdb.context-menu.open-table-at-cursor",
-					"when": "editorTextFocus"
+					"when": "editorTextFocus",
+					"group": "1_general@1"
+				},
+				{
+					"command": "devdb.generate-laravel-factory",
+					"when": "resourceLangId == php",
+					"group": "2_laravel@1"
 				}
 			]
 		},
+		"submenus": [
+			{
+				"id": "devdb.submenu",
+				"label": "DevDb"
+			}
+		],
 		"configuration": {
 			"title": "DevDb",
 			"properties": {
