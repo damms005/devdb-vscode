@@ -5,8 +5,7 @@ import * as fs from 'fs/promises';
 import { Column, DatabaseEngine } from '../../types';
 import { getWorkspaceTables } from '../messenger';
 import { getTable } from '../codelens/laravel/laravel-codelens-service';
-
-const execAsync = promisify(exec);
+import { ArtisanService } from './artisan-service';
 
 export class LaravelFactoryGenerator {
     constructor(private database: DatabaseEngine | null) { }
@@ -16,29 +15,18 @@ export class LaravelFactoryGenerator {
             return
         }
 
-        // Get PHP path from settings
-        const config = vscode.workspace.getConfiguration('Devdb');
-        const phpPath = config.get<string>('phpExecutablePath') || 'php';
-
-        // Run artisan command to create factory
-        const { stdout, stderr } = await execAsync(
-            `${phpPath} artisan make:factory ${modelName}Factory`
-        ).catch(error => {
-            vscode.window.showErrorMessage(
-                `Failed to run artisan command: ${error.message}`
-            );
-            return { stdout: '', stderr: error.message };
-        });
-
-        if (stderr) {
-            vscode.window.showErrorMessage(
-                `Error generating factory: ${stderr}`
-            );
+        const artisan = ArtisanService.create();
+        if (!artisan) {
             return;
         }
 
-        // Get the factory file path
-        const factoryPath = await this.findFactoryFile(`${modelName}Factory.php`);
+        const factoryName = `${modelName}Factory`;
+
+        if (!await artisan.runCommand('make:factory', [`${factoryName}`])) {
+            return;
+        }
+
+        const factoryPath = await this.findFactoryFile(`${factoryName}.php`);
         if (!factoryPath) {
             vscode.window.showErrorMessage(
                 'Factory file not found after creation. Make sure your Laravel project structure is correct.'
@@ -46,25 +34,17 @@ export class LaravelFactoryGenerator {
             return;
         }
 
-        // Get table name using existing getTable function
-        const tableName = await getTable(modelFilePath, modelName);
-        if (!tableName) {
-            vscode.window.showErrorMessage(
-                `Could not determine table name for model ${modelName}`
-            );
+        const tableNameForModel = await getTable(modelFilePath, modelName);
+        if (!tableNameForModel) {
+            vscode.window.showErrorMessage(`Could not determine table name for model ${modelName}`);
             return;
         }
 
         try {
-            // Update factory content
-            await this.updateFactoryContent(factoryPath, tableName);
-            vscode.window.showInformationMessage(
-                `Successfully generated factory for ${modelName}`
-            );
+            await this.updateFactoryContent(factoryPath, tableNameForModel);
+            vscode.window.showInformationMessage(`Created factory ${factoryName}`);
         } catch (error) {
-            vscode.window.showErrorMessage(
-                `Failed to update factory content: ${String(error)}`
-            );
+            vscode.window.showErrorMessage(`Failed to update factory content: ${String(error)}`);
         }
     }
 
@@ -124,21 +104,20 @@ export class LaravelFactoryGenerator {
             return 'fake()->address()';
         }
 
-        // Basic type mapping
         const typeMap: Record<string, string> = {
-            'varchar': 'fake()->text()',
-            'char': 'fake()->text()',
-            'text': 'fake()->paragraph()',
-            'integer': 'fake()->numberBetween(1, 1000)',
-            'bigint': 'fake()->numberBetween(1, 1000)',
-            'boolean': 'fake()->boolean()',
-            'date': 'fake()->date()',
-            'datetime': 'fake()->dateTime()',
-            'timestamp': 'fake()->dateTime()',
-            'decimal': 'fake()->randomFloat(2, 0, 1000)',
-            'float': 'fake()->randomFloat(2, 0, 1000)',
-            'json': 'fake()->json()',
-            'uuid': 'fake()->uuid()',
+            'varchar': '$this->faker->text()',
+            'char': '$this->faker->text()',
+            'text': '$this->faker->paragraph()',
+            'integer': '$this->faker->numberBetween(1, 1000)',
+            'bigint': '$this->faker->numberBetween(1, 1000)',
+            'boolean': '$this->faker->boolean()',
+            'date': '$this->faker->date()',
+            'datetime': '$this->faker->dateTime()',
+            'timestamp': '$this->faker->dateTime()',
+            'decimal': '$this->faker->randomFloat(2, 0, 1000)',
+            'float': '$this->faker->randomFloat(2, 0, 1000)',
+            'json': '$this->faker->json()',
+            'uuid': '$this->faker->uuid()',
         };
 
         return typeMap[type] || 'fake()->text()';
@@ -161,4 +140,3 @@ function isConnected(database: DatabaseEngine | null): boolean {
 
     return true
 }
-
