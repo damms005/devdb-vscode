@@ -3,12 +3,13 @@ import { DevDbViewProvider } from './devdb-view-provider';
 import { getVueAssets } from './services/html';
 import { CodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
+import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
+import { database } from './services/messenger';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 let isDevDbPanelVisible = false;
 
 export async function activate(context: vscode.ExtensionContext) {
-
 	showWelcomeMessage(context);
 
 	let assets;
@@ -72,6 +73,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const codelensProvider = new CodelensProvider();
 	vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, codelensProvider);
+
+	// Register factory generation command
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			'devdb.generate-laravel-factory',
+			async (modelName: string, modelFilePath: string) => {
+				const generator = new LaravelFactoryGenerator(database);
+				await generator.generateFactory(modelName, modelFilePath);
+			}
+		)
+	);
 
 	vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
 		if (event.affectsConfiguration('Devdb')) {

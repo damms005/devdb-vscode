@@ -45,7 +45,8 @@
 	},
 	"icon": "resources/devdb-128x128.png",
 	"activationEvents": [
-		"workspaceContains:**/.devdbrc"
+		"workspaceContains:**/.devdbrc",
+		"onLanguage:php"
 	],
 	"contributes": {
 		"commands": [
@@ -122,6 +123,11 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Show debugging information in the console."
+				},
+				"Devdb.phpExecutablePath": {
+					"type": "string",
+					"default": "php",
+					"markdownDescription": "Path to PHP executable used for running Laravel Artisan commands. Defaults to 'php' if not specified."
 				}
 			}
 		}

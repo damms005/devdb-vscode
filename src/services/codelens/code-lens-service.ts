@@ -9,19 +9,16 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 
 	constructor() { }
 
-	public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.CodeLens[]> {
+	public async provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.CodeLens[]> {
 		this.codeLenses = [];
 
-		return Promise.all([
-			LaravelCodelensService.getCodelensFor(document),
-		])
-			.then(laravelCodeLenses => {
-				laravelCodeLenses.filter(Boolean).forEach(laravelCodeLens => {
-					this.codeLenses.push(laravelCodeLens as vscode.CodeLens)
-				})
+		const laravelCodeLenses = await LaravelCodelensService.getCodelensFor(document)
 
-				return Promise.resolve(this.codeLenses);
-			})
+		if (laravelCodeLenses) {
+			this.codeLenses = laravelCodeLenses
+		}
+
+		return this.codeLenses;
 	}
 }
 

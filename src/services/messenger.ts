@@ -19,7 +19,7 @@ const providers: DatabaseEngineProvider[] = [
 	LaravelPostgresProvider,
 ]
 
-let database: DatabaseEngine | null = null;
+export let database: DatabaseEngine | null = null;
 
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
 	const command = data.type.substring(data.type.indexOf(':') + 1);

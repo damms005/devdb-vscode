@@ -16,7 +16,7 @@ export const LaravelCodelensService = {
 	 * Returns a CodeLens for the Eloquent model class definition in the
 	 * given document. The CodeLens provides opening the table in DevDb.
 	 */
-	async getCodelensFor(document: vscode.TextDocument): Promise<vscode.CodeLens | undefined> {
+	async getCodelensFor(document: vscode.TextDocument): Promise<vscode.CodeLens[] | undefined> {
 		const isNotPhpFile = document.languageId !== 'php'
 		const isNotAppModelsNamespace = document.fileName.indexOf('app/Models') === -1
 		if (isNotPhpFile || isNotAppModelsNamespace) {
@@ -29,8 +29,14 @@ export const LaravelCodelensService = {
 		if (tables.length === 0) {
 
 			const command: vscode.Command = {
-				title: `Please connect to a database for Eloquent Codelens`,
-				tooltip: `Eloquent Model Codelens requires database connection`,
+				/**
+				 * We use "DevDB" in the string so user knows where the Codelens
+				 * is coming from, and we use "Eloquent" in the string to help
+				 * use in debugging, especially indicating that this Codelens
+				 * only shows up in Laravel Eloquent models.
+				 */
+				title: `Please connect to a database for DevDb Eloquent actions`,
+				tooltip: `DevDb Eloquent Codelens actions require database connection`,
 				command: "",
 			};
 
@@ -45,12 +51,13 @@ export const LaravelCodelensService = {
 			const position = new vscode.Position(line.lineNumber, indexOf);
 			const range = document.getWordRangeAtPosition(position, new RegExp(classNameDefinitionRegex));
 			if (range) {
-				return Promise.resolve(new vscode.CodeLens(range, command))
+				return Promise.resolve([new vscode.CodeLens(range, command)])
 			}
 		}
 
 		const tableModelMap: ModelMap = await getTableModelMapForCurrentWorkspace()
 		const filePath = document.fileName;
+		const codelenses: vscode.CodeLens[] = [];
 
 		for (const [model, entry] of Object.entries(tableModelMap)) {
 			if (filePath !== entry.filePath) continue;
@@ -67,16 +74,27 @@ export const LaravelCodelensService = {
 			const range = document.getWordRangeAtPosition(position, new RegExp(classNameDefinitionRegex));
 
 			if (range) {
-				const command: vscode.Command = {
+				// Add table view codelens
+				const viewTableCommand: vscode.Command = {
 					title: "View table",
 					tooltip: `Open ${entry.table} table`,
 					command: "devdb.codelens.open-laravel-model-table",
 					arguments: [entry.table]
 				};
+				codelenses.push(new vscode.CodeLens(range, viewTableCommand));
 
-				return Promise.resolve(new vscode.CodeLens(range, command))
+				// Add factory generation codelens
+				const generateFactoryCommand: vscode.Command = {
+					title: "Generate Factory",
+					tooltip: `Generate factory for ${model}`,
+					command: "devdb.generate-laravel-factory",
+					arguments: [model, filePath]
+				};
+				codelenses.push(new vscode.CodeLens(range, generateFactoryCommand));
 			}
 		}
+
+		return codelenses;
 	}
 }
 
@@ -105,7 +123,7 @@ async function getTableModelMapForCurrentWorkspace(): Promise<ModelMap> {
 	return modelTableMap
 }
 
-async function getTable(fsPath: string, modelName: string): Promise<string> {
+export async function getTable(fsPath: string, modelName: string): Promise<string> {
 	const fileContent = (await vscode.workspace.fs.readFile(vscode.Uri.file(fsPath))).toString()
 	const tablePropertyDefinition = /protected\s+\$table\s*=\s*['"](.+?)['"]/
 	const matches = fileContent.match(tablePropertyDefinition)
