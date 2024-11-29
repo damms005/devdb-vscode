@@ -12,7 +12,7 @@ export class LaravelFactoryGenerator {
 
     async generateFactory(modelName: string, modelFilePath: string): Promise<void> {
         if (!isConnected(this.database)) {
-            return
+            return;
         }
 
         const artisan = ArtisanService.create();
@@ -21,12 +21,34 @@ export class LaravelFactoryGenerator {
         }
 
         const factoryName = `${modelName}Factory`;
+        const factoryFileName = `${factoryName}.php`;
+
+        // Check if factory already exists
+        const existingFactoryPath = await this.findFactoryFile(factoryFileName);
+        if (existingFactoryPath) {
+            const action = await vscode.window.showWarningMessage(
+                `Factory ${factoryName} already exists`,
+                { modal: false },
+                { title: 'Open Existing', id: 'open' },
+                { title: 'Overwrite', id: 'overwrite' }
+            );
+
+            if (action?.id === 'open') {
+                const document = await vscode.workspace.openTextDocument(existingFactoryPath);
+                await vscode.window.showTextDocument(document);
+                return;
+            }
+
+            if (action?.id !== 'overwrite') {
+                return;
+            }
+        }
 
         if (!await artisan.runCommand('make:factory', [`${factoryName}`])) {
             return;
         }
 
-        const factoryPath = await this.findFactoryFile(`${factoryName}.php`);
+        const factoryPath = await this.findFactoryFile(factoryFileName);
         if (!factoryPath) {
             vscode.window.showErrorMessage(
                 'Factory file not found after creation. Make sure your Laravel project structure is correct.'
@@ -42,7 +64,16 @@ export class LaravelFactoryGenerator {
 
         try {
             await this.updateFactoryContent(factoryPath, tableNameForModel);
-            vscode.window.showInformationMessage(`Created factory ${factoryName}`);
+            const action = await vscode.window.showInformationMessage(
+                `Created factory ${factoryName}`,
+                { modal: false },
+                { title: 'Open Factory', id: 'open' }
+            );
+
+            if (action?.id === 'open') {
+                const document = await vscode.workspace.openTextDocument(factoryPath);
+                await vscode.window.showTextDocument(document);
+            }
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to update factory content: ${String(error)}`);
         }
