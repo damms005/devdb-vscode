@@ -61,51 +61,7 @@ The content of the configuration file should be a single array containing databa
   - `devdb sqlite`: SQLite configuration
   - `devdb mssql`: Microsoft SQL Server configuration
 
-#### SQLite database configuration file example
-
-```
-[
-  {
-    "type": "sqlite",
-    "path": "/home/path/to/database.sqlite"
-  }
-]
-```
-
-#### MySQL/MariaDB database configuration file example
-
-```
-[
-  {
-    "name": "My test MySQL database", // <-- to identify the connection
-    "type": "mysql", // <- or "mariadb" if you are using MariaDB
-    "host": "<host>",
-    "port": "<port>",
-    "username": "<username>",
-    "password": "<password>",
-    "database": "test" // <-- the database to show in VS Code DevDb view
-  }
-]
-```
-
-
-#### Postgres database configuration file example
-
-```
-[
-  {
-    "name": "My test Postgres database", // <-- to identify the connection
-    "type": "postgres",
-    "host": "<host>",
-    "port": "<port>",
-    "username": "<username>",
-    "password": "<password>",
-    "database": "test" // <-- the database to show in VS Code DevDb view
-  }
-]
-```
-
-You can also have more than one connections in the configuration file, e.g.
+#### Configuration file example
 
 ```
 [
@@ -126,8 +82,7 @@ You can also have more than one connections in the configuration file, e.g.
 ```
 
 > [!TIP]
-> You may not want to commit DevDb config file to your version control.
-> This is because other devs in your team may be using different database connection details in their local environments.
+> You may not want to commit DevDb config file to your version control in case other devs in your team are using different database connection details in their local environments.
 
 ## Keybinding
 
