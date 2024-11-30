@@ -1,5 +1,7 @@
 # [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
+
 ![image](resources/screenshots/devdb.png)
 
 ![image](resources/screenshots/light-dark-mode.png)
