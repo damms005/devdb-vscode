@@ -51,6 +51,8 @@ export type DatabaseEngineProvider = {
 }
 
 export interface DatabaseEngine {
+	getType(): Dialect
+
 	/**
 	 * Returns true if the connection is okay
 	 */
@@ -68,6 +70,10 @@ export interface DatabaseEngine {
 	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
+
+	getVersion(): Promise<string | undefined>
+
+	runArbitraryQueryAndGetOutput(code: string): Promise<any>
 }
 
 export type QueryResponse = {

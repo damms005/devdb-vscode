@@ -1,4 +1,4 @@
-import { QueryTypes, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
 
@@ -10,6 +10,10 @@ export class MysqlEngine implements DatabaseEngine {
 
 	constructor(sequelizeInstance: Sequelize) {
 		this.sequelize = sequelizeInstance;
+	}
+
+	getType(): Dialect {
+		return 'mysql';
 	}
 
 	async isOkay(): Promise<boolean> {
@@ -91,6 +95,30 @@ export class MysqlEngine implements DatabaseEngine {
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqlService.getRows('mysql', this.sequelize, table, columns, limit, offset, whereClause);
+	}
+
+	async getVersion(): Promise<string | undefined> {
+		if (!this.sequelize) return undefined;
+
+		const version = await this.sequelize.query('SELECT VERSION();', {
+			type: QueryTypes.SELECT,
+			logging: false
+		});
+
+		if (!version[0]) {
+			return undefined
+		}
+
+		return (version[0] as any)['VERSION()'];
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<any> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		return (await this.sequelize.query(code, {
+			type: QueryTypes.SELECT,
+			logging: false,
+		}));
 	}
 }
 

@@ -35,9 +35,9 @@ export const LaravelCodelensService = {
 				 * use in debugging, especially indicating that this Codelens
 				 * only shows up in Laravel Eloquent models.
 				 */
-				title: `Please connect to a database for DevDb Eloquent actions`,
+				title: `Click to create DevDb database connection for Eloquent actions`,
 				tooltip: `DevDb Eloquent Codelens actions require database connection`,
-				command: "",
+				command: 'devdb.focus',
 			};
 
 			const classNameDefinitionRegex = new RegExp(`class\\s+\\b[aA-zZ_]+\\b`);

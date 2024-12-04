@@ -1,5 +1,5 @@
 import { format } from 'sql-formatter';
-import { QueryTypes, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, ForeignKey, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
 import { reportError } from '../services/initialization-error-service';
@@ -14,6 +14,10 @@ export class SqliteEngine implements DatabaseEngine {
 		} catch (error) {
 			reportError(String(error));
 		}
+	}
+
+	getType(): Dialect {
+		return 'sqlite';
 	}
 
 	async isOkay(): Promise<boolean> {
@@ -80,6 +84,16 @@ export class SqliteEngine implements DatabaseEngine {
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqlService.getRows('sqlite', this.sequelize, table, columns, limit, offset, whereClause);
+	}
+
+	async getVersion(): Promise<string | undefined> {
+		return undefined
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();
 	}
 }
 

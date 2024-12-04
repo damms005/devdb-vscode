@@ -45,6 +45,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		showMessageAndButtons(`
 			DevDb updated to ${currentVersion}.
 			✨ Explain MySQL queries
+			✨ Generate Eloquent factories
 			✨ Contextual filtering for numeric columns
 			✨ (see details in the repo's README)
 			`,

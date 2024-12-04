@@ -57,6 +57,10 @@
 			{
 				"command": "devdb.generate-laravel-factory",
 				"title": "Generate Laravel Factory"
+			},
+			{
+				"command": "devdb.explain-query",
+				"title": "Explain query"
 			}
 		],
 		"jsonValidation": [
@@ -112,6 +116,11 @@
 				},
 				{
 					"command": "devdb.generate-laravel-factory",
+					"when": "resourceLangId == php",
+					"group": "2_laravel@1"
+				},
+				{
+					"command": "devdb.explain-query",
 					"when": "resourceLangId == php",
 					"group": "2_laravel@1"
 				}
@@ -187,6 +196,8 @@
 		"typescript": "^5.7.2"
 	},
 	"dependencies": {
+		"axios": "^1.5.1",
+		"axios-retry": "^3.8.0",
 		"case": "^1.6.3",
 		"cosmiconfig": "^8.3.6",
 		"csv-parse": "^5.6.0",
@@ -195,6 +206,7 @@
 		"mysql2": "^3.11.5",
 		"pg": "^8.13.1",
 		"pg-hstore": "^2.3.4",
+		"php-parser": "^3.2.1",
 		"pluralize": "^8.0.0",
 		"sequelize": "^6.37.5",
 		"sql-formatter": "^13.1.0",

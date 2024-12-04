@@ -112,11 +112,23 @@ The following databases are currently supported:
 
   ![image](resources/screenshots/context-menu-contribution.png)
 
-### Laravel model Code Lens
+### Laravel Features
+
+#### Laravel model Code Lens
    If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table.
    *NOTE:* You need to first connect to a database in DevDb for Laravel Code Lens to be available.
 
   ![image](resources/screenshots/laravel-code-lens.png)
+
+#### Query Explainer
+The Query Explainer integrates with Tobias Petry's [MySQL Visual Explain](https://mysqlexplain.com) tool to help you optimize your SQL queries by making sense of MySQL's query execution plan.
+
+#### How to Use
+
+1. Open a Laravel PHP file containing a SQL query.
+2. Select the SQL query you wish to analyze.
+3. Click the `Explain Query` code lens above the selected query or select `Explain Query` from the context menu.
+4. The explanation will be generated, and you can open it in your browser or copy the URL to your clipboard.
 
 ### Other features
 - `Ctrl + Click` (`Meta + Click` on macOS) on a table from the sidebar to open the table in the current tab

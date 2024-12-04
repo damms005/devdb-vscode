@@ -5,9 +5,9 @@ import { CodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
 import { database } from './services/messenger';
+import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/laravel/code-runner/sql-query-explainer-provider';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
-let isDevDbPanelVisible = false;
 
 export async function activate(context: vscode.ExtensionContext) {
 	showWelcomeMessage(context);
@@ -26,7 +26,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		devDbViewProvider = new DevDbViewProvider(context, assets.jsFile, assets.cssFile);
 	}
 
-	// Register the webview provider
 	const provider = vscode.window.registerWebviewViewProvider(
 		DevDbViewProvider.viewType,
 		devDbViewProvider,
@@ -39,23 +38,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(provider);
 
-	// Track initial visibility state
-	context.subscriptions.push(
-		devDbViewProvider.onDidChangeVisibility(visible => {
-			console.log('Extension received visibility change:', { visible });
-		})
-	);
-
-	context.subscriptions.push(
-		devDbViewProvider.onDidChangeVisibility(visible => {
-			isDevDbPanelVisible = visible;
-			console.log('DevDb visibility changed:', { isDevDbPanelVisible });
-		})
-	);
-
 	context.subscriptions.push(vscode.commands.registerCommand('devdb.focus', () => {
 		if (!devDbViewProvider) return;
-		console.log('Toggle requested. Current visibility:', { isVisible: devDbViewProvider.isVisible });
 		devDbViewProvider.toggleVisibility();
 	}));
 
@@ -74,7 +58,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	const codelensProvider = new CodelensProvider();
 	vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, codelensProvider);
 
-	// Register factory generation command
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, new SqlQueryCodeLensProvider()));
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			'devdb.explain-query',
+			(document: vscode.TextDocument, selection: vscode.Selection) => { explainSelectedQuery(document, selection); })
+	);
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			'devdb.generate-laravel-factory',

@@ -1,5 +1,4 @@
-import { format } from 'sql-formatter';
-import { QueryTypes, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
@@ -10,6 +9,10 @@ export class MssqlEngine implements DatabaseEngine {
 
 	constructor(sequelizeInstance: Sequelize) {
 		this.sequelize = sequelizeInstance;
+	}
+
+	getType(): Dialect {
+		return 'mssql';
 	}
 
 	async isOkay(): Promise<boolean> {
@@ -117,6 +120,16 @@ export class MssqlEngine implements DatabaseEngine {
 		});
 
 		return { rows };
+	}
+
+	async getVersion(): Promise<string | undefined> {
+		return undefined
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();
 	}
 }
 

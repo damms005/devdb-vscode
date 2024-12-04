@@ -1,13 +1,16 @@
-import { Sequelize, QueryTypes } from 'sequelize';
+import { Sequelize, QueryTypes, Dialect } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
-import { format } from 'sql-formatter';
 
 export class PostgresEngine implements DatabaseEngine {
 	public sequelize: Sequelize | null = null;
 
 	constructor(sequelizeInstance: Sequelize) {
 		this.sequelize = sequelizeInstance;
+	}
+
+	getType(): Dialect {
+		return 'postgres';
 	}
 
 	async isOkay(): Promise<boolean> {
@@ -108,6 +111,16 @@ export class PostgresEngine implements DatabaseEngine {
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		return SqlService.getRows('postgres', this.sequelize, table, columns, limit, offset, whereClause);
+	}
+
+	async getVersion(): Promise<string | undefined> {
+		return undefined
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();
 	}
 }
 
