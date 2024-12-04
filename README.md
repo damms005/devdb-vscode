@@ -149,7 +149,7 @@ DevDb does not aim to provide feature-parity with popular GUI database clients. 
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) are not currently supported. Progress of this feature is [tracked here](https://github.com/damms005/devdb-vscode/issues/68).
 
 ## Contribution
-> [!WARNING]
+> [!IMPORTANT]
 > Contributions are currently only accepted for the extension core code only.
 
 > [!NOTE]
