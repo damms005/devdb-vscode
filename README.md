@@ -152,9 +152,6 @@ DevDb does not aim to provide feature-parity with popular GUI database clients. 
 > [!IMPORTANT]
 > Contributions are currently only accepted for the extension core code only.
 
-> [!NOTE]
-> In order to contribute to the extension core, you may need to be conversant with [VS Code Extension Guide](https://code.visualstudio.com/api/extension-guides/overview).
-
 - Fork this repo, then clone your fork to local
 - Run `npm install` to install dependencies
 - Make you contributions to the codebase locally
