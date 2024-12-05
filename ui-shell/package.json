@@ -14,19 +14,19 @@
   },
   "dependencies": {
     "devdb-ui": "file:../../devdb-ui",
-    "pinia": "^2.1.6",
-    "primevue": "^3.47.2",
-    "vue": "^3.3.4",
-    "vue-router": "^4.2.4"
+    "pinia": "^2.3.0",
+    "primevue": "^3.53.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.3.4",
-    "autoprefixer": "^10.4.16",
+    "@vitejs/plugin-vue": "^4.6.2",
+    "autoprefixer": "^10.4.20",
     "chokidar-cli": "^3.0.0",
-    "cypress": "^13.2.0",
-    "postcss": "^8.4.31",
-    "start-server-and-test": "^2.0.0",
-    "tailwindcss": "^3.3.3",
-    "vite": "^4.5.1"
+    "cypress": "^13.16.1",
+    "postcss": "^8.4.49",
+    "start-server-and-test": "^2.0.8",
+    "tailwindcss": "^3.4.16",
+    "vite": "^4.5.5"
   }
 }
