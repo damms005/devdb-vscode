@@ -106,13 +106,19 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				operator = ' is ';
 			}
 
-			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/.test(targetColumn.type) && dialect === 'postgres';
+			const numericColumns = ['int', 'float', 'decimal', 'bigint', 'smallint', 'integer'];
+			const shouldDoNumericComparison = numericColumns.includes(targetColumn.type.toLocaleLowerCase());
+			if (shouldDoNumericComparison) {
+				operator = ' = ';
+			}
+
+			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/i.test(targetColumn.type) && dialect === 'postgres';
 			if (isStringablePostgresComparison) {
 				column = `"${column}"::text`;
 				delimiter = ''
 			}
 
-			value = getTransformedValue(targetColumn, value);
+			value = getTransformedValue(targetColumn, value,shouldDoNumericComparison);
 
 			where.push(`${delimiter}${column}${delimiter} ${operator} ?`);
 			replacements.push(value);
@@ -121,7 +127,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 	return { where, replacements }
 }
 
-function getTransformedValue(targetColumn: Column, value: any) {
+function getTransformedValue(targetColumn: Column, value: any, shouldDoNumericComparison: boolean) {
 	if (targetColumn.type === 'boolean') {
 		if (typeof value === 'number') {
 			return Boolean(value)
@@ -136,6 +142,6 @@ function getTransformedValue(targetColumn: Column, value: any) {
 		}
 	}
 
-	return `%${value}%`
+	return shouldDoNumericComparison ? value : `%${value}%`
 }
 
