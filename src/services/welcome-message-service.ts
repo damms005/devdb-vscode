@@ -19,13 +19,13 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
 
-	const previousVersionArray = getPreviousVersionArray(previousVersion);
-	const currentVersionArray = getCurrentVersionArray(currentVersion);
-
-	if (previousVersion === undefined || previousVersion.length === 0) {
+	if (!previousVersion) {
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
 		return
 	}
+
+	const previousVersionArray = getVersionAsArray(previousVersion);
+	const currentVersionArray = getVersionAsArray(currentVersion);
 
 	if (currentVersion === previousVersion) {
 		return;
@@ -36,7 +36,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		isMinorUpdate(previousVersionArray, currentVersionArray) ||
 		isPatchUpdate(previousVersionArray, currentVersionArray)
 	) {
-		showMessageAndButtons(`DevDb updated to ${currentVersion}.`, context);
+		showMessageAndButtons(`DevDb updated to ${currentVersion}. Added contextual filtering when filtering on numeric columns.✨`, context);
 	}
 }
 
@@ -102,16 +102,11 @@ function isPatchUpdate(previousVersionArray: number[], currentVersionArray: any)
 		previousVersionArray[2] < currentVersionArray[2];
 }
 
-function getCurrentVersionArray(currentVersion: any) {
-	return currentVersion
-		.split(".")
-		.map((s: string) => Number(s));
-}
-
-function getPreviousVersionArray(previousVersion: string | undefined) {
-	return previousVersion
-		? previousVersion.split(".").map((s: string) => Number(s))
-		: [0, 0, 0];
+/**
+ * Gets the previous version as an array of numbers.
+ */
+function getVersionAsArray(version: string): number[] {
+	return version.split(".").map((s: string) => Number(s));
 }
 
 function getCurrentVersion() {
