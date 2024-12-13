@@ -4,7 +4,7 @@ import { ExtensionConstants } from "../constants";
 const BUTTON_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_FOLLOW_ON_X = "𝕏 Follow"
 const BUTTON_SHARE_ON_X = "𝕏 Share"
-const BUTTON_REPORT_ISSUE = "🐞 Report issue";
+const BUTTON_VIEW_REPO = "🔎 View Repo"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const extensionConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
@@ -36,7 +36,20 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		isMinorUpdate(previousVersionArray, currentVersionArray) ||
 		isPatchUpdate(previousVersionArray, currentVersionArray)
 	) {
-		showMessageAndButtons(`DevDb updated to ${currentVersion}. Added contextual filtering when filtering on numeric columns.✨`, context);
+		/**
+		 * The weird formatting below is to work around lack of support for
+		 * new lines in VS Code notification message API.
+		 *
+		 * @see https://github.com/microsoft/vscode/issues/101589
+		 */
+		showMessageAndButtons(`
+			DevDb updated to ${currentVersion}.
+			✨ Explain MySQL queries
+			✨ Contextual filtering for numeric columns
+			✨ (see details in the repo's README)
+			`,
+			context
+		);
 	}
 }
 
@@ -57,7 +70,7 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 		buttons.push(BUTTON_SHARE_ON_X)
 	}
 
-	buttons.push(BUTTON_REPORT_ISSUE)
+	buttons.push(BUTTON_VIEW_REPO)
 
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then(function (val: string | undefined) {
@@ -80,8 +93,8 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 					vscode.env.openExternal(twitterIntentUri)
 					break;
 
-				case BUTTON_REPORT_ISSUE:
-					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode/issues/new?assignees=&labels=bug%2Cunconfirmed%2Clow+priority&projects=&template=bug_report.yml"))
+				case BUTTON_VIEW_REPO:
+					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode"))
 					break;
 			}
 		})
