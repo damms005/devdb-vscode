@@ -37,8 +37,8 @@ describe('SqliteService Tests', () => {
 		}]
 
 		const { where, replacements } = SqlService.buildWhereClause('sqlite', columns, '`', whereClause);
-		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` LIKE ?']);
-		assert.deepStrictEqual(replacements, ['%John%', '%30%']);
+		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` = ?']);
+		assert.deepStrictEqual(replacements, ['%John%', 30]);
 	});
 
 	it('ensures getRows returns correct rows and sql when sequelize is not null', async () => {
@@ -78,7 +78,7 @@ describe('SqliteService Tests', () => {
 			{ id: 2, name: 'Jane', age: 25 }
 		]);
 
-		assert.strictEqual(result?.sql, "Executing (default): SELECT * FROM `users` WHERE `name` LIKE '%J%' LIMIT 2");
+		assert.strictEqual(result?.sql?.trim(), "Executing (default): SELECT * FROM `users` WHERE `name` LIKE '%J%' LIMIT 2");
 	});
 
 	it('ensures initializePaginationFor returns null when sequelize is null', async () => {

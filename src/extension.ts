@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { DevDbViewProvider } from './devdb-view-provider';
 import { getVueAssets } from './services/html';
-import { CodelensProvider } from './services/codelens/code-lens-service';
+import { LaravelCodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
 import { database } from './services/messenger';
-import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/laravel/code-runner/sql-query-explainer-provider';
+import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
@@ -55,10 +55,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		devDbViewProvider.openTableAtCurrentCursor();
 	}));
 
-	const codelensProvider = new CodelensProvider();
-	vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, codelensProvider);
+	context.subscriptions.push(
+		vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, new SqlQueryCodeLensProvider())
+	);
 
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, new SqlQueryCodeLensProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerCodeLensProvider({ scheme: 'file', language: 'php' }, new LaravelCodelensProvider())
+	);
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(

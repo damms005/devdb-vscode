@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
-import { Runner } from './runner';
-import { extractUseStatements } from './qualifier';
+import { Runner } from '../../laravel/code-runner/runner';
+import {
+    extractUseStatements,
+    getAst,
+    isNamespaced
+} from '../../laravel/code-runner/qualifier-service';
 import { CancellationToken, CodeLens, ProviderResult, TextDocument } from 'vscode';
 import { database } from '../../messenger';
+import { getCurrentVersion } from '../../welcome-message-service';
+import { extractVariables, replaceVariables } from '../../string';
 
 export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -18,6 +24,10 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
 
     public provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]> {
         if (!this.isLaravelPhpFile(document)) {
+            return [];
+        }
+
+        if (!database) {
             return [];
         }
 
@@ -61,7 +71,15 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
         return;
     }
 
-    const useStatements = extractUseStatements(document.getText());
+    const ast = getAst(document.getText())
+    const isNamespacedCode = isNamespaced(ast);
+
+    if (!isNamespacedCode) {
+        vscode.window.showErrorMessage('This feature is only available for namespaced PHP code.');
+        return;
+    }
+
+    const useStatements = extractUseStatements(ast);
     let selectionText = document.getText(selection).trim();
     if (!selectionText) {
         vscode.window.showInformationMessage('No SQL query was selected');
@@ -83,8 +101,8 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             title: 'Analyzing SQL Query',
             cancellable: false
         }, async (progress) => {
+
             progress.report({ message: 'Running query...' });
-            const queriesWithBindings: [string, any[], string][] = await Runner.runLaravel(useStatements, selectionText);
 
             if (!database) {
                 vscode.window.showErrorMessage('No database connection found. Please select a database in DevDb and try again.', 'Connect').then(selection => {
@@ -100,6 +118,8 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
                 vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
                 return;
             }
+
+            const queriesWithBindings: [string, any[], string][] = await Runner.runLaravelCode(useStatements, selectionText);
 
             if (queriesWithBindings.length === 0) {
                 vscode.window.showInformationMessage('No SQL queries were executed');
@@ -136,6 +156,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             }
 
             progress.report({ message: 'Generating explanation...' });
+
             try {
                 const axiosInstance = axios.create();
                 axiosRetry(axiosInstance, {
@@ -146,13 +167,21 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
                     }
                 });
 
-                const response = await axiosInstance.post('https://api.mysqlexplain.com/v2/explains', {
-                    query: unboundQuery,
-                    bindings,
-                    version,
-                    explain_json: explainJson,
-                    explain_tree: explainTree
-                });
+                const response = await axiosInstance.post(
+                    'https://api.mysqlexplain.com/v2/explains',
+                    {
+                        query: unboundQuery,
+                        bindings,
+                        version,
+                        explain_json: explainJson,
+                        explain_tree: explainTree
+                    },
+                    {
+                        headers: {
+                            'Accept': 'application/json',
+                            'User-Agent': `DevDb/${getCurrentVersion()}`,
+                        }
+                    });
 
                 const { url } = response.data;
                 if (!url) {
@@ -174,7 +203,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             );
 
             if (selection === 'Open in Browser') {
-                 vscode.env.openExternal(vscode.Uri.parse(explanationUrl));
+                vscode.env.openExternal(vscode.Uri.parse(explanationUrl));
             } else if (selection === 'Copy URL') {
                 await vscode.env.clipboard.writeText(explanationUrl);
                 vscode.window.showInformationMessage('Explanation URL copied to clipboard');
@@ -182,7 +211,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
         }
     } catch (error) {
         if (error) {
-            vscode.window.showErrorMessage(`Failed to analyze SQL queries: ${String(error)}`);
+            vscode.window.showErrorMessage(`Could not process the SQL. ${error}`);
         }
     }
 }
@@ -192,22 +221,20 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
  * each of them, and returns a string where the variables are replaced with
  * user-provided values
  */
-async function getVariableReplacements(selectionText: string): Promise<string> {
-    const variableRegex = /\$[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/g;
-    const variables = [...new Set(selectionText.match(variableRegex) || [])];
+export async function getVariableReplacements(selectionText: string): Promise<string> {
+    const variables = extractVariables(selectionText);
 
     if (variables.length === 0) {
         return selectionText;
     }
 
-    let replacedText = selectionText;
     const inputBox = vscode.window.createInputBox();
     const values: { [key: string]: string } = {};
 
     return new Promise((resolve, reject) => {
         let currentVariableIndex = 0;
 
-        inputBox.title = `Variable Values (${currentVariableIndex + 1}/${variables.length})`;
+        inputBox.title = getTitle(currentVariableIndex, variables);
         inputBox.prompt = `Enter value for ${variables[currentVariableIndex]}`;
         inputBox.placeholder = 'Value';
         inputBox.totalSteps = variables.length;
@@ -219,6 +246,7 @@ async function getVariableReplacements(selectionText: string): Promise<string> {
 
             if (currentVariableIndex === variables.length) {
                 inputBox.hide();
+
                 // Check if any values are empty
                 const emptyVariables = Object.entries(values)
                     .filter(([_, value]) => !value.trim())
@@ -226,22 +254,17 @@ async function getVariableReplacements(selectionText: string): Promise<string> {
 
                 if (emptyVariables.length > 0) {
                     const these = emptyVariables.length === 1 ? 'this' : 'these';
-                    const variables = emptyVariables.length === 1 ? 'variable' : 'variables';
-                    vscode.window.showErrorMessage(`You did not provide values for ${these} ${variables}: ${emptyVariables.join(', ')}`);
+                    const vars = emptyVariables.length === 1 ? 'variable' : 'variables';
+                    vscode.window.showErrorMessage(`You did not provide values for ${these} ${vars}: ${emptyVariables.join(', ')}`);
                     reject();
                     return;
                 }
 
-                // Replace all variables with their values
-                Object.entries(values).forEach(([variable, value]) => {
-                    replacedText = replacedText.replace(
-                        new RegExp(variable.replace('$', '\\$'), 'g'),
-                        value
-                    );
-                });
+                // Replace variables
+                const replacedText = replaceVariables(selectionText, values);
                 resolve(replacedText);
             } else {
-                inputBox.title = `Variable Values (${currentVariableIndex + 1}/${variables.length})`;
+                inputBox.title = getTitle(currentVariableIndex, variables);
                 inputBox.prompt = `Enter value for ${variables[currentVariableIndex]}`;
                 inputBox.value = '';
                 inputBox.step = currentVariableIndex + 1;
@@ -256,4 +279,8 @@ async function getVariableReplacements(selectionText: string): Promise<string> {
 
         inputBox.show();
     });
+}
+
+function getTitle(currentVariableIndex: number, variables: unknown[]) {
+    return `Variable values (${currentVariableIndex + 1} of ${variables.length} variable${variables.length === 1 ? '' : 's'})`;
 }

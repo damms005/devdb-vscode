@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { LaravelCodelensService } from './laravel/laravel-codelens-service';
 
-export class CodelensProvider implements vscode.CodeLensProvider {
+export class LaravelCodelensProvider implements vscode.CodeLensProvider {
 
 	private codeLenses: vscode.CodeLens[] = [];
 	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();

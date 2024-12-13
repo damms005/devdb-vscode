@@ -123,7 +123,7 @@ function getVersionAsArray(version: string): number[] {
 	return version.split(".").map((s: string) => Number(s));
 }
 
-function getCurrentVersion() {
+export function getCurrentVersion() {
 	return vscode.extensions.getExtension(
 		ExtensionConstants.extensionId
 	)?.packageJSON?.version;

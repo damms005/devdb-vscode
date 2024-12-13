@@ -13,3 +13,27 @@ export function brief(str: string, length: number = 60) {
 
 	return `${firstPart}...${lastPart}`
 }
+
+/**
+ * Extracts unique variables from a given text
+ * @param text The input text containing variables
+ * @returns An array of unique variables found
+ */
+export function extractVariables(text: string): string[] {
+	const variableRegex = /\$[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*(?:->[\w]+)+/g;
+	return [...new Set(text.match(variableRegex) || [])];
+}
+
+/**
+* Replaces variables in the text with user-provided values
+* @param text The original text with variables
+* @param variableValues A map of variables to their replacement values
+* @returns The text with variables replaced
+*/
+export function replaceVariables(text: string, variableValues: { [key: string]: string }): string {
+	const variableRegex = /\$[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*(?:->[\w]+)+/g;
+
+	return text.replace(variableRegex, (match) => {
+			return variableValues[match] || match;
+	});
+}
