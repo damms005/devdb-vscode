@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "1.15.2",
+	"version": "1.15.3",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
@@ -196,8 +196,8 @@
 		"typescript": "^5.7.2"
 	},
 	"dependencies": {
-		"axios": "^1.5.1",
-		"axios-retry": "^3.8.0",
+		"axios": "^1.7.9",
+		"axios-retry": "^3.9.1",
 		"case": "^1.6.3",
 		"cosmiconfig": "^8.3.6",
 		"csv-parse": "^5.6.0",
