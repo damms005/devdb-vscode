@@ -81,6 +81,7 @@ export class MysqlEngine implements DatabaseEngine {
 				name: column.Field,
 				type: column.Type,
 				isPrimaryKey: column.Key === 'PRI',
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isOptional: column.Null === 'YES',
 				foreignKey
 			})
@@ -89,12 +90,16 @@ export class MysqlEngine implements DatabaseEngine {
 		return computedColumns
 	}
 
+	getNumericColumnTypeNamesLowercase(): string[] {
+		return ['tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'double'];
+	}
+
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows('mysql', this.sequelize, table, columns, whereClause);
+		return SqlService.getTotalRows(this, 'mysql', this.sequelize, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows('mysql', this.sequelize, table, columns, limit, offset, whereClause);
+		return SqlService.getRows(this, 'mysql', this.sequelize, table, columns, limit, offset, whereClause);
 	}
 
 	async getVersion(): Promise<string | undefined> {

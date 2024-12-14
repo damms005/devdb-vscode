@@ -73,7 +73,7 @@ export class MssqlEngine implements DatabaseEngine {
 			logging: false
 		}) as any[];
 
-		const computedColumns = []
+		const computedColumns:Column[] = []
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
@@ -82,12 +82,18 @@ export class MssqlEngine implements DatabaseEngine {
 				name: column.Field,
 				type: column.Type,
 				isPrimaryKey: column.Key === 1,
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isOptional: column.Null === 'YES',
 				foreignKey
 			})
 		}
 
 		return computedColumns
+	}
+
+	getNumericColumnTypeNamesLowercase(): string[]
+	{
+		return ['tinyint', 'smallint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'real'];
 	}
 
 	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined> {

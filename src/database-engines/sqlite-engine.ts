@@ -61,7 +61,7 @@ export class SqliteEngine implements DatabaseEngine {
 
 		const columns = await this.sequelize.query(`PRAGMA table_info(\`${table}\`)`, { type: QueryTypes.SELECT }) as any[];
 
-		const computedColumns = []
+		const computedColumns: Column[] = []
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.name, this.sequelize as Sequelize)
@@ -70,6 +70,7 @@ export class SqliteEngine implements DatabaseEngine {
 				name: column.name,
 				type: column.type,
 				isPrimaryKey: column.pk === 1,
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isOptional: column.notnull === 0,
 				foreignKey
 			})
@@ -78,19 +79,23 @@ export class SqliteEngine implements DatabaseEngine {
 		return computedColumns
 	}
 
+	getNumericColumnTypeNamesLowercase(): string[] {
+		return ['integer', 'real', 'numeric'];
+	}
+
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows('sqlite', this.sequelize, table, columns, whereClause);
+		return SqlService.getTotalRows(this, 'sqlite', this.sequelize, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows('sqlite', this.sequelize, table, columns, limit, offset, whereClause);
+		return SqlService.getRows(this, 'sqlite', this.sequelize, table, columns, limit, offset, whereClause);
 	}
 
 	async getVersion(): Promise<string | undefined> {
 		return undefined
 	}
 
-	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
 		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();

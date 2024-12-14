@@ -8,6 +8,7 @@ export interface Column {
 	name: string,
 	type: string,
 	isPrimaryKey: boolean,
+	isNumeric?: boolean,
 	isOptional: boolean,
 	foreignKey?: ForeignKey
 }
@@ -66,6 +67,11 @@ export interface DatabaseEngine {
 	getTableCreationSql(table: string): Promise<string>
 
 	getColumns(table: string): Promise<Column[]>
+
+	/**
+	 * Returns a list of column type names that are numeric
+	 */
+	getNumericColumnTypeNamesLowercase(): string[]
 
 	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
@@ -137,3 +143,11 @@ export interface MssqlConfig extends SqlConfig {
 }
 
 export type LaravelConnection = 'pgsql' | 'mysql'
+
+export type Mutation = {
+	row: Record<string, any>
+	rowIndex: number
+	column: Column
+	originalValue: any
+	newValue: any
+}

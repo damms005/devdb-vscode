@@ -88,7 +88,7 @@ export class PostgresEngine implements DatabaseEngine {
 				LOWER(table_name) = LOWER('${table}')
 		`, { type: QueryTypes.SELECT }) as any[];
 
-		const computedColumns = [];
+		const computedColumns:Column[] = [];
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.name, this.sequelize as Sequelize);
@@ -97,6 +97,7 @@ export class PostgresEngine implements DatabaseEngine {
 				name: column.name,
 				type: column.type,
 				isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isOptional: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				foreignKey
 			});
@@ -105,12 +106,16 @@ export class PostgresEngine implements DatabaseEngine {
 		return computedColumns;
 	}
 
+	getNumericColumnTypeNamesLowercase(): string[] {
+		return ['smallint', 'integer', 'bigint', 'decimal', 'numeric', 'real', 'double precision'];
+	}
+
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows('postgres', this.sequelize, table, columns, whereClause);
+		return SqlService.getTotalRows(this, 'postgres', this.sequelize, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows('postgres', this.sequelize, table, columns, limit, offset, whereClause);
+		return SqlService.getRows(this, 'postgres', this.sequelize, table, columns, limit, offset, whereClause);
 	}
 
 	async getVersion(): Promise<string | undefined> {

@@ -1,19 +1,19 @@
 import { Dialect, QueryTypes, Sequelize } from "sequelize";
-import { Column, QueryResponse } from "../types";
+import { Column, DatabaseEngine, QueryResponse } from "../types";
 import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
-	buildWhereClause(dialect: Dialect, columns: Column[], delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
+	buildWhereClause(engine: DatabaseEngine, dialect: Dialect, columns: Column[], delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
 		if (!whereClause) return {
 			where: [],
 			replacements: []
 		}
 
-		return buildWhereClause(dialect, whereClause, columns, delimiter);
+		return buildWhereClause(engine, dialect, whereClause, columns, delimiter);
 	},
 
-	async getRows(dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+	async getRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		if (!sequelize) return;
 
 		let delimiter = '`'
@@ -21,7 +21,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(dialect, columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, delimiter, whereClause);
 
 		let limitConstraint = limit ? `LIMIT ${limit}` : '';
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
@@ -47,7 +47,7 @@ export const SqlService = {
 		return { rows, sql: loggedSql };
 	},
 
-	async getTotalRows(dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
+	async getTotalRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
 		if (!sequelize) return;
 
 		let delimiter = '`'
@@ -55,7 +55,7 @@ export const SqlService = {
 			delimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(dialect, columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, delimiter, whereClause);
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let count;
 
@@ -83,7 +83,7 @@ export const SqlService = {
 	},
 }
 
-function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, columns: Column[], delimiter: string) {
+function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause: Record<string, any>, columns: Column[], delimiter: string) {
 	const where: string[] = [];
 	const replacements: string[] = [];
 
@@ -106,8 +106,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				operator = ' is ';
 			}
 
-			const numericColumns = ['int', 'float', 'decimal', 'bigint', 'smallint', 'integer'];
-			const isNumericComparison = numericColumns.includes(targetColumn.type.toLocaleLowerCase());
+			const isNumericComparison = engine.getNumericColumnTypeNamesLowercase().includes(targetColumn.type.toLocaleLowerCase());
 			if (isNumericComparison) {
 				operator = '=';
 			}
@@ -118,7 +117,7 @@ function buildWhereClause(dialect: Dialect, whereClause: Record<string, any>, co
 				delimiter = ''
 			}
 
-			value = getTransformedValue(targetColumn, value,isNumericComparison);
+			value = getTransformedValue(targetColumn, value, isNumericComparison);
 
 			where.push(`${delimiter}${column}${delimiter} ${operator} ?`);
 			replacements.push(value);
