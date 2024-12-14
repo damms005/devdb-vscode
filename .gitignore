@@ -4,6 +4,7 @@ node_modules
 .vscode-test/
 *.vsix
 .aider*
+AIDER-CONVENTIONS.md
 
 # Logs
 /ui-shell/logs
