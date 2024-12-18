@@ -228,7 +228,7 @@ function openSettings(theme) {
 }
 
 function saveChanges(mutations) {
-	vscode.value.postMessage({ type: 'request:update-database-records', value: mutations })
+	vscode.value.postMessage({ type: 'request:update-database-records', value: removeProxyWrap(mutations) })
 }
 </script>
 
