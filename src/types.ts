@@ -9,6 +9,7 @@ export interface Column {
 	type: string,
 	isPrimaryKey: boolean,
 	isNumeric?: boolean,
+	isNullable?: boolean,
 	isOptional: boolean,
 	foreignKey?: ForeignKey
 }
