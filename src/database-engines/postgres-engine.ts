@@ -1,5 +1,5 @@
 import { Sequelize, QueryTypes, Dialect } from 'sequelize';
-import { Column, DatabaseEngine, QueryResponse } from '../types';
+import { Column, DatabaseEngine, Mutation, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
 
 export class PostgresEngine implements DatabaseEngine {
@@ -98,7 +98,7 @@ export class PostgresEngine implements DatabaseEngine {
 				type: column.type,
 				isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
-				isOptional: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
+				isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				foreignKey
 			});
 		}
@@ -122,7 +122,20 @@ export class PostgresEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+	async saveChanges(mutation: Mutation): Promise<void> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;
+		await this.sequelize.query(
+			`UPDATE ${table} SET ${column.name} = :newValue WHERE ${primaryKeyColumn.name} = :primaryKey`,
+			{
+				replacements: { newValue, primaryKey },
+				type: QueryTypes.UPDATE,
+			}
+		);
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
 		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();

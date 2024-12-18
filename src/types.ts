@@ -10,7 +10,6 @@ export interface Column {
 	isPrimaryKey: boolean,
 	isNumeric?: boolean,
 	isNullable?: boolean,
-	isOptional: boolean,
 	foreignKey?: ForeignKey
 }
 
@@ -77,6 +76,8 @@ export interface DatabaseEngine {
 	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
+
+	saveChanges(mutation: Mutation): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 
@@ -151,4 +152,7 @@ export type Mutation = {
 	column: Column
 	originalValue: any
 	newValue: any
+	primaryKey: string | number
+	primaryKeyColumn: Column
+	table: string
 }

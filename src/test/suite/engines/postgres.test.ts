@@ -88,9 +88,9 @@ describe('PostgreSQL Tests', () => {
 			const columns = await postgres.getColumns('users');
 
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'integer', isPrimaryKey: false, isOptional: false, foreignKey: undefined },
-				{ name: 'name', type: 'character varying', isPrimaryKey: false, isOptional: false, foreignKey: undefined },
-				{ name: 'age', type: 'integer', isPrimaryKey: false, isOptional: false, foreignKey: undefined }
+				{ name: 'id', type: 'integer', isPrimaryKey: false, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'character varying', isPrimaryKey: false, isNullable: false, foreignKey: undefined },
+				{ name: 'age', type: 'integer', isPrimaryKey: false, isNullable: false, foreignKey: undefined }
 			]);
 		});
 
@@ -150,8 +150,8 @@ describe('PostgreSQL Tests', () => {
 	`);
 
 			const integerFilteredRows = await postgres.getRows('test_table', [
-				{ name: 'uuid_col', type: 'uuid', isPrimaryKey: false, isOptional: true },
-				{ name: 'int_col', type: 'int4', isPrimaryKey: false, isOptional: true }
+				{ name: 'uuid_col', type: 'uuid', isPrimaryKey: false, isNullable: true },
+				{ name: 'int_col', type: 'int4', isPrimaryKey: false, isNullable: true }
 			], 10, 0, { int_col: 20 });
 
 			assert.strictEqual(integerFilteredRows?.rows.length, 1);
@@ -173,7 +173,7 @@ describe('PostgreSQL Tests', () => {
 			`);
 
 			const timestampFilteredRows = await postgres.getRows('timestamp_test', [
-				{ name: 'created_at', type: 'timestamp', isPrimaryKey: false, isOptional: true }
+				{ name: 'created_at', type: 'timestamp', isPrimaryKey: false, isNullable: true }
 			], 10, 0, { created_at: '2024-10-14 10:00:00' });
 
 			assert.strictEqual(timestampFilteredRows?.rows.length, 1);

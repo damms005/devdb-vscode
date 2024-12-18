@@ -1,5 +1,5 @@
 import { Dialect, QueryTypes, Sequelize } from 'sequelize';
-import { Column, DatabaseEngine, QueryResponse } from '../types';
+import { Column, DatabaseEngine, Mutation, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
@@ -82,7 +82,7 @@ export class MysqlEngine implements DatabaseEngine {
 				type: column.Type,
 				isPrimaryKey: column.Key === 'PRI',
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
-				isOptional: column.Null === 'YES',
+				isNullable: column.Null === 'YES',
 				foreignKey
 			})
 		}
@@ -115,6 +115,19 @@ export class MysqlEngine implements DatabaseEngine {
 		}
 
 		return (version[0] as any)['VERSION()'];
+	}
+
+	async saveChanges(mutation: Mutation): Promise<void> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;
+		await this.sequelize.query(
+			`UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn.name}\` = :primaryKey`,
+			{
+				replacements: { newValue, primaryKey },
+				type: QueryTypes.UPDATE,
+			}
+		);
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<any> {

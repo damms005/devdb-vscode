@@ -226,6 +226,10 @@ function itemsPerPageChanged(value) {
 function openSettings(theme) {
 	vscode.value.postMessage({ type: 'request:open-settings', value: theme })
 }
+
+function saveChanges(mutations) {
+	vscode.value.postMessage({ type: 'request:update-database-records', value: mutations })
+}
 </script>
 
 <template>
@@ -253,6 +257,7 @@ function openSettings(theme) {
 			@open-settings="openSettings"
 			@destroy-ui="destroyUi"
 			@export-table-data="exportTableData"
+			@update-database-records="saveChanges"
 		/>
 	</div>
 	<RouterView />

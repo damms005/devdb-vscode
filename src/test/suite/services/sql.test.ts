@@ -32,12 +32,12 @@ describe('SqliteService Tests', () => {
 			name: 'name',
 			type: 'text',
 			isPrimaryKey: false,
-			isOptional: true,
+			isNullable: true,
 		}, {
 			name: 'age',
 			type: 'integer',
 			isPrimaryKey: false,
-			isOptional: true,
+			isNullable: true,
 		}]
 
 		const { where, replacements } = SqlService.buildWhereClause(sqlite, 'sqlite', columns, '`', whereClause);
@@ -67,12 +67,12 @@ describe('SqliteService Tests', () => {
 			name: 'name',
 			type: 'text',
 			isPrimaryKey: false,
-			isOptional: true,
+			isNullable: true,
 		}, {
 			name: 'age',
 			type: 'integer',
 			isPrimaryKey: false,
-			isOptional: true,
+			isNullable: true,
 		}]
 
 		const result = await SqlService.getRows(sqlite, 'sqlite', sequelize, 'users', columns, 2, 0, whereClause);

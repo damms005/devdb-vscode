@@ -1,6 +1,6 @@
 import { format } from 'sql-formatter';
 import { Dialect, QueryTypes, Sequelize } from 'sequelize';
-import { Column, DatabaseEngine, ForeignKey, QueryResponse } from '../types';
+import { Column, DatabaseEngine, ForeignKey, Mutation, QueryResponse } from '../types';
 import { SqlService } from '../services/sql';
 import { reportError } from '../services/initialization-error-service';
 
@@ -71,7 +71,7 @@ export class SqliteEngine implements DatabaseEngine {
 				type: column.type,
 				isPrimaryKey: column.pk === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
-				isOptional: column.notnull === 0,
+				isNullable: column.notnull === 0,
 				foreignKey
 			})
 		}
@@ -93,6 +93,19 @@ export class SqliteEngine implements DatabaseEngine {
 
 	async getVersion(): Promise<string | undefined> {
 		return undefined
+	}
+
+	async saveChanges(mutation: Mutation): Promise<void> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;
+		await this.sequelize.query(
+			`UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn.name}\` = :primaryKey`,
+			{
+				replacements: { newValue, primaryKey },
+				type: QueryTypes.UPDATE,
+			}
+		);
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {

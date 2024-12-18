@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload, Column } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload, Column, Mutation } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -37,6 +37,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-data-for-tab-page': async () => await loadRowsForPage(data.value),
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
 		'request:export-table-data': async () => await exportTableData(data.value, database),
+		'request:update-database-records': async () => await saveChanges(data.value),
 	}
 
 	const action = actions[data.type]
@@ -232,4 +233,11 @@ export function tableExists(tableName: string) {
 
 export function isTablesLoaded() {
 	return workspaceTables.length > 0
+}
+
+async function saveChanges(mutations: Mutation[]) {
+	await Promise.all(mutations.map(async (mutation) => {
+		if (!database) return
+		return database.saveChanges(mutation)
+	}))
 }

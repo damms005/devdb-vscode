@@ -80,9 +80,9 @@ describe('Sqlite Tests', () => {
 
 			const columns = await sqlite.getColumns('users');
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'INTEGER', isPrimaryKey: true, isOptional: false, foreignKey: undefined },
-				{ name: 'name', type: 'TEXT', isPrimaryKey: false, isOptional: true, foreignKey: undefined },
-				{ name: 'age', type: 'INTEGER', isPrimaryKey: false, isOptional: true, foreignKey: undefined }
+				{ name: 'id', type: 'INTEGER', isPrimaryKey: true, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'TEXT', isPrimaryKey: false, isNullable: true, foreignKey: undefined },
+				{ name: 'age', type: 'INTEGER', isPrimaryKey: false, isNullable: true, foreignKey: undefined }
 			]);
 		});
 

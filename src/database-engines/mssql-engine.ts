@@ -1,5 +1,5 @@
 import { Dialect, QueryTypes, Sequelize } from 'sequelize';
-import { Column, DatabaseEngine, QueryResponse } from '../types';
+import { Column, DatabaseEngine, Mutation, QueryResponse } from '../types';
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
@@ -83,7 +83,7 @@ export class MssqlEngine implements DatabaseEngine {
 				type: column.Type,
 				isPrimaryKey: column.Key === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
-				isOptional: column.Null === 'YES',
+				isNullable: column.Null === 'YES',
 				foreignKey
 			})
 		}
@@ -132,7 +132,20 @@ export class MssqlEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async runArbitraryQueryAndGetOutput(code: string): Promise<string|undefined> {
+	async saveChanges(mutation: Mutation): Promise<void> {
+		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+
+		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;
+		await this.sequelize.query(
+			`UPDATE ${table} SET ${column.name} = :newValue WHERE ${primaryKeyColumn.name} = :primaryKey`,
+			{
+				replacements: { newValue, primaryKey },
+				type: QueryTypes.UPDATE,
+			}
+		);
+	}
+
+	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
 		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();

@@ -98,9 +98,9 @@ describe('MSSQL Tests', () => {
 		it('should return correct column definitions', async () => {
 			const columns = await mssql.getColumns('users');
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'int', isPrimaryKey: true, isOptional: false, foreignKey: undefined },
-				{ name: 'name', type: 'varchar', isPrimaryKey: false, isOptional: true, foreignKey: undefined },
-				{ name: 'age', type: 'int', isPrimaryKey: false, isOptional: true, foreignKey: undefined }
+				{ name: 'id', type: 'int', isPrimaryKey: true, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'varchar', isPrimaryKey: false, isNullable: true, foreignKey: undefined },
+				{ name: 'age', type: 'int', isPrimaryKey: false, isNullable: true, foreignKey: undefined }
 			]);
 		})
 			;
