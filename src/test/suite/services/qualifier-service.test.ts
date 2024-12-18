@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { extractUseStatements, getAst, isNamespaced } from '../../../services/laravel/code-runner/qualifier-service';
 
 describe('extractUseStatements', () => {
-	it('should extract plain use statements correctly', () => {
+	it('should extract plain use statements', () => {
 		const code = `
       <?php
 				namespace App;
@@ -15,7 +15,7 @@ describe('extractUseStatements', () => {
 		assert.equal(result, `use App\\Models\\User;\nuse Illuminate\\Support\\Collection;\n`);
 	});
 
-	it('should extract aliased use statements correctly', () => {
+	it('should extract aliased use statements', () => {
 		const code = `
       <?php
 				namespace App;

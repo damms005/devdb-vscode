@@ -2,7 +2,7 @@ import assert = require("assert");
 import { getPaginationFor } from "../../../services/pagination";
 
 describe('Pagination Tests', () => {
-  it('should handle the first page correctly', () => {
+  it('should handle the first page', () => {
     const result = getPaginationFor('test', 1, 100, 10);
     assert.strictEqual(result.prevPage, undefined);
     assert.strictEqual(result.nextPage, 2);
@@ -10,7 +10,7 @@ describe('Pagination Tests', () => {
     assert.strictEqual(result.displayText, 'Showing 1 to 10 of 100 records');
   });
 
-  it('should handle a middle page correctly', () => {
+  it('should handle a middle page', () => {
     const result = getPaginationFor('test', 5, 100, 10);
     assert.strictEqual(result.prevPage, 4);
     assert.strictEqual(result.nextPage, 6);
@@ -18,7 +18,7 @@ describe('Pagination Tests', () => {
     assert.strictEqual(result.displayText, 'Showing 41 to 50 of 100 records');
   });
 
-  it('should handle the last page correctly', () => {
+  it('should handle the last page', () => {
     const result = getPaginationFor('test', 10, 100, 10);
     assert.strictEqual(result.prevPage, 9);
     assert.strictEqual(result.nextPage, undefined);
@@ -26,7 +26,7 @@ describe('Pagination Tests', () => {
     assert.strictEqual(result.displayText, 'Showing 91 to 100 of 100 records');
   });
 
-  it('should handle zero total items correctly', () => {
+  it('should handle zero total items', () => {
     const result = getPaginationFor('test', 1, 0, 10);
     assert.strictEqual(result.prevPage, undefined);
     assert.strictEqual(result.nextPage, undefined);
@@ -34,7 +34,7 @@ describe('Pagination Tests', () => {
     assert.strictEqual(result.displayText, 'Showing 0 to 0 of 0 records');
   });
 
-  it('should handle a single item correctly', () => {
+  it('should handle a single item', () => {
     const result = getPaginationFor('test', 1, 1, 10);
     assert.strictEqual(result.prevPage, undefined);
     assert.strictEqual(result.nextPage, undefined);
@@ -58,7 +58,7 @@ describe('Pagination Tests', () => {
     assert.strictEqual(result.displayText, 'Showing 11 to 11 of 11 records');
   });
 
-  it('should handle a large number of total items correctly', () => {
+  it('should handle a large number of total items', () => {
     const result = getPaginationFor('test', 50, 1000000, 20);
     assert.strictEqual(result.prevPage, 49);
     assert.strictEqual(result.nextPage, 51);

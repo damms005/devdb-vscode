@@ -25,7 +25,7 @@ describe('SqliteService Tests', () => {
 		assert.deepStrictEqual(replacements, []);
 	});
 
-	it('ensures buildWhereClause returns correct arrays when whereClause is defined', () => {
+	it('ensures buildWhereClause returns expected arrays when whereClause is defined', () => {
 		const whereClause = { name: 'John', age: 30 };
 
 		const columns: Column[] = [{
@@ -45,7 +45,7 @@ describe('SqliteService Tests', () => {
 		assert.deepStrictEqual(replacements, ['%John%', 30]);
 	});
 
-	it('ensures getRows returns correct rows and sql when sequelize is not null', async () => {
+	it('ensures getRows returns expected rows and sql when sequelize is not null', async () => {
 		await sequelize.query(`
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY,
@@ -90,7 +90,7 @@ describe('SqliteService Tests', () => {
 		assert.strictEqual(result, undefined);
 	});
 
-	it('ensures initializePaginationFor returns correct pagination data when sequelize is not null', async () => {
+	it('ensures initializePaginationFor returns expected pagination data when sequelize is not null', async () => {
 		await sequelize.query(`
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY,

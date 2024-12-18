@@ -70,7 +70,7 @@ export class SqliteEngine implements DatabaseEngine {
 				name: column.name,
 				type: column.type,
 				isPrimaryKey: column.pk === 1,
-				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 				isNullable: column.notnull === 0,
 				foreignKey
 			})

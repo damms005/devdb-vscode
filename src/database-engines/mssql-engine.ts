@@ -73,7 +73,7 @@ export class MssqlEngine implements DatabaseEngine {
 			logging: false
 		}) as any[];
 
-		const computedColumns:Column[] = []
+		const computedColumns: Column[] = []
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
@@ -91,8 +91,7 @@ export class MssqlEngine implements DatabaseEngine {
 		return computedColumns
 	}
 
-	getNumericColumnTypeNamesLowercase(): string[]
-	{
+	getNumericColumnTypeNamesLowercase(): string[] {
 		return ['tinyint', 'smallint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'real'];
 	}
 

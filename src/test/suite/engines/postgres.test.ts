@@ -12,8 +12,13 @@ import { StartedPostgreSqlContainer, PostgreSqlContainer } from '@testcontainers
 const dockerImage = 'postgres:13.3-alpine'
 
 describe('PostgreSQL Tests', () => {
-	it('postgres: should return correct foreign key definitions', async () => {
-		const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(dockerImage).start();
+	let container: StartedPostgreSqlContainer;
+
+	before(async function () {
+		container = await new PostgreSqlContainer(dockerImage).start();
+	})
+
+	it('should return foreign key definitions', async () => {
 		let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getPassword(), {
 			dialect: 'postgres',
 			port: container.getPort(),
@@ -41,15 +46,15 @@ describe('PostgreSQL Tests', () => {
 		const foreignKeyColumn = columns.find(column => column.name === 'parentid');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'parenttable');
+
+		await postgres.sequelize?.query(`DROP TABLE ChildTable`);
+		await postgres.sequelize?.query(`DROP TABLE ParentTable`);
 	})
-		.timeout(30000);
 
 	describe('PostgresEngine Tests', () => {
 		let postgres: PostgresEngine;
 
-		before(async function () {
-			this.timeout(30000);
-			const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(dockerImage).start();
+		before(async function(){
 			let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getPassword(), {
 				dialect: 'postgres',
 				port: container.getPort(),
@@ -61,7 +66,9 @@ describe('PostgreSQL Tests', () => {
 			postgres = new PostgresEngine(sequelize);
 			const ok = await postgres.isOkay();
 			assert.strictEqual(ok, true);
+		})
 
+		beforeEach(async function () {
 			await postgres.sequelize?.query(`
             CREATE TABLE users (
                 id SERIAL PRIMARY KEY,
@@ -71,7 +78,11 @@ describe('PostgreSQL Tests', () => {
         `);
 		});
 
-		it('should return correct table names', async () => {
+		afterEach(async function () {
+			await postgres.sequelize?.query(`DROP TABLE users;`);
+		})
+
+		it('should return table names', async () => {
 			await postgres.sequelize?.query(`
             CREATE TABLE products (
                 id SERIAL PRIMARY KEY,
@@ -84,17 +95,17 @@ describe('PostgreSQL Tests', () => {
 			assert.deepStrictEqual(tables.sort(), ['products', 'users']);
 		});
 
-		it('should return correct column definitions', async () => {
+		it('should return column definitions', async () => {
 			const columns = await postgres.getColumns('users');
 
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'integer', isPrimaryKey: false, isNullable: false, foreignKey: undefined },
-				{ name: 'name', type: 'character varying', isPrimaryKey: false, isNullable: false, foreignKey: undefined },
-				{ name: 'age', type: 'integer', isPrimaryKey: false, isNullable: false, foreignKey: undefined }
+				{ name: 'id', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'character varying', isPrimaryKey: false, isNumeric: false, isNullable: false, foreignKey: undefined },
+				{ name: 'age', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: false, foreignKey: undefined }
 			]);
 		});
 
-		it('should return correct total rows', async () => {
+		it('should return total rows', async () => {
 			await postgres.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -106,7 +117,7 @@ describe('PostgreSQL Tests', () => {
 			assert.strictEqual(totalRows, 3);
 		});
 
-		it('should return correct rows', async () => {
+		it('should return rows', async () => {
 			await postgres.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -121,7 +132,30 @@ describe('PostgreSQL Tests', () => {
 			]);
 		});
 
-		it('should return correct table creation SQL', async () => {
+		it('should save changes', async () => {
+			await postgres.sequelize?.query(`
+				INSERT INTO users (name, age) VALUES
+				('John', 30)
+			`);
+
+			const mutation = {
+				row: { id: 1, name: 'John', age: 30 },
+				rowIndex: 0,
+				column: { name: 'age', type: 'integer', isPrimaryKey: false },
+				originalValue: 30,
+				newValue: 31,
+				primaryKey: 1,
+				primaryKeyColumn: { name: 'id', type: 'integer', isPrimaryKey: true },
+				table: 'users'
+			};
+
+			await postgres.saveChanges(mutation);
+
+			const rows = await postgres.getRows('users', [], 1, 0);
+			assert.strictEqual(rows?.rows[0].age, 31);
+		});
+
+		it('should return table creation SQL', async () => {
 			const creationSql = (await postgres.getTableCreationSql('users'))
 				.replace(/"/g, '')
 				.replace(/\n|\t/g, '')
@@ -179,5 +213,5 @@ describe('PostgreSQL Tests', () => {
 			assert.strictEqual(timestampFilteredRows?.rows.length, 1);
 			assert.strictEqual(timestampFilteredRows?.rows[0].created_at.toISOString(), new Date('2024-10-14 10:00:00').toISOString());
 		});
-	}).timeout(30000);
+	})
 });

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { MssqlEngine } from '../../../database-engines/mssql-engine';
-import { MSSQLServerContainer } from '@testcontainers/mssqlserver';
+import { MSSQLServerContainer, StartedMSSQLServerContainer } from '@testcontainers/mssqlserver';
 
 /**
  * We use a predefined image like this because docker image download can be ery very slow, hence
@@ -12,12 +12,16 @@ import { MSSQLServerContainer } from '@testcontainers/mssqlserver';
 const dockerImage = 'mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04'
 
 describe('MSSQL Tests', () => {
-	it('mssql: should return correct foreign key definitions', async () => {
-		const container = await new MSSQLServerContainer(dockerImage)
+	let container: StartedMSSQLServerContainer;
+
+	before(async function () {
+		container = await new MSSQLServerContainer(dockerImage)
 			.acceptLicense()
 			.withPassword('yourStrong(!)Password')
 			.start();
+	})
 
+	it('should return foreign key definitions', async () => {
 		const sequelize: Sequelize = new Sequelize('master', 'sa', 'yourStrong(!)Password', {
 			dialect: 'mssql',
 			port: container.getMappedPort(1433),
@@ -46,19 +50,15 @@ describe('MSSQL Tests', () => {
 		const foreignKeyColumn = columns.find(column => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
+
+		await mssql.sequelize?.query(`DROP TABLE ChildTable`);
+		await mssql.sequelize?.query(`DROP TABLE ParentTable`);
 	})
-		.timeout(30000);
 
 	describe('MssqlEngine Tests', () => {
 		let mssql: MssqlEngine;
 
 		before(async function () {
-			this.timeout(30000);
-			const container = await new MSSQLServerContainer()
-				.acceptLicense()
-				.withPassword('yourStrong(!)Password')
-				.start();
-
 			const sequelize: Sequelize = new Sequelize('master', 'sa', 'yourStrong(!)Password', {
 				dialect: 'mssql',
 				port: container.getMappedPort(1433),
@@ -71,17 +71,25 @@ describe('MSSQL Tests', () => {
 			mssql = new MssqlEngine(sequelize);
 			const ok = await mssql.isOkay();
 			assert.strictEqual(ok, true);
+		})
 
+		beforeEach(async function () {
 			await mssql.sequelize?.query(`
-            CREATE TABLE users (
-                id INT PRIMARY KEY IDENTITY(1,1),
-                name varchar(255),
-                age INT
-            )
-        `);
+				CREATE TABLE users (
+						id INT PRIMARY KEY IDENTITY(1,1),
+						name varchar(255),
+						age INT
+				)
+		`);
 		});
 
-		it('should return correct table names', async () => {
+		afterEach(async function () {
+			await mssql.sequelize?.query(`
+				DROP TABLE users
+			`);
+		})
+
+		it('should return table names', async () => {
 			await mssql.sequelize?.query(`
             CREATE TABLE products (
                 id INT PRIMARY KEY,
@@ -95,17 +103,17 @@ describe('MSSQL Tests', () => {
 		})
 			;
 
-		it('should return correct column definitions', async () => {
+		it('should return column definitions', async () => {
 			const columns = await mssql.getColumns('users');
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'int', isPrimaryKey: true, isNullable: false, foreignKey: undefined },
-				{ name: 'name', type: 'varchar', isPrimaryKey: false, isNullable: true, foreignKey: undefined },
-				{ name: 'age', type: 'int', isPrimaryKey: false, isNullable: true, foreignKey: undefined }
+				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'varchar', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined },
+				{ name: 'age', type: 'int', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined }
 			]);
 		})
 			;
 
-		it('should return correct total rows', async () => {
+		it('should return total rows', async () => {
 			await mssql.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -118,7 +126,7 @@ describe('MSSQL Tests', () => {
 		})
 			;
 
-		it('should return correct rows', async () => {
+		it('should return rows', async () => {
 			await mssql.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -134,7 +142,30 @@ describe('MSSQL Tests', () => {
 		})
 			;
 
-		it('should return correct table creation SQL', async () => {
+		it('should save changes', async () => {
+			await mssql.sequelize?.query(`
+				INSERT INTO users (name, age) VALUES
+				('John', 30)
+			`);
+
+			const mutation = {
+				row: { id: 1, name: 'John', age: 30 },
+				rowIndex: 0,
+				column: { name: 'age', type: 'int', isPrimaryKey: false },
+				originalValue: 30,
+				newValue: 31,
+				primaryKey: 1,
+				primaryKeyColumn: { name: 'id', type: 'int', isPrimaryKey: true },
+				table: 'users'
+			};
+
+			await mssql.saveChanges(mutation);
+
+			const rows = await mssql.getRows('users', [], 1, 0);
+			assert.strictEqual(rows?.rows[0].age, 31);
+		});
+
+		it('should return table creation SQL', async () => {
 			const creationSql = (await mssql.getTableCreationSql('users'))
 				.replace(/\[|\]/g, '')
 				.replace(/\n|\t/g, '')
@@ -143,5 +174,5 @@ describe('MSSQL Tests', () => {
 
 			assert.strictEqual(creationSql, '{ "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "id", "DATA_TYPE": 4, "TYPE_NAME": "int identity", "PRECISION": 10, "LENGTH": 4, "SCALE": 0, "RADIX": 10, "NULLABLE": 0, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 4, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": null, "ORDINAL_POSITION": 1, "IS_NULLABLE": "NO", "SS_DATA_TYPE": 56 }, { "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "name", "DATA_TYPE": 12, "TYPE_NAME": "varchar", "PRECISION": 255, "LENGTH": 255, "SCALE": null, "RADIX": null, "NULLABLE": 1, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 12, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": 255, "ORDINAL_POSITION": 2, "IS_NULLABLE": "YES", "SS_DATA_TYPE": 39 }, { "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "age", "DATA_TYPE": 4, "TYPE_NAME": "int", "PRECISION": 10, "LENGTH": 4, "SCALE": 0, "RADIX": 10, "NULLABLE": 1, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 4, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": null, "ORDINAL_POSITION": 3, "IS_NULLABLE": "YES", "SS_DATA_TYPE": 38 }');
 		})
-	}).timeout(30000);
+	})
 });

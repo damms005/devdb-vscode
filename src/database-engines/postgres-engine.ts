@@ -97,7 +97,7 @@ export class PostgresEngine implements DatabaseEngine {
 				name: column.name,
 				type: column.type,
 				isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
-				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 				isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 				foreignKey
 			});

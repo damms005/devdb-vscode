@@ -1,11 +1,20 @@
 import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { MysqlEngine } from '../../../database-engines/mysql-engine';
-import { MySqlContainer } from '@testcontainers/mysql';
+import { MySqlContainer, StartedMySqlContainer } from '@testcontainers/mysql';
 
+/**
+ * Skipping because of https://github.com/testcontainers/testcontainers-node/issues/868
+ */
 describe('MySQL Tests', () => {
-	it('mysql: should return correct foreign key definitions', async () => {
-		const container = await new MySqlContainer().start();
+	let container: StartedMySqlContainer;
+
+	before(async function () {
+		container = await new MySqlContainer().start();
+	})
+
+	it('should return foreign key definitions', async () => {
+		console.log('Creating MySQL engine...');
 		let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getUserPassword(), {
 			dialect: 'mysql',
 			port: container.getPort(),
@@ -34,15 +43,15 @@ describe('MySQL Tests', () => {
 		const foreignKeyColumn = columns.find(column => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
+
+		await mysql.sequelize?.query(`DROP TABLE ChildTable`);
+		await mysql.sequelize?.query(`DROP TABLE ParentTable`);
 	})
-		.timeout(30000);
 
 	describe('MysqlEngine Tests', () => {
 		let mysql: MysqlEngine;
 
-		before(async function () {
-			this.timeout(30000);
-			const container = await new MySqlContainer().start();
+		beforeEach(async function () {
 			let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getUserPassword(), {
 				dialect: 'mysql',
 				port: container.getPort(),
@@ -65,7 +74,11 @@ describe('MySQL Tests', () => {
         `);
 		});
 
-		it('should return correct table names', async () => {
+		afterEach(async function () {
+			await mysql.sequelize?.query(`DROP TABLE users;`);
+		})
+
+		it('should return table names', async () => {
 			await mysql.sequelize?.query(`
             CREATE TABLE products (
                 id INT PRIMARY KEY,
@@ -76,20 +89,18 @@ describe('MySQL Tests', () => {
 
 			const tables = await mysql.getTables();
 			assert.deepStrictEqual(tables, ['products', 'users']);
-		})
-			;
+		});
 
-		it('should return correct column definitions', async () => {
+		it('should return column definitions', async () => {
 			const columns = await mysql.getColumns('users');
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'int', isPrimaryKey: true, isNullable: false, foreignKey: undefined },
-				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNullable: true, foreignKey: undefined },
-				{ name: 'age', type: 'int', isPrimaryKey: false, isNullable: true, foreignKey: undefined }
+				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined },
+				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined },
+				{ name: 'age', type: 'int', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined }
 			]);
-		})
-			;
+		});
 
-		it('should return correct total rows', async () => {
+		it('should return total rows', async () => {
 			await mysql.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -99,10 +110,9 @@ describe('MySQL Tests', () => {
 
 			const totalRows = await mysql.getTotalRows('users', []);
 			assert.strictEqual(totalRows, 3);
-		})
-			;
+		});
 
-		it('should return correct rows', async () => {
+		it('should return rows', async () => {
 			await mysql.sequelize?.query(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
@@ -115,18 +125,39 @@ describe('MySQL Tests', () => {
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }
 			]);
-		})
-			;
+		});
 
-		it('should return correct table creation SQL', async () => {
+		it('should save changes', async () => {
+			await mysql.sequelize?.query(`
+				INSERT INTO users (name, age) VALUES
+				('John', 30)
+			`);
+
+			const mutation = {
+				row: { id: 1, name: 'John', age: 30 },
+				rowIndex: 0,
+				column: { name: 'age', type: 'int', isPrimaryKey: false },
+				originalValue: 30,
+				newValue: 31,
+				primaryKey: 1,
+				primaryKeyColumn: { name: 'id', type: 'int', isPrimaryKey: true },
+				table: 'users'
+			};
+
+			await mysql.saveChanges(mutation);
+
+			const rows = await mysql.getRows('users', [], 1, 0);
+			assert.strictEqual(rows?.rows[0].age, 31);
+		});
+
+		it('should return table creation SQL', async () => {
 			const creationSql = (await mysql.getTableCreationSql('users'))
 				.replace(/`/g, '')
 				.replace(/\n|\t/g, '')
 				.replace(/\s+/g, ' ')
 				.trim();
 
-			assert.strictEqual(creationSql, 'CREATE TABLE users ( id int NOT NULL AUTO_INCREMENT, name varchar(255) DEFAULT NULL, age int DEFAULT NULL, PRIMARY KEY (id) ) ENGINE = InnoDB AUTO_INCREMENT = 7 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci');
-		})
-			;
-	}).timeout(30000);
+			assert.strictEqual(creationSql, 'CREATE TABLE users ( id int NOT NULL AUTO_INCREMENT, name varchar(255) DEFAULT NULL, age int DEFAULT NULL, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci');
+		});
+	})
 });

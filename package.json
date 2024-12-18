@@ -171,7 +171,7 @@
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
 		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
-		"test-services": "./node_modules/.bin/mocha --bail --require ts-node/register ./src/test/suite/**/*.test.ts",
+		"test-services": "./node_modules/.bin/mocha --bail --timeout 30000 --require ts-node/register ./src/test/suite/**/*.test.ts",
 		"publish": "./publish.sh"
 	},
 	"devDependencies": {
@@ -188,7 +188,7 @@
 		"chokidar-cli": "^3.0.0",
 		"eslint": "^8.57.1",
 		"glob": "^11.0.0",
-		"mocha": "^10.8.2",
+		"mocha": "^11.0.1",
 		"prettier": "^3.4.2",
 		"prettier-plugin-tailwindcss": "^0.5.14",
 		"testcontainers": "^10.16.0",
