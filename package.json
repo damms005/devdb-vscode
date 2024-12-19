@@ -77,9 +77,9 @@
 		],
 		"languages": [
 			{
-					"id": "json",
-					"filenames": [".devdbrc"],
-					"aliases": ["DevDb Config"]
+				"id": "json",
+				"filenames": [".devdbrc"],
+				"aliases": ["DevDb Config"]
 			}
 		],
 		"viewsContainers": {
