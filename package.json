@@ -75,6 +75,13 @@
 				"path": "./snippets/devdbrc.json"
 			}
 		],
+		"languages": [
+			{
+					"id": "json",
+					"filenames": [".devdbrc"],
+					"aliases": ["DevDb Config"]
+			}
+		],
 		"viewsContainers": {
 			"panel": [
 				{
