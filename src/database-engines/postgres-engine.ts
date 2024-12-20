@@ -122,7 +122,7 @@ export class PostgresEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async saveChanges(mutation: Mutation): Promise<void> {
+	async commitChange(mutation: Mutation): Promise<void> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
 		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;

@@ -117,7 +117,7 @@ export class MysqlEngine implements DatabaseEngine {
 		return (version[0] as any)['VERSION()'];
 	}
 
-	async saveChanges(mutation: Mutation): Promise<void> {
+	async commitChange(mutation: Mutation): Promise<void> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
 		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;

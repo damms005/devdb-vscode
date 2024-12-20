@@ -149,7 +149,7 @@ describe('PostgreSQL Tests', () => {
 				table: 'users'
 			};
 
-			await postgres.saveChanges(mutation);
+			await postgres.commitChange(mutation);
 
 			const rows = await postgres.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);

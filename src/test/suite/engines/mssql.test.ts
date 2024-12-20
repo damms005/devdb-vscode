@@ -159,7 +159,7 @@ describe('MSSQL Tests', () => {
 				table: 'users'
 			};
 
-			await mssql.saveChanges(mutation);
+			await mssql.commitChange(mutation);
 
 			const rows = await mssql.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);

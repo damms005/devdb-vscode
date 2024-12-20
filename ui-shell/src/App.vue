@@ -227,8 +227,8 @@ function openSettings(theme) {
 	vscode.value.postMessage({ type: 'request:open-settings', value: theme })
 }
 
-function saveChanges(mutations) {
-	vscode.value.postMessage({ type: 'request:update-database-records', value: removeProxyWrap(mutations) })
+function writeMutations(mutations) {
+	vscode.value.postMessage({ type: 'request:write-mutations', value: removeProxyWrap(mutations) })
 }
 </script>
 
@@ -257,7 +257,7 @@ function saveChanges(mutations) {
 			@open-settings="openSettings"
 			@destroy-ui="destroyUi"
 			@export-table-data="exportTableData"
-			@update-database-records="saveChanges"
+			@update-database-records="writeMutations"
 		/>
 	</div>
 	<RouterView />

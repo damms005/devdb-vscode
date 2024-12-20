@@ -144,7 +144,7 @@ describe('MySQL Tests', () => {
 				table: 'users'
 			};
 
-			await mysql.saveChanges(mutation);
+			await mysql.commitChange(mutation);
 
 			const rows = await mysql.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);

@@ -77,7 +77,7 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	saveChanges(mutation: Mutation): Promise<void>
+	commitChange(mutation: Mutation): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 
@@ -147,10 +147,7 @@ export interface MssqlConfig extends SqlConfig {
 export type LaravelConnection = 'pgsql' | 'mysql'
 
 export type Mutation = {
-	row: Record<string, any>
-	rowIndex: number
 	column: Column
-	originalValue: any
 	newValue: any
 	primaryKey: string | number
 	primaryKeyColumn: Column

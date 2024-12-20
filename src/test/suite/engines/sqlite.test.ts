@@ -156,7 +156,7 @@ describe('Sqlite Tests', () => {
 				table: 'users'
 			};
 
-			await sqlite.saveChanges(mutation);
+			await sqlite.commitChange(mutation);
 
 			const rows = await sqlite.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);
