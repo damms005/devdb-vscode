@@ -1,5 +1,5 @@
 import { Sequelize, QueryTypes, Dialect } from 'sequelize';
-import { Column, DatabaseEngine, Mutation, QueryResponse } from '../types';
+import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
 
 export class PostgresEngine implements DatabaseEngine {
@@ -122,17 +122,30 @@ export class PostgresEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async commitChange(mutation: Mutation): Promise<void> {
+	async commitChange(serializedMutation: SerializedMutation): Promise<void> {
 		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
 
-		const { table, column, newValue, primaryKey, primaryKeyColumn } = mutation;
-		await this.sequelize.query(
-			`UPDATE ${table} SET ${column.name} = :newValue WHERE ${primaryKeyColumn.name} = :primaryKey`,
-			{
-				replacements: { newValue, primaryKey },
-				type: QueryTypes.UPDATE,
-			}
-		);
+		if (serializedMutation.type === 'cell-update') {
+			const { table, column, newValue, primaryKey, primaryKeyColumn } = serializedMutation;
+			await this.sequelize.query(
+				`UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`,
+				{
+					replacements: { newValue, primaryKey },
+					type: QueryTypes.UPDATE,
+				}
+			);
+		}
+
+		if (serializedMutation.type === 'row-delete') {
+			const { table, primaryKey, primaryKeyColumn } = serializedMutation;
+			await this.sequelize.query(
+				`DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`,
+				{
+					replacements: { primaryKey },
+					type: QueryTypes.DELETE,
+				}
+			);
+		 }
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
