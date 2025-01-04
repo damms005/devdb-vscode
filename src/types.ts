@@ -77,7 +77,7 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	commitChange(mutation: Mutation): Promise<void>
+	commitChange(serializedMutation: SerializedMutation): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 
@@ -146,10 +146,37 @@ export interface MssqlConfig extends SqlConfig {
 
 export type LaravelConnection = 'pgsql' | 'mysql'
 
-export type Mutation = {
+export type BaseSerializedMutation = {
+	type: 'cell-update' | 'row-delete'
+	id: string
+	table: string
+	tabId: string
+}
+
+export interface SerializedCellUpdateMutation extends BaseSerializedMutation {
+	type: 'cell-update'
 	column: Column
 	newValue: any
+	primaryKeyColumn: string
 	primaryKey: string | number
-	primaryKeyColumn: Column
-	table: string
 }
+
+export interface CellUpdateMutation extends SerializedCellUpdateMutation {
+	row: Record<string, any>
+	rowIndex: number
+	originalValue: any
+}
+
+export interface SerializedRowDeletionMutation extends BaseSerializedMutation {
+	type: 'row-delete'
+	primaryKey: string | number
+	primaryKeyColumn: string
+}
+
+export interface RowDeletionMutation extends SerializedRowDeletionMutation {
+	rowIndex: number
+}
+
+export type SerializedMutation = SerializedCellUpdateMutation | SerializedRowDeletionMutation
+
+export type Mutation = CellUpdateMutation | RowDeletionMutation
