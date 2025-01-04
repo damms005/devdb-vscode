@@ -236,8 +236,21 @@ export function isTablesLoaded() {
 }
 
 async function writeMutations(serializedMutations: SerializedMutation[]) {
-	await Promise.all(serializedMutations.map(async (serializedMutation) => {
-		if (!database) return
-		return database.commitChange(serializedMutation)
-	}))
+	const response = {
+		tabId: serializedMutations[0].tabId,
+		outcome: 'success',
+		errorMessage: '',
+	}
+
+	try {
+		await Promise.all(serializedMutations.map(async (serializedMutation) => {
+			if (!database) return
+			return database.commitChange(serializedMutation)
+		}))
+	} catch (error) {
+		response.outcome = 'error'
+		response.errorMessage = String(error)
+	}
+
+	return response
 }
