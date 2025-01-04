@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, TableFilterExportPayload, Column, Mutation } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -235,9 +235,9 @@ export function isTablesLoaded() {
 	return workspaceTables.length > 0
 }
 
-async function writeMutations(mutations: Mutation[]) {
-	await Promise.all(mutations.map(async (mutation) => {
+async function writeMutations(serializedMutations: SerializedMutation[]) {
+	await Promise.all(serializedMutations.map(async (serializedMutation) => {
 		if (!database) return
-		return database.commitChange(mutation)
+		return database.commitChange(serializedMutation)
 	}))
 }
