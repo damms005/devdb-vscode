@@ -90,10 +90,11 @@ export type QueryResponse = {
 }
 
 export interface PaginatedTableQueryResponse {
+  id: string
+	table: string
 	rows: Record<string, any>[]
 	totalRows: number
 	lastQuery?: string,
-	table: string
 	pagination: PaginationData
 	columns?: Column[]
 }

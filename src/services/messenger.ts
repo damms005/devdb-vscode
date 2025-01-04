@@ -8,6 +8,7 @@ import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
 import { exportTableData } from './export-table-data'; // Import the new export function
 import { log } from './logging-service';
+import { getRandomString } from './random-string-generator';
 
 const workspaceTables: string[] = [];
 
@@ -177,6 +178,7 @@ async function getTableData(requestPayload: {
 	if (!queryResponse) return
 
 	return {
+		id: getRandomString('tab-'),
 		table: requestPayload.table,
 		tableCreationSql,
 		lastQuery: queryResponse.sql,
@@ -205,6 +207,7 @@ async function loadRowsForPage(requestPayload: {
 	const rows = await database.getRows(requestPayload.table, requestPayload.columns, limit, offset, requestPayload.whereClause)
 
 	return {
+		id: getRandomString('tab-'),
 		table: requestPayload.table,
 		lastQuery: rows?.sql,
 		rows: rows?.rows || [],

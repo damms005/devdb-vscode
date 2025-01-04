@@ -117,6 +117,7 @@ function buildTabFromPayload(payload) {
 	if (!payload.value) return
 
 	const tab = {
+		id: payload.value.id,
 		table: payload.value.table,
 		filters: payload.value.filters || {},
 		columns: payload.value.columns,
@@ -292,7 +293,6 @@ function handleRowDeleted(primaryKey, tabId) {
 
 	displayedTabs.value[tabIndex].rows = displayedTabs.value[tabIndex].rows.filter(row => row.id !== primaryKey)
 }
-
 </script>
 
 <template>
