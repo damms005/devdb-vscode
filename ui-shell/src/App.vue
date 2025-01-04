@@ -93,6 +93,22 @@ function setupEventHandlers() {
 			case 'config-changed':
 				userPreferences.value = payload.value
 				break
+
+			case 'response:write-mutations':
+				editSession.value = editSession.value.map(session => {
+					if (session.tabId == payload.value.tabId) {
+						session.outcome = payload.value.outcome
+						session.errorMessage = payload.value.errorMessage
+					}
+
+					return session
+				})
+
+				if (session.outcome === 'success') {
+					refreshTabById(payload.value.tabId)
+				}
+
+				break
 		}
 	})
 }
@@ -253,16 +269,30 @@ function commitToDatabase(serializedMutations) {
 		outcome: 'pending',
 	})
 
-	setTimeout(() => {
-		editSession.value = editSession.value.map(session => {
-			session.outcome = session.tabId === tabId ? 'success' : session.outcome
-
-			return session
-		})
-	}, 500)
-
-	vscode.value.postMessage({ type: 'request:write-mutations', value: removeProxyWrap(mutations) })
+	vscode.value.postMessage({ type: 'request:write-mutations', value: removeProxyWrap(serializedMutations) })
 }
+
+function refreshTabById(tabId) {
+	const tabIndex = displayedTabs.value.findIndex(tab => tab.id === tabId)
+	if (tabIndex === -1) {
+		return
+	}
+
+	const tab = buildTab(displayedTabs.value[tabIndex].table, displayedTabs.value[tabIndex].pagination.itemsPerPage)
+	displayedTabs.value.splice(tabIndex, 1, tab)
+}
+
+function handleMutationSessionCompleted(tabId) {
+	editSession.value = editSession.value.filter(session => session.tabId !== tabId)
+}
+
+function handleRowDeleted(primaryKey, tabId) {
+	const tabIndex = displayedTabs.value.findIndex(tab => tab.id === tabId)
+	if (tabIndex === -1) return
+
+	displayedTabs.value[tabIndex].rows = displayedTabs.value[tabIndex].rows.filter(row => row.id !== primaryKey)
+}
+
 </script>
 
 <template>
