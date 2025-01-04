@@ -228,6 +228,20 @@ function openSettings(theme) {
 	vscode.value.postMessage({ type: 'request:open-settings', value: theme })
 }
 
+function handleCellChanged(tabId, primaryKeyColumn, primaryKeyValue, columnName, newValue) {
+	const tabIndex = displayedTabs.value.findIndex(tab => tab.id === tabId)
+
+	if (tabIndex !== -1) {
+		displayedTabs.value[tabIndex].rows = displayedTabs.value[tabIndex].rows.map(row => {
+			if (row[primaryKeyColumn] === primaryKeyValue) {
+				row[columnName] = newValue
+			}
+
+			return row
+		})
+	}
+}
+
 function commitToDatabase(serializedMutations) {
 	if (!serializedMutations.length) return
 
