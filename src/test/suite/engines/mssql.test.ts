@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { MssqlEngine } from '../../../database-engines/mssql-engine';
 import { MSSQLServerContainer, StartedMSSQLServerContainer } from '@testcontainers/mssqlserver';
+import { SerializedMutation } from '../../../types';
 
 /**
  * We use a predefined image like this because docker image download can be ery very slow, hence
@@ -148,14 +149,14 @@ describe('MSSQL Tests', () => {
 				('John', 30)
 			`);
 
-			const mutation = {
-				row: { id: 1, name: 'John', age: 30 },
-				rowIndex: 0,
+			const mutation: SerializedMutation = {
+				type: 'cell-update',
+				id: '1',
+				tabId: 'abc',
 				column: { name: 'age', type: 'int', isPrimaryKey: false },
-				originalValue: 30,
 				newValue: 31,
 				primaryKey: 1,
-				primaryKeyColumn: { name: 'id', type: 'int', isPrimaryKey: true },
+				primaryKeyColumn: 'id',
 				table: 'users'
 			};
 

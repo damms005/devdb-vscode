@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { SqliteEngine } from '../../../database-engines/sqlite-engine';
+import { SerializedMutation } from '../../../types';
 
 describe('Sqlite Tests', () => {
 	it('should return foreign key definitions', async () => {
@@ -145,14 +146,14 @@ describe('Sqlite Tests', () => {
 				('John', 30)
 			`);
 
-			const mutation = {
-				row: { id: 1, name: 'John', age: 30 },
-				rowIndex: 0,
+			const mutation: SerializedMutation = {
+				type: 'cell-update',
+				id: '1',
+				tabId: 'abc',
 				column: { name: 'age', type: 'INTEGER', isPrimaryKey: false },
-				originalValue: 30,
 				newValue: 31,
 				primaryKey: 1,
-				primaryKeyColumn: { name: 'id', type: 'INTEGER', isPrimaryKey: true },
+				primaryKeyColumn: 'id',
 				table: 'users'
 			};
 

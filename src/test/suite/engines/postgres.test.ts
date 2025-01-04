@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { PostgresEngine } from '../../../database-engines/postgres-engine';
 import { StartedPostgreSqlContainer, PostgreSqlContainer } from '@testcontainers/postgresql';
+import { SerializedMutation } from '../../../types';
 
 /**
  * We use a predefined image like this because docker image download can be ery very slow, hence
@@ -138,14 +139,14 @@ describe('PostgreSQL Tests', () => {
 				('John', 30)
 			`);
 
-			const mutation = {
-				row: { id: 1, name: 'John', age: 30 },
-				rowIndex: 0,
+			const mutation:SerializedMutation = {
+				type: 'cell-update',
+				id: '1',
+				tabId: 'abc',
 				column: { name: 'age', type: 'integer', isPrimaryKey: false },
-				originalValue: 30,
 				newValue: 31,
 				primaryKey: 1,
-				primaryKeyColumn: { name: 'id', type: 'integer', isPrimaryKey: true },
+				primaryKeyColumn: 'id',
 				table: 'users'
 			};
 

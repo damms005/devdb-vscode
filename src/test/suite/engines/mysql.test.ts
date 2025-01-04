@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { Sequelize } from 'sequelize';
 import { MysqlEngine } from '../../../database-engines/mysql-engine';
 import { MySqlContainer, StartedMySqlContainer } from '@testcontainers/mysql';
+import { SerializedMutation } from '../../../types';
 
 /**
  * Skipping because of https://github.com/testcontainers/testcontainers-node/issues/868
@@ -133,14 +134,14 @@ describe('MySQL Tests', () => {
 				('John', 30)
 			`);
 
-			const mutation = {
-				row: { id: 1, name: 'John', age: 30 },
-				rowIndex: 0,
+			const mutation:SerializedMutation = {
+				type: 'cell-update',
+				id: '1',
+				tabId: 'abc',
 				column: { name: 'age', type: 'int', isPrimaryKey: false },
-				originalValue: 30,
 				newValue: 31,
 				primaryKey: 1,
-				primaryKeyColumn: { name: 'id', type: 'int', isPrimaryKey: true },
+				primaryKeyColumn: 'id',
 				table: 'users'
 			};
 
