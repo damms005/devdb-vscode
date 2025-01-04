@@ -14,6 +14,7 @@ const tables = ref([])
 const displayedTabs = ref([])
 const activeTabIndex = ref()
 const userPreferences = ref({})
+const editSession = ref([])
 
 const itemsPerPage = ref(10)
 
@@ -227,7 +228,25 @@ function openSettings(theme) {
 	vscode.value.postMessage({ type: 'request:open-settings', value: theme })
 }
 
-function writeMutations(mutations) {
+function commitToDatabase(serializedMutations) {
+	if (!serializedMutations.length) return
+
+	const tabId = serializedMutations[0].tabId
+
+	editSession.value.push({
+		tabId,
+		mutations: serializedMutations.map(mutation => mutation.id),
+		outcome: 'pending',
+	})
+
+	setTimeout(() => {
+		editSession.value = editSession.value.map(session => {
+			session.outcome = session.tabId === tabId ? 'success' : session.outcome
+
+			return session
+		})
+	}, 500)
+
 	vscode.value.postMessage({ type: 'request:write-mutations', value: removeProxyWrap(mutations) })
 }
 </script>
@@ -237,27 +256,31 @@ function writeMutations(mutations) {
 	<div class="h-full min-h-full w-full min-w-full bg-white">
 		<!-- eslint-disable vue/valid-v-bind -->
 		<DevDB
-			:providers
+			:activeTabIndex
 			:connected
+			:editSession
+			:providers
 			:tables
 			:tabs="displayedTabs"
-			:activeTabIndex="activeTabIndex"
-			:user-preferences="userPreferences"
-			@select-provider="selectProvider"
-			@select-provider-option="selectProviderOption"
-			@refresh-providers="refreshProviders"
-			@get-fresh-table-data="getFreshTableData"
-			@update-current-tab-filter="getFilteredData"
-			@switch-to-tab="switchToTab"
-			@get-data-for-tab-page="getDataForTabPage"
-			@refresh-active-tab="refreshActiveTab"
-			@load-table-into-current-tab="loadTableIntoCurrentTab"
-			@remove-tab="removeTab"
-			@items-per-page-changed="itemsPerPageChanged"
-			@open-settings="openSettings"
+			:userPreferences
+			@cell-value-changed="handleCellChanged"
+			@commit-mutations="commitToDatabase"
 			@destroy-ui="destroyUi"
 			@export-table-data="exportTableData"
-			@update-database-records="writeMutations"
+			@get-data-for-tab-page="getDataForTabPage"
+			@get-fresh-table-data="getFreshTableData"
+			@items-per-page-changed="itemsPerPageChanged"
+			@load-table-into-current-tab="loadTableIntoCurrentTab"
+			@mutation-session-completed="handleMutationSessionCompleted"
+			@open-settings="openSettings"
+			@refresh-active-tab="refreshActiveTab"
+			@refresh-providers="refreshProviders"
+			@remove-tab="removeTab"
+			@row-deleted="handleRowDeleted"
+			@select-provider-option="selectProviderOption"
+			@select-provider="selectProvider"
+			@switch-to-tab="switchToTab"
+			@update-current-tab-filter="getFilteredData"
 		/>
 	</div>
 	<RouterView />
