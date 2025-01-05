@@ -9,6 +9,7 @@ import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-
 import { exportTableData } from './export-table-data'; // Import the new export function
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
+import { Transaction } from 'sequelize';
 
 const workspaceTables: string[] = [];
 
@@ -243,6 +244,20 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 		tabId: serializedMutations[0].tabId,
 		outcome: 'success',
 		errorMessage: '',
+	}
+
+	if(!database){
+		response.outcome = 'error';
+		response.errorMessage = 'No database selected';
+		return response
+	}
+
+	const transaction: Transaction | undefined = await database.getSequelizeInstance()?.transaction();
+
+	if (!transaction) {
+		response.outcome = 'error';
+		response.errorMessage = 'Could not start transaction';
+		return response
 	}
 
 	try {
