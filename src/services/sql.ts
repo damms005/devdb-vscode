@@ -4,24 +4,24 @@ import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
-	buildWhereClause(engine: DatabaseEngine, dialect: Dialect, columns: Column[], delimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
+	buildWhereClause(engine: DatabaseEngine, dialect: Dialect, columns: Column[], openDelimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
 		if (!whereClause) return {
 			where: [],
 			replacements: []
 		}
 
-		return buildWhereClause(engine, dialect, whereClause, columns, delimiter);
+		return buildWhereClause(engine, dialect, whereClause, columns, openDelimiter);
 	},
 
 	async getRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		if (!sequelize) return;
 
-		let delimiter = '`'
+		let openDelimiter = '`'
 		if (dialect === 'postgres') {
-			delimiter = '"';
+			openDelimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, openDelimiter, whereClause);
 
 		let limitConstraint = limit ? `LIMIT ${limit}` : '';
 		limitConstraint += offset ? ` OFFSET ${offset}` : '';
@@ -30,7 +30,7 @@ export const SqlService = {
 		let loggedSql = '';
 		let rows
 
-		const sql = `SELECT * FROM ${delimiter}${table}${delimiter} ${whereString} ${limitConstraint}`
+		const sql = `SELECT * FROM ${openDelimiter}${table}${openDelimiter} ${whereString} ${limitConstraint}`
 
 		try {
 			rows = await sequelize.query(sql, {
@@ -50,17 +50,17 @@ export const SqlService = {
 	async getTotalRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
 		if (!sequelize) return;
 
-		let delimiter = '`'
+		let openDelimiter = '`'
 		if (dialect === 'postgres') {
-			delimiter = '"';
+			openDelimiter = '"';
 		}
 
-		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, delimiter, whereClause);
+		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, openDelimiter, whereClause);
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let count;
 
 		try {
-			count = await sequelize.query(`SELECT COUNT(*) FROM ${delimiter}${table}${delimiter} ${whereString}`, {
+			count = await sequelize.query(`SELECT COUNT(*) FROM ${openDelimiter}${table}${openDelimiter} ${whereString}`, {
 				type: QueryTypes.SELECT,
 				raw: true,
 				replacements,
@@ -82,7 +82,7 @@ export const SqlService = {
 			: 0
 	},
 
-	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction, delimiter: string = '`'): Promise<void> {
+	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction, openDelimiter: string = '`'): Promise<void> {
 		if (!sequelize) return;
 
 		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
@@ -91,10 +91,10 @@ export const SqlService = {
 
 		if (serializedMutation.type === 'cell-update') {
 			const { column, newValue } = serializedMutation;
-			query = `UPDATE ${delimiter}${table}${delimiter} SET ${delimiter}${column.name}${delimiter} = :newValue WHERE ${delimiter}${primaryKeyColumn}${delimiter} = :primaryKey`;
+			query = `UPDATE ${openDelimiter}${table}${openDelimiter} SET ${openDelimiter}${column.name}${openDelimiter} = :newValue WHERE ${openDelimiter}${primaryKeyColumn}${openDelimiter} = :primaryKey`;
 			replacements = { ...replacements, newValue };
 		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM ${delimiter}${table}${delimiter} WHERE ${delimiter}${primaryKeyColumn}${delimiter} = :primaryKey`;
+			query = `DELETE FROM ${openDelimiter}${table}${openDelimiter} WHERE ${openDelimiter}${primaryKeyColumn}${openDelimiter} = :primaryKey`;
 		}
 
 		if (query) {
@@ -107,7 +107,7 @@ export const SqlService = {
 	}
 }
 
-function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause: Record<string, any>, columns: Column[], delimiter: string) {
+function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause: Record<string, any>, columns: Column[], openDelimiter: string) {
 	const where: string[] = [];
 	const replacements: string[] = [];
 
@@ -138,12 +138,12 @@ function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause:
 			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/i.test(targetColumn.type) && dialect === 'postgres';
 			if (isStringablePostgresComparison) {
 				column = `"${column}"::text`;
-				delimiter = ''
+				openDelimiter = ''
 			}
 
 			value = getTransformedValue(targetColumn, value, isNumericComparison);
 
-			where.push(`${delimiter}${column}${delimiter} ${operator} ?`);
+			where.push(`${openDelimiter}${column}${openDelimiter} ${operator} ?`);
 			replacements.push(value);
 		})
 
