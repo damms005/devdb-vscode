@@ -124,28 +124,24 @@ export class MysqlEngine implements DatabaseEngine {
 	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
 		if (!this.sequelize) return;
 
+		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
+		let query = '';
+		let replacements: Record<string, any> = { primaryKey };
+
 		if (serializedMutation.type === 'cell-update') {
-			const { table, column, newValue, primaryKey, primaryKeyColumn } = serializedMutation;
-			await this.sequelize.query(
-				`UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`,
-				{
-					replacements: { newValue, primaryKey },
-					type: QueryTypes.UPDATE,
-					transaction
-				}
-			);
+			const { column, newValue } = serializedMutation;
+			query = `UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`;
+			replacements = { ...replacements, newValue };
+		} else if (serializedMutation.type === 'row-delete') {
+			query = `DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`;
 		}
 
-		if (serializedMutation.type === 'row-delete') {
-			const { table, primaryKey, primaryKeyColumn } = serializedMutation;
-			await this.sequelize.query(
-				`DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`,
-				{
-					replacements: { primaryKey },
-					type: QueryTypes.DELETE,
-					transaction
-				}
-			);
+		if (query) {
+			await this.sequelize.query(query, {
+				replacements,
+				type: serializedMutation.type === 'cell-update' ? QueryTypes.UPDATE : QueryTypes.DELETE,
+				transaction
+			});
 		}
 	}
 
