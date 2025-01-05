@@ -127,7 +127,7 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 
 	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
-		await SqlService.commitChange(this.sequelize, serializedMutation, transaction);
+		await SqlService.commitChange(this.sequelize, serializedMutation, transaction, '"');
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
