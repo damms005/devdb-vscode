@@ -1,4 +1,4 @@
-import { Dialect, Sequelize } from "sequelize"
+import { Dialect, Sequelize, Transaction } from "sequelize"
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 
@@ -79,7 +79,7 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	commitChange(serializedMutation: SerializedMutation): Promise<void>
+	commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 

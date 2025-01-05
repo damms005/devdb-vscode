@@ -1,5 +1,5 @@
 import { format } from 'sql-formatter';
-import { Dialect, QueryTypes, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
 import { Column, DatabaseEngine, ForeignKey, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
 import { reportError } from '../services/initialization-error-service';
@@ -99,8 +99,8 @@ export class SqliteEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async commitChange(serializedMutation: SerializedMutation): Promise<void> {
-		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
+		if (!this.sequelize) return;
 
 		if (serializedMutation.type === 'cell-update') {
 			const { table, column, newValue, primaryKey, primaryKeyColumn } = serializedMutation;
@@ -109,6 +109,7 @@ export class SqliteEngine implements DatabaseEngine {
 				{
 					replacements: { newValue, primaryKey },
 					type: QueryTypes.UPDATE,
+					transaction
 				}
 			);
 		}
@@ -120,9 +121,10 @@ export class SqliteEngine implements DatabaseEngine {
 				{
 					replacements: { primaryKey },
 					type: QueryTypes.DELETE,
+					transaction
 				}
 			);
-		 }
+		}
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {

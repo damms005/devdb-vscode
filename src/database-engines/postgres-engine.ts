@@ -1,4 +1,4 @@
-import { Sequelize, QueryTypes, Dialect } from 'sequelize';
+import { Sequelize, QueryTypes, Dialect, Transaction } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
 
@@ -126,8 +126,8 @@ export class PostgresEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async commitChange(serializedMutation: SerializedMutation): Promise<void> {
-		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
+		if (!this.sequelize) return;
 
 		if (serializedMutation.type === 'cell-update') {
 			const { table, column, newValue, primaryKey, primaryKeyColumn } = serializedMutation;
@@ -136,6 +136,7 @@ export class PostgresEngine implements DatabaseEngine {
 				{
 					replacements: { newValue, primaryKey },
 					type: QueryTypes.UPDATE,
+					transaction
 				}
 			);
 		}
@@ -147,9 +148,10 @@ export class PostgresEngine implements DatabaseEngine {
 				{
 					replacements: { primaryKey },
 					type: QueryTypes.DELETE,
+					transaction
 				}
 			);
-		 }
+		}
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {

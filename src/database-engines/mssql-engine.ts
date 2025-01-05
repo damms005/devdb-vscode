@@ -1,4 +1,4 @@
-import { Dialect, QueryTypes, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from '../types';
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
@@ -135,8 +135,8 @@ export class MssqlEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async commitChange(serializedMutation: SerializedMutation): Promise<void> {
-		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
+		if (!this.sequelize) return;
 
 		if (serializedMutation.type === 'cell-update') {
 			const { table, column, newValue, primaryKey, primaryKeyColumn } = serializedMutation;
@@ -145,6 +145,7 @@ export class MssqlEngine implements DatabaseEngine {
 				{
 					replacements: { newValue, primaryKey },
 					type: QueryTypes.UPDATE,
+					transaction
 				}
 			);
 		}
@@ -156,6 +157,7 @@ export class MssqlEngine implements DatabaseEngine {
 				{
 					replacements: { primaryKey },
 					type: QueryTypes.DELETE,
+					transaction
 				}
 			);
 		}
