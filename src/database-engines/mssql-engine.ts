@@ -103,10 +103,10 @@ export class MssqlEngine implements DatabaseEngine {
 	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined> {
 		if (!this.sequelize) return undefined;
 
-		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `${key} = :${key}`).join(' AND ')}` : '';
+		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `[${key}] = :${key}`).join(' AND ')}` : '';
 		const replacements = whereClause ? whereClause : {};
 
-		const result = await this.sequelize.query<{ count: number }>(`SELECT COUNT(*) as count FROM ${table} ${where}`, {
+		const result = await this.sequelize.query<{ count: number }>(`SELECT COUNT(*) as count FROM [${table}] ${where}`, {
 			type: QueryTypes.SELECT,
 			raw: true,
 			logging: false,
@@ -119,10 +119,10 @@ export class MssqlEngine implements DatabaseEngine {
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
 		if (!this.sequelize) return undefined;
 
-		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `${key} = :${key}`).join(' AND ')}` : '';
+		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `[${key}] = :${key}`).join(' AND ')}` : '';
 		const replacements = whereClause ? whereClause : {};
 
-		const rows = await this.sequelize.query(`SELECT * FROM ${table} ${where} ORDER BY id OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`, {
+		const rows = await this.sequelize.query(`SELECT * FROM [${table}] ${where} ORDER BY id OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`, {
 			type: QueryTypes.SELECT,
 			raw: true,
 			logging: false,
