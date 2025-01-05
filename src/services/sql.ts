@@ -91,15 +91,10 @@ export const SqlService = {
 
 		if (serializedMutation.type === 'cell-update') {
 			const { column, newValue } = serializedMutation;
-			query = `UPDATE \
-            ${table}\n            ` + ` SET \
-            ${column.name}\n            ` + ` = :newValue WHERE \
-            ${primaryKeyColumn}\n            ` + ` = :primaryKey`;
+			query = `UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`;
 			replacements = { ...replacements, newValue };
 		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM \
-            ${table}\n            ` + ` WHERE \
-            ${primaryKeyColumn}\n            ` + ` = :primaryKey`;
+			query = `DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`;
 		}
 
 		if (query) {
