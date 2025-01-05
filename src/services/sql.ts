@@ -1,5 +1,5 @@
-import { Dialect, QueryTypes, Sequelize } from "sequelize";
-import { Column, DatabaseEngine, QueryResponse } from "../types";
+import { Dialect, QueryTypes, Sequelize, Transaction } from "sequelize";
+import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from "../types";
 import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
@@ -81,6 +81,35 @@ export const SqlService = {
 			? Number(totalRows)
 			: 0
 	},
+
+	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
+		if (!sequelize) return;
+
+		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
+		let query = '';
+		let replacements: Record<string, any> = { primaryKey };
+
+		if (serializedMutation.type === 'cell-update') {
+			const { column, newValue } = serializedMutation;
+			query = `UPDATE \
+            ${table}\n            ` + ` SET \
+            ${column.name}\n            ` + ` = :newValue WHERE \
+            ${primaryKeyColumn}\n            ` + ` = :primaryKey`;
+			replacements = { ...replacements, newValue };
+		} else if (serializedMutation.type === 'row-delete') {
+			query = `DELETE FROM \
+            ${table}\n            ` + ` WHERE \
+            ${primaryKeyColumn}\n            ` + ` = :primaryKey`;
+		}
+
+		if (query) {
+			await sequelize.query(query, {
+				replacements,
+				type: serializedMutation.type === 'cell-update' ? QueryTypes.UPDATE : QueryTypes.DELETE,
+				transaction
+			});
+		}
+	}
 }
 
 function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause: Record<string, any>, columns: Column[], delimiter: string) {
@@ -143,4 +172,3 @@ function getTransformedValue(targetColumn: Column, value: any, isNumericComparis
 
 	return isNumericComparison ? value : `%${value}%`
 }
-

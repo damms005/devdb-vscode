@@ -122,27 +122,7 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
-		if (!this.sequelize) return;
-
-		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
-		let query = '';
-		let replacements: Record<string, any> = { primaryKey };
-
-		if (serializedMutation.type === 'cell-update') {
-			const { column, newValue } = serializedMutation;
-			query = `UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`;
-			replacements = { ...replacements, newValue };
-		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`;
-		}
-
-		if (query) {
-			await this.sequelize.query(query, {
-				replacements,
-				type: serializedMutation.type === 'cell-update' ? QueryTypes.UPDATE : QueryTypes.DELETE,
-				transaction
-			});
-		}
+		await SqlService.commitChange(this.sequelize, serializedMutation, transaction);
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<any> {
