@@ -1,4 +1,4 @@
-import { Dialect } from "sequelize"
+import { Dialect, Sequelize } from "sequelize"
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 
@@ -53,6 +53,8 @@ export type DatabaseEngineProvider = {
 
 export interface DatabaseEngine {
 	getType(): Dialect
+
+	getSequelizeInstance(): Sequelize | null
 
 	/**
 	 * Returns true if the connection is okay

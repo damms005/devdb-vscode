@@ -20,6 +20,10 @@ export class SqliteEngine implements DatabaseEngine {
 		return 'sqlite';
 	}
 
+	getSequelizeInstance(): Sequelize | null {
+		return this.sequelize
+	}
+
 	async isOkay(): Promise<boolean> {
 		if (!this.sequelize) return false;
 

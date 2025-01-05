@@ -15,6 +15,10 @@ export class MssqlEngine implements DatabaseEngine {
 		return 'mssql';
 	}
 
+	getSequelizeInstance(): Sequelize | null {
+		return this.sequelize
+	}
+
 	async isOkay(): Promise<boolean> {
 		if (!this.sequelize) return false;
 
@@ -154,7 +158,7 @@ export class MssqlEngine implements DatabaseEngine {
 					type: QueryTypes.DELETE,
 				}
 			);
-		 }
+		}
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {

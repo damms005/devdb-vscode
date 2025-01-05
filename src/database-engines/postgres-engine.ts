@@ -13,6 +13,10 @@ export class PostgresEngine implements DatabaseEngine {
 		return 'postgres';
 	}
 
+	getSequelizeInstance(): Sequelize | null {
+		return this.sequelize
+	}
+
 	async isOkay(): Promise<boolean> {
 		if (!this.sequelize) return false;
 

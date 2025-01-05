@@ -16,6 +16,10 @@ export class MysqlEngine implements DatabaseEngine {
 		return 'mysql';
 	}
 
+	getSequelizeInstance(): Sequelize | null {
+		return this.sequelize
+	}
+
 	async isOkay(): Promise<boolean> {
 		if (!this.sequelize) return false;
 
