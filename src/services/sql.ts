@@ -82,7 +82,7 @@ export const SqlService = {
 			: 0
 	},
 
-	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
+	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction, delimiter: string = '`'): Promise<void> {
 		if (!sequelize) return;
 
 		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
@@ -91,10 +91,10 @@ export const SqlService = {
 
 		if (serializedMutation.type === 'cell-update') {
 			const { column, newValue } = serializedMutation;
-			query = `UPDATE \`${table}\` SET \`${column.name}\` = :newValue WHERE \`${primaryKeyColumn}\` = :primaryKey`;
+			query = `UPDATE ${delimiter}${table}${delimiter} SET ${delimiter}${column.name}${delimiter} = :newValue WHERE ${delimiter}${primaryKeyColumn}${delimiter} = :primaryKey`;
 			replacements = { ...replacements, newValue };
 		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM \`${table}\` WHERE \`${primaryKeyColumn}\` = :primaryKey`;
+			query = `DELETE FROM ${delimiter}${table}${delimiter} WHERE ${delimiter}${primaryKeyColumn}${delimiter} = :primaryKey`;
 		}
 
 		if (query) {
