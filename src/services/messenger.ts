@@ -262,12 +262,15 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 
 	try {
 		await Promise.all(serializedMutations.map(async (serializedMutation) => {
-			if (!database) return
-			return database.commitChange(serializedMutation)
-		}))
+			if (!database) return;
+			return database.commitChange(serializedMutation, transaction );
+		}));
+
+		await transaction.commit();
 	} catch (error) {
-		response.outcome = 'error'
-		response.errorMessage = String(error)
+		response.outcome = 'error';
+		response.errorMessage = String(error);
+		await transaction.rollback();
 	}
 
 	return response
