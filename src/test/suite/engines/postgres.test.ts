@@ -55,7 +55,7 @@ describe('PostgreSQL Tests', () => {
 	describe('PostgresEngine Tests', () => {
 		let postgres: PostgresEngine;
 
-		before(async function(){
+		before(async function () {
 			let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getPassword(), {
 				dialect: 'postgres',
 				port: container.getPort(),
@@ -139,7 +139,7 @@ describe('PostgreSQL Tests', () => {
 				('John', 30)
 			`);
 
-			const mutation:SerializedMutation = {
+			const mutation: SerializedMutation = {
 				type: 'cell-update',
 				id: '1',
 				tabId: 'abc',

@@ -30,7 +30,8 @@ export const SqlService = {
 		let loggedSql = '';
 		let rows
 
-		const sql = `SELECT * FROM ${openDelimiter}${table}${openDelimiter} ${whereString} ${limitConstraint}`
+		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
+		const sql = `SELECT * FROM ${openDelimiter}${table}${closeDelimiter} ${whereString} ${limitConstraint}`
 
 		try {
 			rows = await sequelize.query(sql, {
@@ -54,13 +55,14 @@ export const SqlService = {
 		if (dialect === 'postgres') {
 			openDelimiter = '"';
 		}
+		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
 
 		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, openDelimiter, whereClause);
 		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
 		let count;
 
 		try {
-			count = await sequelize.query(`SELECT COUNT(*) FROM ${openDelimiter}${table}${openDelimiter} ${whereString}`, {
+			count = await sequelize.query(`SELECT COUNT(*) FROM ${openDelimiter}${table}${closeDelimiter} ${whereString}`, {
 				type: QueryTypes.SELECT,
 				raw: true,
 				replacements,
@@ -88,13 +90,14 @@ export const SqlService = {
 		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
 		let query = '';
 		let replacements: Record<string, any> = { primaryKey };
+		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
 
 		if (serializedMutation.type === 'cell-update') {
 			const { column, newValue } = serializedMutation;
-			query = `UPDATE ${openDelimiter}${table}${openDelimiter} SET ${openDelimiter}${column.name}${openDelimiter} = :newValue WHERE ${openDelimiter}${primaryKeyColumn}${openDelimiter} = :primaryKey`;
+			query = `UPDATE ${openDelimiter}${table}${closeDelimiter} SET ${openDelimiter}${column.name}${closeDelimiter} = :newValue WHERE ${openDelimiter}${primaryKeyColumn}${closeDelimiter} = :primaryKey`;
 			replacements = { ...replacements, newValue };
 		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM ${openDelimiter}${table}${openDelimiter} WHERE ${openDelimiter}${primaryKeyColumn}${openDelimiter} = :primaryKey`;
+			query = `DELETE FROM ${openDelimiter}${table}${closeDelimiter} WHERE ${openDelimiter}${primaryKeyColumn}${closeDelimiter} = :primaryKey`;
 		}
 
 		if (query) {
@@ -135,6 +138,7 @@ function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause:
 				operator = '=';
 			}
 
+
 			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/i.test(targetColumn.type) && dialect === 'postgres';
 			if (isStringablePostgresComparison) {
 				column = `"${column}"::text`;
@@ -142,8 +146,9 @@ function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause:
 			}
 
 			value = getTransformedValue(targetColumn, value, isNumericComparison);
+			const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
 
-			where.push(`${openDelimiter}${column}${openDelimiter} ${operator} ?`);
+			where.push(`${openDelimiter}${column}${closeDelimiter} ${operator} ?`);
 			replacements.push(value);
 		})
 
