@@ -4,6 +4,7 @@ import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExist
 import { plural } from 'pluralize';
 import Case from 'case';
 import { getWordUnderCursor } from './services/document-service';
+import { showEmptyTablesNotification } from './services/error-notification-service';
 
 export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'devdb';
@@ -65,7 +66,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		if (!this._view) return console.log(`Message received but the webview not available`)
 
 		if (!isTablesLoaded()) {
-			return vscode.window.showErrorMessage(`Tables not loaded yet. Selected a database yet?`)
+			return showEmptyTablesNotification()
 		}
 
 		if (!tableExists(table)) return vscode.window.showErrorMessage(`Table ${table} does not exist`)
@@ -79,7 +80,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	 */
 	public openTableAtCurrentCursor() {
 		if (!isTablesLoaded()) {
-			return vscode.window.showErrorMessage(`Tables not loaded yet. Selected a database yet?`)
+			return showEmptyTablesNotification()
 		}
 
 		const word = getWordUnderCursor()
