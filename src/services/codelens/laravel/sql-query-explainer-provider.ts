@@ -11,7 +11,7 @@ import { CancellationToken, CodeLens, ProviderResult, TextDocument } from 'vscod
 import { database } from '../../messenger';
 import { getCurrentVersion } from '../../welcome-message-service';
 import { extractVariables, replaceVariables } from '../../string';
-import { showMissingDatabaseError } from '../../error-notification-service';
+import { showMissingDatabaseNotification } from '../../error-notification-service';
 
 export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -58,7 +58,7 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
 
 export async function explainSelectedQuery(document: vscode.TextDocument, selection: vscode.Selection) {
     if (!database) {
-        return showMissingDatabaseError()
+        return showMissingDatabaseNotification()
     }
 
     if (database.getType() !== 'mysql') {

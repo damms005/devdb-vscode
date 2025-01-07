@@ -4,11 +4,11 @@ import { getTableModelMapForCurrentWorkspace } from './codelens/laravel/laravel-
 import { getWordUnderCursor } from './document-service';
 import { LaravelFactoryGenerator } from './laravel/factory-generator';
 import { database } from './messenger';
-import { showMissingDatabaseError } from './error-notification-service';
+import { showMissingDatabaseNotification } from './error-notification-service';
 
 export async function generateLaravelFactoryFromCursorWord() {
 	if (!database) {
-		return showMissingDatabaseError()
+		return showMissingDatabaseNotification()
 	}
 
 	const wordUnderCursor = getWordUnderCursor()
@@ -24,7 +24,5 @@ export async function generateLaravelFactoryFromCursorWord() {
 	}
 
 	const generator = new LaravelFactoryGenerator(database);
-	debugger
 	await generator.generateFactory(wordUnderCursor, model.filePath);
-	debugger
 }
