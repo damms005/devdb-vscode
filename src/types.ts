@@ -92,7 +92,7 @@ export type QueryResponse = {
 }
 
 export interface PaginatedTableQueryResponse {
-  id: string
+	id: string
 	table: string
 	rows: Record<string, any>[]
 	totalRows: number
@@ -183,3 +183,11 @@ export interface RowDeletionMutation extends SerializedRowDeletionMutation {
 export type SerializedMutation = SerializedCellUpdateMutation | SerializedRowDeletionMutation
 
 export type Mutation = CellUpdateMutation | RowDeletionMutation
+
+export type ModelMap = {
+	[model: string]: {
+		/** Full path to the model file */
+		filePath: string,
+		table: string
+	}
+}
