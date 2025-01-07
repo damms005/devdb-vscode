@@ -65,6 +65,10 @@
 			{
 				"command": "devdb.laravel.explain-query",
 				"title": "Explain query"
+			},
+			{
+				"command": "devdb.context-menu.laravel.explain-query",
+				"title": "Explain query"
 			}
 		],
 		"jsonValidation": [
@@ -132,7 +136,8 @@
 					"group": "2_laravel@1"
 				},
 				{
-					"command": "devdb.laravel.explain-query",
+					"command": "devdb.context-menu.laravel.explain-query",
+					"label": "Explain query",
 					"when": "resourceLangId == php",
 					"group": "2_laravel@1"
 				}

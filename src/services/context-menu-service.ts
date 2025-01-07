@@ -5,8 +5,9 @@ import { getWordUnderCursor } from './document-service';
 import { LaravelFactoryGenerator } from './laravel/factory-generator';
 import { database } from './messenger';
 import { showMissingDatabaseNotification } from './error-notification-service';
+import { explainSelectedQuery } from './codelens/laravel/sql-query-explainer-provider';
 
-export async function generateLaravelFactoryFromCursorWord() {
+export async function contextMenuLaravelFactoryGenerator() {
 	if (!database) {
 		return showMissingDatabaseNotification()
 	}
@@ -25,4 +26,16 @@ export async function generateLaravelFactoryFromCursorWord() {
 
 	const generator = new LaravelFactoryGenerator(database);
 	await generator.generateFactory(wordUnderCursor, model.filePath);
+}
+
+export async function contextMenuQueryExplainer() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) return;
+
+	const document = editor.document;
+	if (!document) return;
+
+	const selection = editor.selection;
+
+	explainSelectedQuery(document, selection)
 }

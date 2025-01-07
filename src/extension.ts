@@ -6,7 +6,7 @@ import { showWelcomeMessage } from './services/welcome-message-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
 import { database } from './services/messenger';
 import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
-import { generateLaravelFactoryFromCursorWord } from './services/context-menu-service';
+import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
@@ -83,7 +83,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			'devdb.context-menu.laravel.generate-factory-from-word-under-cursor',
-			generateLaravelFactoryFromCursorWord
+			contextMenuLaravelFactoryGenerator
+		)
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			'devdb.context-menu.laravel.explain-query',
+			contextMenuQueryExplainer
 		)
 	);
 
