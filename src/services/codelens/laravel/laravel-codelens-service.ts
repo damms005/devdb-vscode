@@ -87,7 +87,7 @@ export const LaravelCodelensService = {
 				const generateFactoryCommand: vscode.Command = {
 					title: "Generate Factory",
 					tooltip: `Generate factory for ${model}`,
-					command: "devdb.generate-laravel-factory",
+					command: "devdb.laravel.generate-factory",
 					arguments: [model, filePath]
 				};
 				codelenses.push(new vscode.CodeLens(range, generateFactoryCommand));

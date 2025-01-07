@@ -71,7 +71,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			'devdb.generate-laravel-factory',
+			'devdb.laravel.generate-factory',
 			async (modelName: string, modelFilePath: string) => {
 				const generator = new LaravelFactoryGenerator(database);
 				await generator.generateFactory(modelName, modelFilePath);
