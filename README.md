@@ -2,20 +2,18 @@
 
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
-![image](resources/screenshots/devdb.png)
-
-![image](resources/screenshots/light-dark-mode.png)
-
 A lightweight VS Code extension that auto-loads your database. It provides a beautiful database GUI client experience, bringing [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) into database management.
-
 Built with 💖 for developers.
 
-## Requirements
+![image](resources/screenshots/new/providers-light-dark.png)
+![image](resources/screenshots/new/main-light-dark.png)
+
+## Requirement
 
 - VS Code 1.83 or newer
 - A VS Code project that uses any of the [supported databases](#supported-databases)
 
-## Supported OSes/Platforms:
+## OS/Platform Support:
 - Linux (Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
 - macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
 - Windows (Win32-x64)
@@ -24,9 +22,6 @@ Built with 💖 for developers.
 
 - In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly set up and you are able to connect to your database as usual from your normal app code.
 - DevDb [loads your database](#loading-databases). You can view your database by opening the DevDb (usually before the Terminal tab) as shown in the screenshot below, or by using the [shortcut](#keybinding):
-
-![image](resources/screenshots/sample-view-location-plain.png)
-
 
 > [!NOTE]
 > Additionally, DevDb provides some [Language and Framework Integrations](#language-and-framework-integrations)
@@ -50,7 +45,7 @@ No [configuration file](#2-config-based-database-loading) is needed for these en
 If there is no [zero-config](#1-zero-config-automatic-database-loading) support for your environment, simply provide a `.devdbrc` file in the root of your project containing your database connection details.
 
 > [!WARNING]
-> Do not forget to exclude the `.devdbrc` config file from being version controlled. e.g. by adding it to the `.gitignore` file.
+> Do not forget to exclude the `.devdbrc` config file from version control. e.g. by adding it to the `.gitignore` file. Apart from the obvious reason, other devs in your team may be using different database connection details in their local environments.
 
 The content of the configuration file should be a single array containing database connection objects. DevDb provides rich editing features for the `.devdbrc` file:
 
@@ -83,9 +78,6 @@ The content of the configuration file should be a single array containing databa
 ]
 ```
 
-> [!TIP]
-> You may not want to commit DevDb config file to your version control in case other devs in your team are using different database connection details in their local environments.
-
 ## Keybinding
 
 Press `Ctrl+K Ctrl+D` to toggle DevDb view
@@ -110,7 +102,7 @@ The following databases are currently supported:
   You can load a table by right-clicking on its name/model/entity from the editor (framework/programming language-agnostic)
   Example from a Node JS app (a [Sequelize model definition](https://sequelize.org/docs/v6/core-concepts/model-basics/#model-definition))
 
-  ![image](resources/screenshots/context-menu-contribution.png)
+  ![image](resources/screenshots/new/context-menu-contributions.png)
 
 ### Laravel Features
 
@@ -118,7 +110,7 @@ The following databases are currently supported:
    If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table.
    *NOTE:* You need to first connect to a database in DevDb for Laravel Code Lens to be available.
 
-  ![image](resources/screenshots/laravel-code-lens.png)
+  ![image](resources/screenshots/new/laravel-eloquent-code-lens.png)
 
 #### Query Explainer
 The Query Explainer integrates with Tobias Petry's [MySQL Visual Explain](https://mysqlexplain.com) tool to help you optimize your SQL queries by making sense of MySQL's query execution plan.
