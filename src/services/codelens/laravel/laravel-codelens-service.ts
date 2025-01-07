@@ -96,8 +96,12 @@ export const LaravelCodelensService = {
  * It uses heuristics based on Laravel conventions to get Laravel
  * models in current workspace and their tables.
  * Returns an object: {table => model}
+ *
+ * TODO: Make getting model map more efficient. We do not need to
+ * get it every time if stuff does not change. Basically, we should
+ * listen for changes to files in app/Models and update the map.
  */
-async function getTableModelMapForCurrentWorkspace(): Promise<ModelMap> {
+export async function getTableModelMapForCurrentWorkspace(): Promise<ModelMap> {
 	const modelFiles = await vscode.workspace.findFiles('app/Models/*.php', null, 1000);
 	const modelTableMap: ModelMap = {};
 

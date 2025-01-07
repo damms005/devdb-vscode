@@ -59,6 +59,10 @@
 				"title": "Generate Laravel Factory"
 			},
 			{
+				"command": "devdb.context-menu.laravel.generate-factory-from-word-under-cursor",
+				"title": "Generate Laravel Factory"
+			},
+			{
 				"command": "devdb.laravel.explain-query",
 				"title": "Explain query"
 			}
@@ -122,7 +126,8 @@
 					"group": "1_general@1"
 				},
 				{
-					"command": "devdb.laravel.generate-factory",
+					"command": "devdb.context-menu.laravel.generate-factory-from-word-under-cursor",
+					"label": "Generate Laravel Factory",
 					"when": "resourceLangId == php",
 					"group": "2_laravel@1"
 				},
