@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import { DatabaseEngine, FileExportType, TableFilterExportPayload, TableQueryResponse } from '../types';
 import { getFilteredTableData } from './messenger';
 import { formatDialect, sql } from 'sql-formatter';
+import { showMissingDatabaseError } from './error-notification-service';
 
 export async function exportTableData(payload: TableFilterExportPayload, database: DatabaseEngine | null) {
     if (!database) {
-        vscode.window.showErrorMessage('No database selected');
-        return
+        return showMissingDatabaseError()
     };
 
     let tableData: TableQueryResponse | undefined = await getFilteredTableData(payload)

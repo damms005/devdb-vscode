@@ -4,10 +4,11 @@ import { getTableModelMapForCurrentWorkspace } from './codelens/laravel/laravel-
 import { getWordUnderCursor } from './document-service';
 import { LaravelFactoryGenerator } from './laravel/factory-generator';
 import { database } from './messenger';
+import { showMissingDatabaseError } from './error-notification-service';
 
 export async function generateLaravelFactoryFromCursorWord() {
 	if (!database) {
-		return vscode.window.showErrorMessage('No database selected');
+		return showMissingDatabaseError()
 	}
 
 	const wordUnderCursor = getWordUnderCursor()
