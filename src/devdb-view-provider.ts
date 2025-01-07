@@ -3,6 +3,7 @@ import { getWebviewHtml } from './services/html';
 import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExists } from './services/messenger';
 import { plural } from 'pluralize';
 import Case from 'case';
+import { getWordUnderCursor } from './services/document-service';
 
 export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'devdb';
@@ -81,13 +82,9 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 			return vscode.window.showErrorMessage(`Tables not loaded yet. Selected a database yet?`)
 		}
 
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
+		const word = getWordUnderCursor()
+		if (!word) return;
 
-		const document = editor.document;
-		const cursorPosition = editor.selection.active;
-		const wordRange = document.getWordRangeAtPosition(cursorPosition);
-		const word = document.getText(wordRange)
 		let tableName = Case.snake(word);
 
 		if (!tableExists(tableName)) {
