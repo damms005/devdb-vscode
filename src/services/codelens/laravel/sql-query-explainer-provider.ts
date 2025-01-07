@@ -42,7 +42,7 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
         return [
             new vscode.CodeLens(range, {
                 title: "Explain query",
-                command: 'devdb.explain-query',
+                command: 'devdb.laravel.explain-query',
                 arguments: [document, selection]
             })
         ];

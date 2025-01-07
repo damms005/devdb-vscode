@@ -59,7 +59,7 @@
 				"title": "Generate Laravel Factory"
 			},
 			{
-				"command": "devdb.explain-query",
+				"command": "devdb.laravel.explain-query",
 				"title": "Explain query"
 			}
 		],
@@ -127,7 +127,7 @@
 					"group": "2_laravel@1"
 				},
 				{
-					"command": "devdb.explain-query",
+					"command": "devdb.laravel.explain-query",
 					"when": "resourceLangId == php",
 					"group": "2_laravel@1"
 				}

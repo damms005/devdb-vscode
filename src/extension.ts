@@ -65,8 +65,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			'devdb.explain-query',
-			(document: vscode.TextDocument, selection: vscode.Selection) => { explainSelectedQuery(document, selection); })
+			'devdb.laravel.explain-query',
+			(document: vscode.TextDocument, selection: vscode.Selection) => explainSelectedQuery(document, selection))
 	);
 
 	context.subscriptions.push(
