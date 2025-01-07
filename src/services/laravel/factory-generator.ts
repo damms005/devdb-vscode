@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import { Column, DatabaseEngine } from '../../types';
 import { getWorkspaceTables } from '../messenger';
