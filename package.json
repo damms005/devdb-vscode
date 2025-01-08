@@ -86,8 +86,12 @@
 		"languages": [
 			{
 				"id": "json",
-				"filenames": [".devdbrc"],
-				"aliases": ["DevDb Config"]
+				"filenames": [
+					".devdbrc"
+				],
+				"aliases": [
+					"DevDb Config"
+				]
 			}
 		],
 		"viewsContainers": {
@@ -117,6 +121,20 @@
 			}
 		],
 		"menus": {
+			"commandPalette": [
+				{
+					"command": "devdb.context-menu.laravel.generate-factory-from-word-under-cursor",
+					"when": "false"
+				},
+				{
+					"command": "devdb.laravel.generate-factory",
+					"when": "false"
+				},
+				{
+					"command": "devdb.laravel.explain-query",
+					"when": "false"
+				}
+			],
 			"editor/context": [
 				{
 					"submenu": "devdb.submenu",
