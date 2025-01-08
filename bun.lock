@@ -10,23 +10,23 @@
         "csv-parse": "^5.6.0",
         "dotenv": "^16.4.7",
         "lru-cache": "^11.0.2",
-        "mysql2": "^3.11.5",
+        "mysql2": "^3.12.0",
         "pg": "^8.13.1",
         "pg-hstore": "^2.3.4",
-        "php-parser": "^3.2.1",
+        "php-parser": "^3.2.2",
         "pluralize": "^8.0.0",
         "sequelize": "^6.37.5",
         "sql-formatter": "^13.1.0",
         "sqlite3": "^5.1.7",
         "tedious": "^18.6.1",
-        "yaml": "^2.6.1",
+        "yaml": "^2.7.0",
       },
       "devDependencies": {
         "@testcontainers/mssqlserver": "^10.16.0",
         "@testcontainers/mysql": "^10.16.0",
         "@testcontainers/postgresql": "^10.16.0",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^18.19.68",
+        "@types/node": "^18.19.69",
         "@types/pluralize": "^0.0.33",
         "@types/vscode": "~1.83.3",
         "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -155,7 +155,7 @@
 
     "@types/ms": ["@types/ms@0.7.34", "", {}, "sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g=="],
 
-    "@types/node": ["@types/node@18.19.69", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-ECPdY1nlaiO/Y6GUnwgtAAhLNaQ53AyIVz+eILxpEo5OvuqE6yWkqWBIb5dU0DqhKQtMeny+FBD3PK6lm7L5xQ=="],
+    "@types/node": ["@types/node@18.19.70", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-RE+K0+KZoEpDUbGGctnGdkrLFwi1eYKTlIHNl2Um98mUkGsm1u2Ff6Ltd0e8DktTtC98uy7rSj+hO8t/QuLoVQ=="],
 
     "@types/pluralize": ["@types/pluralize@0.0.33", "", {}, "sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg=="],
 

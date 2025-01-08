@@ -196,7 +196,7 @@
 		"@testcontainers/mysql": "^10.16.0",
 		"@testcontainers/postgresql": "^10.16.0",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "^18.19.69",
+		"@types/node": "^18.19.70",
 		"@types/pluralize": "^0.0.33",
 		"@types/vscode": "~1.83.3",
 		"@typescript-eslint/eslint-plugin": "^6.21.0",
