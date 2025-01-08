@@ -1,168 +1,185 @@
 # [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
-[![Tests](https://github.com/damms005/devdb-vscode/actions/workflows/test.yml/badge.svg)](https://github.com/damms005/devdb-vscode/actions/workflows/test.yml)
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
-[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
+<p align="center">
+    <a href="https://github.com/damms005/devdb-vscode/actions"><img alt="Tests passing" src="https://img.shields.io/github/actions/workflow/status/damms005/devdb-vscode/test.yml?style=for-the-badge&logo=github&label=TESTS"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb"><img alt="VS Code Marketplace Installs" src="https://img.shields.io/visual-studio-marketplace/i/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb"><img alt="VS Code Marketplace Rating" src="https://img.shields.io/visual-studio-marketplace/r/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
+</p>
 
-A lightweight VS Code extension that auto-loads your database. It provides a beautiful database GUI client experience, bringing [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) into database management.
-Built with 💖 for developers.
+A lightweight VS Code extension that auto-loads your database and provides affordances from your database to aid development and debugging. Built with 💖 for developers.
+
+## Latest Features
+
+1. One-click row deletion
+1. One-click set column value to null
+1. Easy column value editing
+1. SQL query explanation using [MySQL Visual Explain](https://mysqlexplain.com)
+1. Intelligent factory class generation for Laravel Eloquent models
 
 ![image](resources/screenshots/new/providers-light-dark.png)
 ![image](resources/screenshots/new/main-light-dark.png)
 
-## Requirement
+## Requirements
 
 - VS Code 1.83 or newer
-- A VS Code project that uses any of the [supported databases](#supported-databases)
+- A VS Code project using any of the [supported databases](#supported-databases)
 
-## OS/Platform Support:
+## OS/Platform Support
+
 - Linux (Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
 - macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
 - Windows (Win32-x64)
 
 ## Quick Start
 
-- In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly set up and you are able to connect to your database as usual from your normal app code.
-- DevDb [loads your database](#loading-databases). You can view your database by opening the DevDb (usually before the Terminal tab) as shown in the screenshot below, or by using the [shortcut](#keybinding):
+- In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly configured and accessible from your application code.
+- For zero-config environments, DevDb [auto-loads your database](#loading-databases). View your database by opening the DevDb view as shown in the screenshot or by using the [shortcut](#keybinding).
 
 > [!NOTE]
-> Additionally, DevDb provides some [Language and Framework Integrations](#language-and-framework-integrations)
+> DevDb also provides several [Language and Framework Integrations](#language-and-framework-integrations)
 
-## Loading databases
+### UI Actions and Key Map
 
-DevDb can automatically load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When zero-config support is not available for your development environment, [configuration file](#2-config-based-database-loading) option is available. These two options are explained below:
+- `Cmd + K + D` to toggle the view panel
+- `Cmd + Click` table name in the sidebar to open the table in the current tab
+- `Cmd + Click` on a database value to edit it
+- Click any value to preview it in the pane (useful for viewing prettified JSON string values)
+- The right pane offers options to view the current table schema or selected value
+- During edit sessions (activated during data edit/delete), the control box appears as shown in the screenshot
+- During edit sessions: `Cmd + Z` to undo changes, `Cmd + Y` to redo changes, and `Cmd + S` to save changes
 
-### 1. Zero-config (automatic database loading)
+### One-click Actions
 
-No [configuration file](#2-config-based-database-loading) is needed for these environments:
+- Click the trash icon on a table row to delete it
+- Click the `Set null` button on a database value to set the value to `null`
+
+![image](resources/screenshots/new/ui-actions-preview.png)
+
+## Supported Databases
+
+Currently supported databases:
+
+- SQLite
+- MySQL
+- MariaDB
+- PostgreSQL*
+- Microsoft SQL Server
+
+<!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
+<small>
+* PostgreSQL support for table column status (primary/optional column indicator) and table creation SQL display is in development
+</small>
+
+## Loading Databases
+
+DevDb can automatically load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When zero-config support isn't available, a [configuration file](#2-config-based-database-loading) option is provided.
+
+### 1. Zero-config (Automatic Database Loading)
+
+No [configuration file](#2-config-based-database-loading) needed for:
 
 1. Laravel with local default SQLite database
 1. Laravel MySQL/MariaDB with default .env config
-1. Containerized Laravel MySQL (Laravel Sail) with config in default .env/docker-compose.yml (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
-1. Laravel Postgres with default .env config
+1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
+1. Laravel PostgreSQL with default .env config
 1. Laravel Microsoft SQL Server with default .env config
 
-### 2. Config-based database loading
+### 2. Config-based Database Loading
 
-If there is no [zero-config](#1-zero-config-automatic-database-loading) support for your environment, simply provide a `.devdbrc` file in the root of your project containing your database connection details.
+If [zero-config](#1-zero-config-automatic-database-loading) support isn't available for your environment, create a `.devdbrc` file in your project root with your database connection details.
 
 > [!WARNING]
-> Do not forget to exclude the `.devdbrc` config file from version control. e.g. by adding it to the `.gitignore` file. Apart from the obvious reason, other devs in your team may be using different database connection details in their local environments.
+> Exclude the `.devdbrc` config file from version control by adding it to `.gitignore`. This protects sensitive information and allows team members to use different database configurations.
 
-The content of the configuration file should be a single array containing database connection objects. DevDb provides rich editing features for the `.devdbrc` file:
+The configuration file should contain a single array of database connection objects. DevDb provides rich editing features for `.devdbrc`:
 
-- **JSON Schema Validation**: Your configuration is automatically validated against a schema
-- **IntelliSense**: Get autocompletion for all fields, including the `type` field
-- **Snippets**: Quickly insert configuration templates:
+- **JSON Schema Validation**: Automatic configuration validation
+- **IntelliSense**: Autocompletion for all fields, including `type`
+- **Snippets**: Quick configuration templates:
   - `devdb mysql`: MySQL configuration
   - `devdb mariadb`: MariaDB configuration
   - `devdb postgres`: PostgreSQL configuration
   - `devdb sqlite`: SQLite configuration
   - `devdb mssql`: Microsoft SQL Server configuration
 
-#### Configuration file example
+#### Configuration File Example
 
-```
+```json
 [
   {
-    "name": "My test MySQL database", // <-- to identify the connection
+    "name": "My test MySQL database",
     "type": "mysql",
-    "host": "<host>",
-    "port": "<port>",
-    "username": "<username>",
-    "password": "<password>",
+    "host": "127.0.0.1",
+    "port": "3306",
+    "username": "root",
+    "password": "12345",
     "database": "test" // <-- the database to show in VS Code DevDb view
   },
   {
     "type": "sqlite",
-    "path": "/home/path/to/database.sqlite"
+    "path": "/path/to/database.sqlite"
   }
 ]
 ```
 
-## Keybinding
+## Tools and Framework Integrations
 
-Press `Ctrl+K Ctrl+D` to toggle DevDb view
+### Context Menu Entry
 
-## Supported Databases
+Open any database table in DevDb by right-clicking its name/model/entity from the editor in **any** framework/programming language.
+Example from a Node.js app ([Sequelize model definition](https://sequelize.org/docs/v6/core-concepts/model-basics/#model-definition)):
 
-The following databases are currently supported:
+![image](resources/screenshots/new/context-menu-contributions.png)
 
-- SQLite
-- MySQL
-- MariaDB
-- *Postgres
-- Microsoft SQL Server
+### Laravel
 
-<!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
-<small>
-* features in the works for Postgres: table column status (i.e. indicates whether primary or optional column), and display of the table creation SQL
-</small>
+#### Eloquent Model Code Lens
 
-## Language and Framework Integrations
-### Context Menu entry
-  You can load a table by right-clicking on its name/model/entity from the editor (framework/programming language-agnostic)
-  Example from a Node JS app (a [Sequelize model definition](https://sequelize.org/docs/v6/core-concepts/model-basics/#model-definition))
+DevDb provides Code Lens features for:
+- Viewing the underlying table for the Eloquent model
+- Generating a factory for the model (automatically pre-filled with real data from the underlying table)
 
-  ![image](resources/screenshots/new/context-menu-contributions.png)
+![image](resources/screenshots/new/laravel-eloquent-code-lens.png)
 
-### Laravel Features
-
-#### Laravel model Code Lens
-   If working in a Laravel project, DevDb provides Code Lens for viewing Eloquent model underlying table.
-   *NOTE:* You need to first connect to a database in DevDb for Laravel Code Lens to be available.
-
-  ![image](resources/screenshots/new/laravel-eloquent-code-lens.png)
+> [!NOTE]
+> Factory Generation is also available via the context menu
 
 #### Query Explainer
-The Query Explainer integrates with Tobias Petry's [MySQL Visual Explain](https://mysqlexplain.com) tool to help you optimize your SQL queries by making sense of MySQL's query execution plan.
 
-#### How to Use
+The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.com) to optimize SQL queries by analyzing MySQL's query execution plan. Usage:
 
-1. Open a Laravel PHP file containing a SQL query.
-2. Select the SQL query you wish to analyze.
-3. Click the `Explain Query` code lens above the selected query or select `Explain Query` from the context menu.
-4. The explanation will be generated, and you can open it in your browser or copy the URL to your clipboard.
+1. Open a Laravel PHP file containing SQL query (Eloquent or `DB` facade)
+2. Select the SQL query to analyze
+3. Click the `Explain query` Code Lens or select `Explain query` from the context menu
+4. View the explanation in your browser or copy the URL
 
-### Other features
-- `Ctrl + Click` (`Meta + Click` on macOS) on a table from the sidebar to open the table in the current tab
+![image](resources/screenshots/new/mysql-explain.png)
 
 ## Why DevDb?
 
 Two words: Better DX.
 
-DevDb aims to be a DB GUI client specifically designed for a much better development experience when working with databases.
-Specifically, these experiences:
+DevDb aims to be a DB GUI client specifically designed for improved development experience when working with databases by addressing common pain points:
 
-1. For any new project, it is usually required to setup db connection in the app project, **and** then in some other DB client.
-2. It is common to frequently tab-in and tab-out of project windows, switching between the IDE and DB client. Sometimes, frequent enough to want to view the DB data directly in the IDE. Think of how you've got your in-built terminal right in the IDE.
-
-Local DX should be better than this.
-
-Also, most of the DB clients are clunky or simply overwhelming, with bells and whistles that are not really useful during local development flow. Usually, being able to simply _view_ DB data is all that is needed during local development.
-
-Furthermore, who doesn't love beautiful UIs? DB clients have evolved to generally not have exciting UIs in my opinion, except just a few with excellent and intuitive UIs.
-
-To address the above, there is a need for a database GUI tool that lives in the IDE, and mostly auto-detects and connects with the database configured in the currently opened workspace. It should be simple, fast, intuitive, and clean.
-
-Hence, DevDb 🚀
-
-## Disclaimer
-
-DevDb does not aim to provide feature-parity with popular GUI database clients. This extension is focused on improving the experience of working with databases during application development.
+1. Eliminating the need to configure database connections separately in both application code and then in a DB client
+1. Reducing context switching between IDE and DB client windows by providing database visibility directly within VS Code
+1. Offering a streamlined, development-focused interface without overwhelming features
+1. Providing a beautiful, intuitive UI that enhances the development experience
+1. Provide affordances for easily performing common database tasks, as well as for improving DX during development and debugging.
 
 > [!NOTE]
-> VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) are not currently supported. Progress of this feature is [tracked here](https://github.com/damms005/devdb-vscode/issues/68).
+> VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
 
 ## Contribution
-> [!IMPORTANT]
-> Contributions are currently only accepted for the extension core code only.
 
-- Fork this repo, then clone your fork to local
-- Run `npm install` to install dependencies
-- Make you contributions to the codebase locally
-- Press `F5` to launch the debugger to test your changes locally
-- Run the test suites with `npm run test-services` and ensure existing tests pass (if you added tests with your changes, ensure those pass too)
-- Push your changes back to your fork
-- Open a PR with your changes to this repo
-- Take your flowers! 💐💐🎊🎊🎊
+> [!IMPORTANT]
+> Contributions are currently limited to the extension core code. UI code is not available for public contribution.
+
+1. Fork this repository and clone your fork locally
+1. Run `bun install` to install dependencies
+1. Make your contributions to the codebase
+1. Press `F5` to launch the debugger and test changes locally
+1. Run test suites with `bun run test-services` and ensure all tests pass
+1. Push changes to your fork
+1. Open a PR to this repository
+1. Take your flowers! 💐💐🎊🎊🎊
