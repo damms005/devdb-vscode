@@ -4,13 +4,19 @@ import { Column, DatabaseEngine } from '../../types';
 import { getWorkspaceTables } from '../messenger';
 import { getTable } from '../codelens/laravel/laravel-codelens-service';
 import { ArtisanService } from './artisan-service';
+import { showMissingDatabaseNotification } from '../error-notification-service';
 
 export class LaravelFactoryGenerator {
     constructor(private database: DatabaseEngine | null) { }
 
     async generateFactory(modelName: string, modelFilePath: string): Promise<void> {
+        if (!String(modelName).trim()) {
+            vscode.window.showErrorMessage('Please provide a model name.');
+            return
+        }
+
         if (!isConnected(this.database)) {
-            return;
+            return showMissingDatabaseNotification();
         }
 
         const artisan = ArtisanService.create();
