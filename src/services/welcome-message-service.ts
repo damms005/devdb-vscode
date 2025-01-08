@@ -44,9 +44,12 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 		 */
 		showMessageAndButtons(`
 			DevDb updated to ${currentVersion}.
-			✨ Explain MySQL queries
-			✨ Generate Eloquent factories
 			✨ Contextual filtering for numeric columns
+			✨ One-click row deletion
+			✨ One-click set column value to null
+			✨ Easy column value editing
+			✨ SQL query explanation using MySQL Visual Explain
+			✨ Intelligent factory class generation for Laravel Eloquent models
 			✨ (see details in the repo's README)
 			`,
 			context
