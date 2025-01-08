@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { Runner } from '../../laravel/code-runner/runner';
 import {
     extractUseStatements,
@@ -12,6 +10,7 @@ import { database } from '../../messenger';
 import { getCurrentVersion } from '../../welcome-message-service';
 import { extractVariables, replaceVariables } from '../../string';
 import { showMissingDatabaseNotification } from '../../error-notification-service';
+import httpClient from '../../http-client';
 
 export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -153,16 +152,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             progress.report({ message: 'Generating explanation...' });
 
             try {
-                const axiosInstance = axios.create();
-                axiosRetry(axiosInstance, {
-                    retries: 3,
-                    retryDelay: axiosRetry.exponentialDelay,
-                    retryCondition: (error) => {
-                        return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 500;
-                    }
-                });
-
-                const response = await axiosInstance.post(
+                const response = await httpClient.post(
                     'https://api.mysqlexplain.com/v2/explains',
                     {
                         query: unboundQuery,
@@ -172,10 +162,8 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
                         explain_tree: explainTree
                     },
                     {
-                        headers: {
-                            'Accept': 'application/json',
-                            'User-Agent': `DevDb/${getCurrentVersion()}`,
-                        }
+                        'Accept': 'application/json',
+                        'User-Agent': `DevDb/${getCurrentVersion()}`,
                     });
 
                 const { url } = response.data;
@@ -186,7 +174,8 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
 
                 explanationUrl = url;
             } catch (error) {
-                vscode.window.showErrorMessage(`Failed to send SQL query to explainer API: ${String(error)}`);
+                const message = (error as any)?.data?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+                vscode.window.showErrorMessage(`Failed to send SQL query to explainer API: ${message}`);
             }
         });
 
