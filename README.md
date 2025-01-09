@@ -1,6 +1,8 @@
 # [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
+[![Tests](https://github.com/damms005/devdb-vscode/actions/workflows/test.yml/badge.svg)](https://github.com/damms005/devdb-vscode/actions/workflows/test.yml)
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
+[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/damms005.devdb)](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
 
 A lightweight VS Code extension that auto-loads your database. It provides a beautiful database GUI client experience, bringing [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) into database management.
 Built with 💖 for developers.
