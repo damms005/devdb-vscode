@@ -7,7 +7,7 @@
 	},
 	"license": "SEE LICENSE IN LICENSE.txt",
 	"displayName": "DevDb",
-	"description": "A zero-config VS Code extension that auto-loads your database and displays the data right inside VS Code",
+	"description": "A zero-config extension that displays your database records right inside VS Code and provides tools and affordances to aid development and debugging.",
 	"categories": [
 		"Programming Languages",
 		"Other"
