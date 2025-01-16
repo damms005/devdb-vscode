@@ -47,6 +47,7 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 - The right pane offers options to view the current table schema or selected value
 - During edit sessions (activated during data edit/delete), the control box appears as shown in the screenshot
 - During edit sessions: `Cmd + Z` to undo changes, `Cmd + Y` to redo changes, and `Cmd + S` to save changes
+- Added new "Suggest New Feature" button
 
 ### One-click Actions
 
