@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
 
-const BUTTON_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
-const BUTTON_FOLLOW_ON_X = "𝕏 Follow"
-const BUTTON_SHARE_ON_X = "𝕏 Share"
-const BUTTON_VIEW_REPO = "🔎 View Repo"
+const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
+const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
+const BUTTON_CONDITIONAL_SHARE_ON_X = "𝕏 Share"
+const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const extensionConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
@@ -63,33 +63,33 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	const userHasClickedToFollowOnX = hasClickedToFollowOnX(context)
 
 	if (!userHasClickedGitHubStarring) {
-		buttons.push(BUTTON_STAR_GITHUB_REPO)
+		buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO)
 	}
 
 	if (!userHasClickedToFollowOnX) {
-		buttons.push(BUTTON_FOLLOW_ON_X)
+		buttons.push(BUTTON_CONDITIONAL_FOLLOW_ON_X)
 	}
 
 	if (userHasClickedGitHubStarring || userHasClickedToFollowOnX) {
-		buttons.push(BUTTON_SHARE_ON_X)
+		buttons.push(BUTTON_CONDITIONAL_SHARE_ON_X)
 	}
 
-	buttons.push(BUTTON_VIEW_REPO)
+	buttons.push(BUTTON_SUGGEST_FEATURE)
 
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then(function (val: string | undefined) {
 			switch (val) {
-				case BUTTON_STAR_GITHUB_REPO:
+				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:
 					context.globalState.update(ExtensionConstants.clickedGitHubStarring, true);
 					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode"))
 					break;
 
-				case BUTTON_FOLLOW_ON_X:
+				case BUTTON_CONDITIONAL_FOLLOW_ON_X:
 					context.globalState.update(ExtensionConstants.clickedToFollowOnX, true);
 					vscode.env.openExternal(vscode.Uri.parse("https://twitter.com/_damms005"))
 					break;
 
-				case BUTTON_SHARE_ON_X:
+				case BUTTON_CONDITIONAL_SHARE_ON_X:
 					context.globalState.update(ExtensionConstants.clickedToShareOnX, true);
 					const message = getSafeRandomShareTweet()
 					// https://developer.twitter.com/en/docs/twitter-for-websites/tweet-button/overview
@@ -97,8 +97,8 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 					vscode.env.openExternal(twitterIntentUri)
 					break;
 
-				case BUTTON_VIEW_REPO:
-					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode"))
+				case BUTTON_SUGGEST_FEATURE:
+					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode/discussions/new?category=ideas"))
 					break;
 			}
 		})
