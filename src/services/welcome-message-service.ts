@@ -3,7 +3,7 @@ import { ExtensionConstants } from "../constants";
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
-const BUTTON_CONDITIONAL_SHARE_ON_X = "𝕏 Share"
+const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support this project"
 const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
@@ -60,6 +60,11 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	const buttons = []
 	const userHasClickedGitHubStarring = hasClickedGitHubStarring(context)
 	const userHasClickedToFollowOnX = hasClickedToFollowOnX(context)
+	const userSupportsTheProject = hasClickedToSupportTheProject(context)
+
+	if (!userSupportsTheProject) {
+		buttons.push(BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT)
+	}
 
 	if (!userHasClickedGitHubStarring) {
 		buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO)
@@ -69,15 +74,18 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 		buttons.push(BUTTON_CONDITIONAL_FOLLOW_ON_X)
 	}
 
-	if (userHasClickedGitHubStarring || userHasClickedToFollowOnX) {
-		buttons.push(BUTTON_CONDITIONAL_SHARE_ON_X)
+	if (buttons.length < 3) {
+		buttons.push(BUTTON_SUGGEST_FEATURE)
 	}
-
-	buttons.push(BUTTON_SUGGEST_FEATURE)
 
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then(function (val: string | undefined) {
 			switch (val) {
+				case BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT:
+					context.globalState.update(ExtensionConstants.clickedToSupportTheProject, true);
+					vscode.env.openExternal(vscode.Uri.parse("https://github.com/sponsors/damms005"))
+					break;
+
 				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:
 					context.globalState.update(ExtensionConstants.clickedGitHubStarring, true);
 					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode"))
@@ -86,14 +94,6 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 				case BUTTON_CONDITIONAL_FOLLOW_ON_X:
 					context.globalState.update(ExtensionConstants.clickedToFollowOnX, true);
 					vscode.env.openExternal(vscode.Uri.parse("https://twitter.com/_damms005"))
-					break;
-
-				case BUTTON_CONDITIONAL_SHARE_ON_X:
-					context.globalState.update(ExtensionConstants.clickedToShareOnX, true);
-					const message = getSafeRandomShareTweet()
-					// https://developer.twitter.com/en/docs/twitter-for-websites/tweet-button/overview
-					const twitterIntentUri = vscode.Uri.parse(`https://twitter.com/intent/tweet?text=${message}`);
-					vscode.env.openExternal(twitterIntentUri)
 					break;
 
 				case BUTTON_SUGGEST_FEATURE:
@@ -143,25 +143,6 @@ function hasClickedToFollowOnX(context: vscode.ExtensionContext) {
 	return context.globalState.get<boolean>(ExtensionConstants.clickedToFollowOnX);
 }
 
-/**
- * Gets a random message to share on X, within the 280 X character limit.
- * For the string to be 'safe', it must not contain any special characters because the URI may
- * get broken like so. VS Code opening link->Twitter decoding same is wacky, and neither
- * encodeUri nor encodeUriComponent is helpful for this. It is some bug in VS Code and/or Twitter
- * and I am not digging into that rabbit hole.
- */
-function getSafeRandomShareTweet(): string {
-	const messages = [
-		"If you work with databases and use VS Code, you may want to check out DevDb. https://bit.ly/devdb",
-		"DevDb is a VS Code extension that helps you work with databases. https://bit.ly/devdb",
-		"DevDb makes working with databases in VS Code so much easier. https://bit.ly/devdb",
-		"I just found this amazing VS Code extension for working with databases. It's called DevDb and it's awesome! https://bit.ly/devdb",
-		"If you're a developer who works with databases, you should definitely check out DevDb for VS Code. https://bit.ly/devdb",
-		"DevDb is a must-have VS Code extension for anyone who works with databases. https://bit.ly/devdb",
-		"I use DevDb to work with databases in VS Code. It's a game changer! https://bit.ly/devdb",
-	];
-
-	const message = messages[Math.floor(Math.random() * messages.length)];
-
-	return message;
+function hasClickedToSupportTheProject(context: vscode.ExtensionContext) {
+	return context.globalState.get<boolean>(ExtensionConstants.clickedToSupportTheProject);
 }
