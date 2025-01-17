@@ -123,7 +123,7 @@ function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause:
 				throw new Error(`Invalid column name: ${column}`)
 			}
 
-			if (value === '') { // if user clear the textbox, do not filter the column
+			if (value === '') { // e.g. user cleared the textbox, do not filter the column
 				return;
 			}
 
