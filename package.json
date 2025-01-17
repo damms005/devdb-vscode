@@ -180,11 +180,6 @@
 						"dark"
 					]
 				},
-				"Devdb.dontShowNewVersionMessage": {
-					"type": "boolean",
-					"default": false,
-					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
-				},
 				"Devdb.showDebugInfo": {
 					"type": "boolean",
 					"default": false,
@@ -194,6 +189,16 @@
 					"type": "string",
 					"default": "php",
 					"markdownDescription": "Path to PHP executable used for running Laravel Artisan commands. Defaults to 'php' if not specified."
+				},
+				"Devdb.enableCodeLensForTextSelection": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Code Lens for text selection."
+				},
+				"Devdb.dontShowNewVersionMessage": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
 				}
 			}
 		}

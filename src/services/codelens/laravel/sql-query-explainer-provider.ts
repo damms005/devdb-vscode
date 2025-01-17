@@ -32,6 +32,10 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
             return [];
         }
 
+        if (!isCodeLensForTextSelectionEnabled()) {
+            return [];
+        }
+
         const selection = editor.selection;
         const range = new vscode.Range(selection.start, selection.end);
 
@@ -262,4 +266,9 @@ export async function getVariableReplacements(selectionText: string): Promise<st
 
 function getTitle(currentVariableIndex: number, variables: unknown[]) {
     return `Variable values (${currentVariableIndex + 1} of ${variables.length} variable${variables.length === 1 ? '' : 's'})`;
+}
+
+function isCodeLensForTextSelectionEnabled(): boolean {
+    const config = vscode.workspace.getConfiguration('Devdb');
+    return config.get<boolean>('enableCodeLensForTextSelection', true);
 }
