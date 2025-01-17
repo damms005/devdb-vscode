@@ -3,14 +3,13 @@ import { Runner } from '../../laravel/code-runner/runner';
 import {
     extractUseStatements,
     getAst,
-    isNamespaced
 } from '../../laravel/code-runner/qualifier-service';
 import { CancellationToken, CodeLens, ProviderResult, TextDocument } from 'vscode';
 import { database } from '../../messenger';
 import { getCurrentVersion } from '../../welcome-message-service';
 import { extractVariables, replaceVariables } from '../../string';
-import { showMissingDatabaseNotification } from '../../error-notification-service';
 import httpClient from '../../http-client';
+import { passesBasicExplainerCheck, validateSelectedPhpCode } from './query-explain-checker-service';
 
 export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -36,8 +35,22 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
         const selection = editor.selection;
         const range = new vscode.Range(selection.start, selection.end);
 
-        const passesCheck = passesBasicExplainerCheck(document, selection)
+        let selectionText = document.getText(selection).trim();
+        const terminatedWithSemicolon = selectionText.endsWith(';');
+        if (!terminatedWithSemicolon) {
+            selectionText += ';';
+        }
+
+        const documentAst = getAst(document.getText())
+        const passesCheck = passesBasicExplainerCheck(document, selection, documentAst, true)
         if (!passesCheck) {
+            return [];
+        }
+
+        const selectionAst = getAst(selectionText)
+        const validation = validateSelectedPhpCode(selectionAst)
+        if (!validation.isValid) {
+            console.log(`Invalid php code. ${validation.reason}`)
             return [];
         }
 
@@ -180,34 +193,6 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             vscode.window.showErrorMessage(`Could not process the SQL. ${error}`);
         }
     }
-}
-
-export function passesBasicExplainerCheck(document: vscode.TextDocument, selection: vscode.Selection, quietly = false): boolean {
-    if (!database) {
-        if (!quietly) showMissingDatabaseNotification()
-        return false
-    }
-
-    if (database.getType() !== 'mysql') {
-        if (!quietly) vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
-        return false
-    }
-
-    const ast = getAst(document.getText())
-    const isNamespacedCode = isNamespaced(ast);
-
-    if (!isNamespacedCode) {
-        if (!quietly) vscode.window.showErrorMessage('This feature is only available for namespaced PHP code.');
-        return false
-    }
-
-    let selectionText = document.getText(selection).trim();
-    if (!selectionText) {
-        if (!quietly) vscode.window.showInformationMessage('No SQL query was selected');
-        return false
-    }
-
-    return true
 }
 
 /**
