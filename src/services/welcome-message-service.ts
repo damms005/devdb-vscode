@@ -7,10 +7,9 @@ const BUTTON_CONDITIONAL_SHARE_ON_X = "𝕏 Share"
 const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
-	const extensionConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
-		'Devdb'
-	);
-	if (extensionConfig.dontShowNewVersionMessage) {
+
+	const config = vscode.workspace.getConfiguration('Devdb');
+	if (!config.get<boolean>('showUpdateSummary', true)) {
 		return;
 	}
 

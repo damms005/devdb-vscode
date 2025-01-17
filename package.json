@@ -195,9 +195,9 @@
 					"default": true,
 					"description": "Enable Code Lens for text selection."
 				},
-				"Devdb.dontShowNewVersionMessage": {
+				"Devdb.showUpdateSummary": {
 					"type": "boolean",
-					"default": false,
+					"default": true,
 					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
 				}
 			}
