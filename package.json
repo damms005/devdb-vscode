@@ -195,10 +195,10 @@
 					"default": true,
 					"description": "Enable Code Lens for text selection."
 				},
-				"Devdb.showUpdateSummary": {
+				"Devdb.showWelcomeMessage": {
 					"type": "boolean",
 					"default": true,
-					"markdownDescription": "If set to `true`, the new version message won't be shown anymore."
+					"markdownDescription": "Show welcome message."
 				}
 			}
 		}

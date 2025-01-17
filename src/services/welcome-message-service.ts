@@ -3,16 +3,10 @@ import { ExtensionConstants } from "../constants";
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
-const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support this project"
+const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support this Project"
 const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
-
-	const config = vscode.workspace.getConfiguration('Devdb');
-	if (!config.get<boolean>('showUpdateSummary', true)) {
-		return;
-	}
-
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
 
@@ -24,125 +18,117 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	}
 
 	const previousVersionArray = getVersionAsArray(previousVersion);
-	const currentVersionArray = getVersionAsArray(currentVersion);
+	const currentVersionArray = getVersionAsArray(currentVersion || '1.0.0');
 
-	if (currentVersion === previousVersion) {
+	if (currentVersion === previousVersion || !isUpdate(previousVersionArray, currentVersionArray)) {
 		return;
 	}
 
-	if (
-		isMajorUpdate(previousVersionArray, currentVersionArray) ||
-		isMinorUpdate(previousVersionArray, currentVersionArray) ||
-		isPatchUpdate(previousVersionArray, currentVersionArray)
-	) {
-		/**
-		 * The weird formatting below is to work around lack of support for
-		 * new lines in VS Code notification message API.
-		 *
-		 * @see https://github.com/microsoft/vscode/issues/101589
-		 */
-		showMessageAndButtons(`
-			DevDb updated to ${currentVersion}.
-			✨ Contextual filtering for numeric columns
-			✨ One-click row deletion
-			✨ One-click set column value to null
-			✨ Easy column value editing
-			✨ SQL query explanation using MySQL Visual Explain
-			✨ Intelligent factory class generation for Laravel Eloquent models
-			✨ (see details in the repo's README)
-			`,
-			context
-		);
-	}
+	showMessageAndButtons(`
+					DevDb updated to ${currentVersion}.
+					✨ Contextual filtering for numeric columns
+					✨ One-click row deletion
+					✨ One-click set column value to null
+					✨ Easy column value editing
+					✨ SQL query explanation using MySQL Visual Explain
+					✨ Intelligent factory class generation for Laravel Eloquent models
+					✨ (see details in the repo's README)
+			`, context);
 }
 
 function showMessageAndButtons(message: string, context: vscode.ExtensionContext) {
-	const buttons = []
-	const userHasClickedGitHubStarring = hasClickedGitHubStarring(context)
-	const userHasClickedToFollowOnX = hasClickedToFollowOnX(context)
-	const userSupportsTheProject = hasClickedToSupportTheProject(context)
+	const buttons = [];
 
-	if (!userSupportsTheProject) {
-		buttons.push(BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT)
+	if (!hasUserClickedButton(context, ExtensionConstants.clickedToSupportTheProject)) {
+		buttons.push(BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT);
 	}
 
-	if (!userHasClickedGitHubStarring) {
-		buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO)
-	}
+	const config = vscode.workspace.getConfiguration('Devdb');
+	if (config.get<boolean>('showWelcomeMessage', true)) {
+		if (!hasUserClickedButton(context, ExtensionConstants.clickedGitHubStarring)) {
+			buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO);
+		}
 
-	if (!userHasClickedToFollowOnX) {
-		buttons.push(BUTTON_CONDITIONAL_FOLLOW_ON_X)
+		if (!hasUserClickedButton(context, ExtensionConstants.clickedToFollowOnX)) {
+			buttons.push(BUTTON_CONDITIONAL_FOLLOW_ON_X);
+		}
 	}
 
 	if (buttons.length < 3) {
-		buttons.push(BUTTON_SUGGEST_FEATURE)
+		buttons.push(BUTTON_SUGGEST_FEATURE);
 	}
 
 	vscode.window.showInformationMessage(message, ...buttons)
-		.then(function (val: string | undefined) {
+		.then((val: string | undefined) => {
 			switch (val) {
 				case BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT:
-					context.globalState.update(ExtensionConstants.clickedToSupportTheProject, true);
-					vscode.env.openExternal(vscode.Uri.parse("https://github.com/sponsors/damms005"))
+					updateUserAction(context, ExtensionConstants.clickedToSupportTheProject);
+					openExternalLink('https://github.com/sponsors/damms005');
 					break;
 
 				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:
-					context.globalState.update(ExtensionConstants.clickedGitHubStarring, true);
-					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode"))
+					updateUserAction(context, ExtensionConstants.clickedGitHubStarring);
+					openExternalLink('https://github.com/damms005/devdb-vscode');
 					break;
 
 				case BUTTON_CONDITIONAL_FOLLOW_ON_X:
-					context.globalState.update(ExtensionConstants.clickedToFollowOnX, true);
-					vscode.env.openExternal(vscode.Uri.parse("https://twitter.com/_damms005"))
+					updateUserAction(context, ExtensionConstants.clickedToFollowOnX);
+					openExternalLink('https://x.com/_damms005');
 					break;
 
 				case BUTTON_SUGGEST_FEATURE:
-					vscode.env.openExternal(vscode.Uri.parse("https://github.com/damms005/devdb-vscode/discussions/new?category=ideas"))
+					openExternalLink('https://github.com/damms005/devdb-vscode/discussions/new?category=ideas');
 					break;
 			}
-		})
+		});
 }
 
-function isMajorUpdate(previousVersionArray: number[], currentVersionArray: any): boolean {
-	return previousVersionArray[0] < currentVersionArray[0];
+function hasUserClickedButton(context: vscode.ExtensionContext, key: string): boolean {
+	return context.globalState.get<boolean>(key) || false;
 }
 
-function isMinorUpdate(previousVersionArray: number[], currentVersionArray: any): boolean {
-	return previousVersionArray[0] === currentVersionArray[0] &&
-		previousVersionArray[1] < currentVersionArray[1];
+function updateUserAction(context: vscode.ExtensionContext, key: string) {
+	context.globalState.update(key, true);
 }
 
-function isPatchUpdate(previousVersionArray: number[], currentVersionArray: any) {
-	return previousVersionArray[0] === currentVersionArray[0] &&
-		previousVersionArray[1] === currentVersionArray[1] &&
-		previousVersionArray[2] < currentVersionArray[2];
+function openExternalLink(url: string) {
+	vscode.env.openExternal(vscode.Uri.parse(url));
 }
 
-/**
- * Gets the previous version as an array of numbers.
- */
-function getVersionAsArray(version: string): number[] {
-	return version.split(".").map((s: string) => Number(s));
+export function getCurrentVersion(): string | undefined {
+	return vscode.extensions.getExtension(ExtensionConstants.extensionId)?.packageJSON?.version;
 }
 
-export function getCurrentVersion() {
-	return vscode.extensions.getExtension(
-		ExtensionConstants.extensionId
-	)?.packageJSON?.version;
-}
-
-function getPreviousVersion(context: vscode.ExtensionContext) {
+function getPreviousVersion(context: vscode.ExtensionContext): string | undefined {
 	return context.globalState.get<string>(ExtensionConstants.globalVersionKey);
 }
 
-function hasClickedGitHubStarring(context: vscode.ExtensionContext) {
-	return context.globalState.get<boolean>(ExtensionConstants.clickedGitHubStarring);
+function getVersionAsArray(version: string): number[] {
+	try {
+		// Validate version string format
+		if (!/^\d+(\.\d+)*$/.test(version)) {
+			console.warn(`Invalid version format: ${version}`);
+			return [0, 0, 0];
+		}
+		return version.split(".").map(segment => {
+			const num = parseInt(segment, 10);
+			return isNaN(num) ? 0 : num;
+		});
+	} catch (error) {
+		console.error('Error parsing version:', error);
+		return [0, 0, 0];
+	}
 }
 
-function hasClickedToFollowOnX(context: vscode.ExtensionContext) {
-	return context.globalState.get<boolean>(ExtensionConstants.clickedToFollowOnX);
-}
+function isUpdate(previousVersion: number[], currentVersion: number[]): boolean {
+	// Ensure arrays have same length
+	const maxLength = Math.max(previousVersion.length, currentVersion.length);
+	const normalizedPrev = [...previousVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
+	const normalizedCurr = [...currentVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
 
-function hasClickedToSupportTheProject(context: vscode.ExtensionContext) {
-	return context.globalState.get<boolean>(ExtensionConstants.clickedToSupportTheProject);
+	for (let i = 0; i < maxLength; i++) {
+		if (normalizedCurr[i] > normalizedPrev[i]) return true;
+		if (normalizedCurr[i] < normalizedPrev[i]) return false;
+	}
+	return false;
 }
