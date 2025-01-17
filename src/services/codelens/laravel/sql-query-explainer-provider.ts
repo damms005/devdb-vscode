@@ -105,11 +105,6 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
                 return;
             }
 
-            if (database.getType() !== 'mysql') {
-                vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
-                return;
-            }
-
             const queriesWithBindings: [string, any[], string][] = await Runner.runLaravelCode(useStatements, selectionText);
 
             if (queriesWithBindings.length === 0) {
