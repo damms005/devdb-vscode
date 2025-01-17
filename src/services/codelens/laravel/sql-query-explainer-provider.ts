@@ -36,13 +36,18 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
         const selection = editor.selection;
         const range = new vscode.Range(selection.start, selection.end);
 
+        const passesCheck = passesBasicExplainerCheck(document, selection)
+        if (!passesCheck) {
+            return [];
+        }
+
         return [
             new vscode.CodeLens(range, {
                 title: "Explain query",
                 command: 'devdb.laravel.explain-query',
                 arguments: [document, selection]
             })
-        ];
+        ]
     }
 
     private isLaravelPhpFile(document: vscode.TextDocument): boolean {
@@ -53,30 +58,15 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
 }
 
 export async function explainSelectedQuery(document: vscode.TextDocument, selection: vscode.Selection) {
-    if (!database) {
-        return showMissingDatabaseNotification()
-    }
 
-    if (database.getType() !== 'mysql') {
-        vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
+    const passesCheck = passesBasicExplainerCheck(document, selection)
+    if (!passesCheck) {
         return;
     }
 
     const ast = getAst(document.getText())
-    const isNamespacedCode = isNamespaced(ast);
-
-    if (!isNamespacedCode) {
-        vscode.window.showErrorMessage('This feature is only available for namespaced PHP code.');
-        return;
-    }
-
     const useStatements = extractUseStatements(ast);
     let selectionText = document.getText(selection).trim();
-    if (!selectionText) {
-        vscode.window.showInformationMessage('No SQL query was selected');
-        return;
-    }
-
     const terminatedWithSemicolon = selectionText.endsWith(';');
     if (!terminatedWithSemicolon) {
         selectionText += ';';
@@ -190,6 +180,34 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             vscode.window.showErrorMessage(`Could not process the SQL. ${error}`);
         }
     }
+}
+
+export function passesBasicExplainerCheck(document: vscode.TextDocument, selection: vscode.Selection, quietly = false): boolean {
+    if (!database) {
+        if (!quietly) showMissingDatabaseNotification()
+        return false
+    }
+
+    if (database.getType() !== 'mysql') {
+        if (!quietly) vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
+        return false
+    }
+
+    const ast = getAst(document.getText())
+    const isNamespacedCode = isNamespaced(ast);
+
+    if (!isNamespacedCode) {
+        if (!quietly) vscode.window.showErrorMessage('This feature is only available for namespaced PHP code.');
+        return false
+    }
+
+    let selectionText = document.getText(selection).trim();
+    if (!selectionText) {
+        if (!quietly) vscode.window.showInformationMessage('No SQL query was selected');
+        return false
+    }
+
+    return true
 }
 
 /**
