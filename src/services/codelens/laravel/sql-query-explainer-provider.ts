@@ -23,11 +23,8 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     public provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]> {
-        if (!this.isLaravelPhpFile(document)) {
-            return [];
-        }
 
-        if (!database) {
+        if (!database || !this.isLaravelPhpFile(document)) {
             return [];
         }
 
