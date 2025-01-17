@@ -71,14 +71,14 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
 }
 
 export async function explainSelectedQuery(document: vscode.TextDocument, selection: vscode.Selection) {
+    const documentAst = getAst(document.getText())
 
-    const passesCheck = passesBasicExplainerCheck(document, selection)
+    const passesCheck = passesBasicExplainerCheck(document, selection, documentAst)
     if (!passesCheck) {
         return;
     }
 
-    const ast = getAst(document.getText())
-    const useStatements = extractUseStatements(ast);
+    const useStatements = extractUseStatements(documentAst);
     let selectionText = document.getText(selection).trim();
     const terminatedWithSemicolon = selectionText.endsWith(';');
     if (!terminatedWithSemicolon) {
