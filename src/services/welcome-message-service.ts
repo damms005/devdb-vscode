@@ -44,7 +44,10 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	}
 
 	const config = vscode.workspace.getConfiguration('Devdb');
-	if (config.get<boolean>('showWelcomeMessage', true)) {
+	const showAllNotifications = !config.get<boolean>('showFewerUpdateNotificationActions', false)
+		|| !config.get<boolean>('dontShowNewVersionMessage', false); // being deprecated
+
+	if (showAllNotifications) {
 		if (!hasUserClickedButton(context, ExtensionConstants.clickedGitHubStarring)) {
 			buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO);
 		}

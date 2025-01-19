@@ -195,10 +195,15 @@
 					"default": true,
 					"description": "Enable Code Lens for text selection."
 				},
-				"Devdb.showWelcomeMessage": {
+				"Devdb.dontShowNewVersionMessage": {
 					"type": "boolean",
-					"default": true,
-					"markdownDescription": "Show welcome message."
+					"default": false,
+					"deprecationMessage": "Deprecated in favor of 'Show fewer update notification actions'."
+				},
+				"Devdb.showFewerUpdateNotificationActions": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Show fewer actions on new update notification."
 				}
 			}
 		}
