@@ -5,6 +5,7 @@ import { getConnectionFor } from "../sequelize-connector";
 import { LaravelConnection } from '../../types';
 import { getPortFromDockerCompose, hasLaravelSailDockerComposeFile } from './sail';
 import { log } from '../logging-service';
+import { reportError } from '../initialization-error-service';
 
 export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
 	log('Fetching connection details from .env file. Laravel connection: ', connection);
@@ -14,6 +15,11 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	const password = await getEnvFileValue('DB_PASSWORD') || '';
 	const database = await getEnvFileValue('DB_DATABASE');
 	log(`Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
+
+	if (!database) {
+		reportError('Missing database name in .env file')
+		return
+	}
 
 	if (connection !== envConnection) {
 		log(`Connection type mismatch: expected "${connection}", found "${envConnection}"`);
@@ -27,7 +33,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 		return;
 	}
 
-	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password)
+	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password, database);
 
 	if (!database || !portOrConnection) {
 		log(`Missing database or port: database=${database}, port=${portOrConnection}`);
@@ -70,13 +76,13 @@ async function getHost() {
  * This change below ensures that we only prioritize Sails config if we able to connect to
  * it.
  */
-async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, username: string, password: string): Promise<Sequelize | number | undefined> {
+async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, username: string, password: string, database: string): Promise<Sequelize | number | undefined> {
 	if (await hasLaravelSailDockerComposeFile()) {
 
 		const dockerPort = await getPortFromDockerCompose(dialect)
 
 		if (dockerPort) {
-			const connection = await tryGetConnection(dialect, host, dockerPort, username, password)
+			const connection = await tryGetConnection(dialect, host, dockerPort, username, password, database)
 			if (connection) {
 				return connection
 			}
@@ -87,7 +93,7 @@ async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, use
 	return parseInt(portInEnvFile || '3306')
 }
 
-async function tryGetConnection(dialect: Dialect, host: string, port: number, username: string, password: string): Promise<Sequelize | undefined> {
-	return await getConnectionFor(dialect, host, port, username, password, undefined, false)
+async function tryGetConnection(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
+	return await getConnectionFor(dialect, host, port, username, password, database, false)
 }
 

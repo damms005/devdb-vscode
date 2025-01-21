@@ -246,7 +246,7 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 		errorMessage: '',
 	}
 
-	if(!database){
+	if (!database) {
 		response.outcome = 'error';
 		response.errorMessage = 'No database selected';
 		return response
@@ -263,7 +263,7 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 	try {
 		await Promise.all(serializedMutations.map(async (serializedMutation) => {
 			if (!database) return;
-			return database.commitChange(serializedMutation, transaction );
+			return database.commitChange(serializedMutation, transaction);
 		}));
 
 		await transaction.commit();
