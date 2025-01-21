@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   build:
+    needs: test
     strategy:
       matrix:
         include:
