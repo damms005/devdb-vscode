@@ -76,16 +76,18 @@ async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, use
 		const dockerPort = await getPortFromDockerCompose(dialect)
 
 		if (dockerPort) {
-			if (await tryGetConnection(dialect, host, dockerPort, username, password)) {
-				return getPortFromDockerCompose(dialect)
+			const connection = await tryGetConnection(dialect, host, dockerPort, username, password)
+			if (connection) {
+				return connection
 			}
 		}
 	}
 
-	return parseInt(await getEnvFileValue('DB_PORT') || '3306')
+	const portInEnvFile = await getEnvFileValue('DB_PORT')
+	return parseInt(portInEnvFile || '3306')
 }
 
 async function tryGetConnection(dialect: Dialect, host: string, port: number, username: string, password: string): Promise<Sequelize | undefined> {
-	return await getConnectionFor(dialect, host, port, username, password)
+	return await getConnectionFor(dialect, host, port, username, password, undefined, false)
 }
 
