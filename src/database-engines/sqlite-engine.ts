@@ -29,6 +29,10 @@ export class SqliteEngine implements DatabaseEngine {
 		if (!this.sequelize) return false;
 
 		const file = (this.sequelize as any).options.storage;
+		const isInMemory = file === undefined
+
+		if (isInMemory) return true;
+
 		const stats = await stat(file);
 		const fileSizeGB = Math.round((stats.size / (1024 * 1024 * 1024) + Number.EPSILON) * 100) / 100; // Convert to GB and round to 2 decimal places
 		const size = 5
