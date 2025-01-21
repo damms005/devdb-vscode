@@ -32,6 +32,8 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 					✨ Easy column value editing
 					✨ SQL query explanation using MySQL Visual Explain
 					✨ Intelligent factory class generation for Laravel Eloquent models
+					✨ Skip integrity check for large SQLite databases
+					✨ UI improvements
 					✨ (see details in the repo's README)
 			`, context);
 }

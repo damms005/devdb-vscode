@@ -3,6 +3,7 @@ import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
 import { Column, DatabaseEngine, ForeignKey, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
 import { reportError } from '../services/initialization-error-service';
+import { stat } from 'fs/promises';
 
 export class SqliteEngine implements DatabaseEngine {
 
@@ -26,6 +27,17 @@ export class SqliteEngine implements DatabaseEngine {
 
 	async isOkay(): Promise<boolean> {
 		if (!this.sequelize) return false;
+
+		const file = (this.sequelize as any).options.storage;
+		const stats = await stat(file);
+		const fileSizeGB = Math.round((stats.size / (1024 * 1024 * 1024) + Number.EPSILON) * 100) / 100; // Convert to GB and round to 2 decimal places
+		const size = 5
+
+		if (fileSizeGB > size) {
+			reportError(`Warning: SQLite database file size too big for database integrity check: ${fileSizeGB}GB. Maximum size is ${size}GB. Hence, database integrity not checked. File: ${file}`)
+
+			return true
+		}
 
 		const result: { integrity_check: 'ok' | string }[] = await this.sequelize.query('PRAGMA integrity_check;', { type: QueryTypes.SELECT });
 		return result[0]['integrity_check'] === 'ok';

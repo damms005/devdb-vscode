@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig } from '../types';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
-import { getConfigFileContent, getConfigFilePath } from '../services/config-service';
+import { getConfigFileContent } from '../services/config-service';
 import { brief } from '../services/string';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { getConnectionFor } from '../services/sequelize-connector';
