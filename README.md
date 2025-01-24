@@ -3,7 +3,8 @@
 <p align="center">
     <a href="https://github.com/damms005/devdb-vscode/actions"><img alt="Tests passing" src="https://img.shields.io/github/actions/workflow/status/damms005/devdb-vscode/test.yml?style=for-the-badge&logo=github&label=TESTS"></a>
     <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb"><img alt="VS Code Marketplace Installs" src="https://img.shields.io/visual-studio-marketplace/i/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb"><img alt="VS Code Marketplace Rating" src="https://img.shields.io/visual-studio-marketplace/r/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb&ssr=false#review-details"><img alt="VS Code Marketplace Rating" src="https://img.shields.io/visual-studio-marketplace/r/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
+    <a href="https://github.com/sponsors/damms005"><img alt="Sponsor" src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-%23db61a2.svg?&logo=github&logoColor=white&labelColor=181717&style=for-the-badge"></a>
 </p>
 
 A lightweight VS Code extension that auto-loads your database and provides affordances from your database to aid development and debugging. Built with 💖 for developers.
@@ -63,7 +64,7 @@ Currently supported databases:
 - SQLite
 - MySQL
 - MariaDB
-- PostgreSQL*
+- PostgreSQL\*
 - Microsoft SQL Server
 
 <!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
@@ -107,19 +108,19 @@ The configuration file should contain a single array of database connection obje
 
 ```json
 [
-  {
-    "name": "My test MySQL database",
-    "type": "mysql",
-    "host": "127.0.0.1",
-    "port": "3306",
-    "username": "root",
-    "password": "12345",
-    "database": "test" // <-- the database to show in VS Code DevDb view
-  },
-  {
-    "type": "sqlite",
-    "path": "/path/to/database.sqlite"
-  }
+	{
+		"name": "My test MySQL database",
+		"type": "mysql",
+		"host": "127.0.0.1",
+		"port": "3306",
+		"username": "root",
+		"password": "12345",
+		"database": "test" // <-- the database to show in VS Code DevDb view
+	},
+	{
+		"type": "sqlite",
+		"path": "/path/to/database.sqlite"
+	}
 ]
 ```
 
@@ -137,6 +138,7 @@ Example from a Node.js app ([Sequelize model definition](https://sequelize.org/d
 #### Eloquent Model Code Lens
 
 DevDb provides Code Lens features for:
+
 - Viewing the underlying table for the Eloquent model
 - Generating a factory for the model (automatically pre-filled with real data from the underlying table)
 
@@ -183,4 +185,4 @@ DevDb aims to be a DB GUI client specifically designed for improved development 
 1. Run test suites with `bun run test-services` and ensure all tests pass
 1. Push changes to your fork
 1. Open a PR to this repository
-1. Take your flowers! 💐💐🎊🎊🎊
+1. Take your flowers! 💐🌺🌹
