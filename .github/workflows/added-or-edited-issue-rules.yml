@@ -1,4 +1,4 @@
-name: manage-issue
+name: Manage issues
 
 on:
   issues:
