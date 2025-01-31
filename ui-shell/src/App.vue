@@ -65,6 +65,7 @@ function setupEventHandlers() {
 
 			case 'response:get-refreshed-table-data':
 			case 'response:load-table-into-current-tab':
+				console.log({ 'refresh-response-payload': payload }) // TODO: ran into a situation where refreshing a tab didn't reflect latest db changes. remove this line when the issue is fixed
 				const alternativeTab = buildTabFromPayload(payload)
 				if (!alternativeTab) return
 
@@ -99,14 +100,14 @@ function setupEventHandlers() {
 					if (session.tabId == payload.value.tabId) {
 						session.outcome = payload.value.outcome
 						session.errorMessage = payload.value.errorMessage
+
+						if (session.outcome === 'success') {
+							refreshTabById(payload.value.tabId) // also ensure changes from other tabs are reflected
+						}
 					}
 
 					return session
 				})
-
-				if (session.outcome === 'success') {
-					refreshTabById(payload.value.tabId)
-				}
 
 				break
 		}
