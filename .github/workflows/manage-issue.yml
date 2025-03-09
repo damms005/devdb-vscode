@@ -13,7 +13,18 @@ jobs:
           script: |
             const user = context.payload.sender.login;
             const issue = context.payload.issue;
-            const body = issue.body;
+
+            // Add extensive debug logging to help troubleshoot issues
+            core.info(`Issue #${issue.number}: "${issue.title}"`);
+            core.info(`Issue state: ${issue.state}`);
+            core.info(`Body exists: ${issue.body !== null && issue.body !== undefined}`);
+            core.info(`Body length: ${issue.body ? issue.body.length : 0}`);
+            if (issue.body) {
+              core.info(`Body preview: ${issue.body.substring(0, 100)}...`);
+            }
+
+            // Make body extraction null-safe to prevent "TypeError: Cannot read properties of null (reading 'match')"
+            const body = issue.body || "";
             const STEPS_TO_REPRO_REGEXP = /### Steps to reproduce[\r\n]+([^#]+)###/m;
             const SCREENSHOT_REGEXP = /### Screenshots[\n]+[\s\S]*(https:\/\/github\.com\/user-attachments\/assets\/)[\s\S]*### Additional context/m; //No need for any strictness here. Just loose sanity check
             const LABEL_NEEDS_MORE_INFORMATION = "needs more info";
