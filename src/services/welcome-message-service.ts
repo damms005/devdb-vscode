@@ -26,14 +26,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Contextual filtering for numeric columns
-					✨ One-click row deletion
-					✨ One-click set column value to null
-					✨ Easy column value editing
-					✨ SQL query explanation using MySQL Visual Explain
-					✨ Intelligent factory class generation for Laravel Eloquent models
-					✨ Skip integrity check for large SQLite databases
-					✨ UI improvements
+					✨ Bumped dependencies in preparation for next big release
 					✨ (see details in the repo's README)
 			`, context);
 }
