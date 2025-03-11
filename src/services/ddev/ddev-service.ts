@@ -85,7 +85,7 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
       return getConnectionFor(
         'postgres',
         dbinfo.host,
-        parseInt(dbinfo.dbPort),
+        dbinfo.published_port,
         dbinfo.username,
         dbinfo.password,
         dbinfo.dbname
