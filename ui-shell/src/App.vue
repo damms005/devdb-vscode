@@ -102,7 +102,7 @@ function setupEventHandlers() {
 						session.errorMessage = payload.value.errorMessage
 
 						if (session.outcome === 'success') {
-							refreshTabById(payload.value.tabId) // also ensure changes from other tabs are reflected
+							refreshTabById(payload) // also ensure changes from other tabs are reflected
 						}
 					}
 
@@ -280,7 +280,7 @@ function refreshTabById(tabId) {
 		return
 	}
 
-	const tab = buildTab(displayedTabs.value[tabIndex].table, displayedTabs.value[tabIndex].pagination.itemsPerPage)
+	const tab = buildTabFromPayload(payload)
 	displayedTabs.value.splice(tabIndex, 1, tab)
 }
 
