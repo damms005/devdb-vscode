@@ -13,6 +13,8 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 
 1. Add zero-config support for Laravel apps running in DDEV - MySQL
 1. Add zero-config support for Laravel apps running in DDEV - PostgreSQL
+1. Add zero-config support for Adonis apps (Lucid ORM) - MySQL
+1. Add zero-config support for Adonis apps (Lucid ORM) - PostgreSQL
 
 ![image](resources/screenshots/new/providers-light-dark.png)
 ![image](resources/screenshots/new/main-light-dark.png)
@@ -84,6 +86,8 @@ No [configuration file](#2-config-based-database-loading) needed for:
 1. Laravel Microsoft SQL Server with default .env config
 1. Laravel running in a [DDEV](https://ddev.com) container - MySQL
 1. Laravel running in a [DDEV](https://ddev.com) container - PostgreSQL
+1. Adonis MySQL with default .env config (with Lucid ORM)
+1. Adonis PostgreSQL with default .env config (with Lucid ORM)
 
 ### 2. Config-based Database Loading
 

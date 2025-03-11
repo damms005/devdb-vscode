@@ -8,6 +8,8 @@ import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
 import { DdevLaravelMysqlProvider } from '../providers/mysql/ddev-laravel-mysql-provider';
 import { DdevLaravelPostgresProvider } from '../providers/postgres/ddev-laravel-postgres-provider';
+import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
+import { AdonisPostgresProvider } from '../providers/postgres/adonis-postgres-provider';
 import { exportTableData } from './export-table-data'; // Import the new export function
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
@@ -22,7 +24,9 @@ const providers: DatabaseEngineProvider[] = [
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
 	DdevLaravelMysqlProvider,
-	DdevLaravelPostgresProvider
+	DdevLaravelPostgresProvider,
+	AdonisMysqlProvider,
+	AdonisPostgresProvider,
 ]
 
 export let database: DatabaseEngine | null = null;
