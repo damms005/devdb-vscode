@@ -84,7 +84,7 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
     } else if (dialect === 'postgres' && database_type === 'postgres') {
       return getConnectionFor(
         'postgres',
-        dbinfo.host,
+        '127.0.0.1',
         dbinfo.published_port,
         dbinfo.username,
         dbinfo.password,
