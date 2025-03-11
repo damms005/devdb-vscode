@@ -47,8 +47,7 @@ export async function getDdevConfig(): Promise<DdevConfig | undefined> {
       throw new Error('No workspace folder found');
     }
 
-    let folder = path.split('/').pop();
-    const { stdout } = await execAsync(`ddev describe -j ${folder}`, { cwd: path });
+    const { stdout } = await execAsync(`ddev describe -j`, { cwd: path });
     return JSON.parse(stdout) as DdevConfig;
   } catch (error) {
     console.log('Failed to get DDEV configuration:', error);
