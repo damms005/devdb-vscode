@@ -6,6 +6,8 @@ import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
+import { DdevLaravelMysqlProvider } from '../providers/mysql/ddev-laravel-mysql-provider';
+import { DdevLaravelPostgresProvider } from '../providers/postgres/ddev-laravel-postgres-provider';
 import { exportTableData } from './export-table-data'; // Import the new export function
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
@@ -19,6 +21,8 @@ const providers: DatabaseEngineProvider[] = [
 	ConfigFileProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
+	DdevLaravelMysqlProvider,
+	DdevLaravelPostgresProvider
 ]
 
 export let database: DatabaseEngine | null = null;

@@ -11,11 +11,8 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 
 ## Latest Features
 
-1. One-click row deletion
-1. One-click set column value to null
-1. Easy column value editing
-1. SQL query explanation using [MySQL Visual Explain](https://mysqlexplain.com)
-1. Intelligent factory class generation for Laravel Eloquent models
+1. Add zero-config support for Laravel apps running in DDEV - MySQL
+1. Add zero-config support for Laravel apps running in DDEV - PostgreSQL
 
 ![image](resources/screenshots/new/providers-light-dark.png)
 ![image](resources/screenshots/new/main-light-dark.png)
@@ -85,6 +82,8 @@ No [configuration file](#2-config-based-database-loading) needed for:
 1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
 1. Laravel PostgreSQL with default .env config
 1. Laravel Microsoft SQL Server with default .env config
+1. Laravel running in a [DDEV](https://ddev.com) container - MySQL
+1. Laravel running in a [DDEV](https://ddev.com) container - PostgreSQL
 
 ### 2. Config-based Database Loading
 
