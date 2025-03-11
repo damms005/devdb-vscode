@@ -3,6 +3,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Sequelize } from 'sequelize';
 import { getConnectionFor } from '../sequelize-connector';
+import path from 'path';
+import fs from 'fs';
 
 const execAsync = promisify(exec);
 
@@ -97,4 +99,14 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
     console.log(`Failed to get ${dialect} connection from DDEV:`, error);
     return undefined;
   }
+}
+
+export function isDdevProject(): boolean {
+  // simply check if workspace root contains a .ddev directory
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceRoot) {
+    return false;
+  }
+
+  return fs.existsSync(path.join(workspaceRoot, '.ddev'));
 }

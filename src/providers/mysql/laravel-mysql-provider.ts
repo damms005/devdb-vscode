@@ -3,6 +3,7 @@ import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
 import { log } from '../../services/logging-service';
+import { isDdevProject } from '../../services/ddev/ddev-service';
 
 export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	name: 'Laravel Mysql (with Sail support)',
@@ -12,6 +13,17 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
+
+		if(isDdevProject()){
+			/**
+			 * This is simply to improve the DX. Else, we report false negative as
+			 * it tries to load from .env, which is not how DDEV projects work.
+			 *
+			 * @see https://discord.com/channels/664580571770388500/1348955044334141460/1349010258214781021
+			 */
+			return false;
+		}
+
 		log('Checking if Laravel MySQL provider can be used in the current workspace...');
 		const connection = await getConnectionInEnvFile('mysql', 'mysql');
 		log(`Connection status: ${connection ? 'successful' : 'failed'}`);
