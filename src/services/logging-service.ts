@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logToOutput } from './output-service';
 
 export function log(message: string, ...rest: any[]) {
 	const config = vscode.workspace.getConfiguration('Devdb');
@@ -7,4 +8,6 @@ export function log(message: string, ...rest: any[]) {
 	if (showDebugInfo) {
 		console.log(message, ...rest);
 	}
+
+	logToOutput(message)
 }

@@ -74,7 +74,7 @@ function acknowledge(webview: vscode.Webview, command: string) {
  * Returns a list of all providers that can be used in the current workspace.
  */
 async function getAvailableProviders() {
-	log('Starting to get available providers...');
+	log('Getting available providers...');
 
 	const availableProviders = await Promise.all(providers.map(async (provider) => {
 		log(`Checking provider: ${provider.name}`);

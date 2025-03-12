@@ -70,7 +70,6 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
       return undefined;
     }
 
-    console.log({ config})
     const { dbinfo, database_type } = config.raw;
 
     // Check if the requested dialect matches the DDEV database type
