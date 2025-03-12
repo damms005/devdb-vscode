@@ -14,6 +14,7 @@ import { exportTableData } from './export-table-data'; // Import the new export 
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
 import { Transaction } from 'sequelize';
+import { logToOutput } from './output-service';
 
 const workspaceTables: string[] = [];
 
@@ -229,6 +230,9 @@ async function getTables(): Promise<string[] | undefined> {
 	const tables = await database?.getTables()
 
 	if (tables) {
+
+		logToOutput(`Tables available: ${tables.length}`, `Comm - ${database?.getType()}- ${await database?.getVersion()}`)
+
 		workspaceTables.push(...tables)
 	}
 
