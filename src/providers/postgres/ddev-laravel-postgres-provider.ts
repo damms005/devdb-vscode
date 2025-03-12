@@ -39,6 +39,6 @@ export const DdevLaravelPostgresProvider: DatabaseEngineProvider = {
   },
 
   async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
-		return this.engine
-	}
+    return this.engine
+  }
 };

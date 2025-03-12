@@ -45,8 +45,8 @@ export async function getEnvFileValue(envFileKey: string): Promise<string | unde
 export function isAdonisProject() {
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
 	if (!workspaceRoot) {
-			log('Adonis postgres: No workspace root found');
-			return false;
+		log('Adonis PostgreSQL', 'No workspace root found');
+		return false;
 	}
 
 	// Check if this is an Adonis project by looking for config/database.ts or config/database.js
@@ -54,14 +54,14 @@ export function isAdonisProject() {
 	const databaseJsPath = path.join(workspaceRoot, 'config', 'database.js');
 
 	if (!fs.existsSync(databaseTsPath) && !fs.existsSync(databaseJsPath)) {
-			log('No Adonis database config file found');
-			return false;
+		log('Adonis PostgreSQL', 'No Adonis database config file found');
+		return false;
 	}
 
 	// Check package.json for Adonis dependencies
 	const packageJsonPath = path.join(workspaceRoot, 'package.json');
 	if (!fs.existsSync(packageJsonPath)) {
-		log('No package.json found');
+		log('Adonis PostgreSQL', 'No package.json found');
 		return false;
 	}
 
@@ -73,7 +73,7 @@ export function isAdonisProject() {
 	);
 
 	if (!hasAdonisDependency) {
-		log('No Adonis dependencies found in package.json');
+		log('Adonis PostgreSQL', 'No Adonis dependencies found in package.json');
 		return false;
 	}
 

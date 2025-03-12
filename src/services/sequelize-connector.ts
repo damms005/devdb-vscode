@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { Dialect, Sequelize } from "sequelize";
 import { log } from './logging-service';
+import { logToOutput } from './output-service';
 
-export async function getConnectionFor(dialect: Dialect, host: string, port: number, username: string, password: string, database: string | undefined = undefined, notifyOnError = true): Promise<Sequelize | undefined> {
+export async function getConnectionFor(description: string, dialect: Dialect, host: string, port: number, username: string, password: string, database: string | undefined = undefined, notifyOnError = true): Promise<Sequelize | undefined> {
 
-	log(`Attempting to connect to database: dialect=${dialect}, host=${host}, port=${port}, username=${username}, database=${database}`);
+	log(`Sequelize connector - ${description}`, `Attempting to connect to database: dialect=${dialect}, host=${host}, port=${port}, username=${username}, database=${database}`);
 
 	try {
 		const sequelize = new Sequelize({
@@ -20,9 +21,12 @@ export async function getConnectionFor(dialect: Dialect, host: string, port: num
 
 		return sequelize
 	} catch (error) {
+		const message = `Connection error for '${dialect} dialect': ${String(error)}`
 		if (notifyOnError) {
-			vscode.window.showErrorMessage(`Connection error for '${dialect} dialect': ${String(error)}`)
+			vscode.window.showErrorMessage(message)
 		}
+
+		logToOutput(message, 'Sequelize connector')
 
 		return;
 	}

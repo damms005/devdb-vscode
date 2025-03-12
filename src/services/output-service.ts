@@ -3,14 +3,11 @@ import * as vscode from "vscode";
 let outputChannel: vscode.OutputChannel | undefined;
 
 /**
- * Logs a message to the DevDb output channel with a tag prefix
- *
- * @param message - The message to log
- * @param tag - A tag or description to prefix the message (e.g., "INFO", "ERROR", "DATABASE")
+ * Logs a message to the DevDb output channel
  */
-export function logToOutput(message: string, tag = 'INFO'): void {
+export function logToOutput(message: string, description = ''): void {
     const channel = getOutputChannel();
-    const formattedMessage = `[${tag}] ${message}`;
+    const formattedMessage = `[${description}] ${message}`;
     channel.appendLine(formattedMessage);
 }
 

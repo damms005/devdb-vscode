@@ -14,7 +14,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
 
-		if(isDdevProject()){
+		if (isDdevProject()) {
 			/**
 			 * This is simply to improve the DX. Else, we report false negative as
 			 * it tries to load from .env, which is not how DDEV projects work.
@@ -24,21 +24,21 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 			return false;
 		}
 
-		log('Checking if Laravel MySQL provider can be used in the current workspace...');
+		log('Laravel MySQL', 'Checking if Laravel MySQL provider can be used in the current workspace...');
 		const connection = await getConnectionInEnvFile('mysql', 'mysql');
-		log(`Connection status: ${connection ? 'successful' : 'failed'}`);
+		log('Laravel MySQL', `Connection status: ${connection ? 'successful' : 'failed'}`);
 		if (!connection) return false
 
 		try {
-			log('Creating MySQL engine...');
+			log('Laravel MySQL', 'Creating MySQL engine...');
 			this.engine = new MysqlEngine(connection);
 		} catch (error) {
 			vscode.window.showErrorMessage(`MySQL connection error: ${String(error)}`);
-			log(`MySQL connection error: ${String(error)}`);
+			log('Laravel MySQL', `MySQL connection error: ${String(error)}`);
 			return false
 		}
 
-		log('Laravel MySQL: OK');
+		log('Laravel MySQL', 'OK');
 		return (await this.engine.isOkay())
 	},
 

@@ -7,12 +7,12 @@ import { log } from '../logging-service';
 import { reportError } from '../initialization-error-service';
 
 export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
-	log('Fetching connection details from .env file. Laravel connection: ', connection);
+	log('Adonis env file parser', 'Fetching connection details from .env file. Laravel connection: ', connection);
 	const host = await getHost();
 	const username = await getEnvFileValue('DB_USER') || '';
 	const password = await getEnvFileValue('DB_PASSWORD') || '';
 	const database = await getEnvFileValue('DB_DATABASE');
-	log(`Laravel/${dialect} connection details: host=${host}, username=${username}, database=${database}`);
+	log('Adonis env file parser', `Laravel/${dialect} connection details: host=${host}, username=${username}, database=${database}`);
 
 	if (!database) {
 		reportError('Missing database name in .env file')
@@ -22,18 +22,18 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	if (dialect !== 'mysql' && dialect !== 'postgres') {
 		vscode.window.showErrorMessage(`No support for '${dialect}' in Laravel Sail yet`)
 
-		log(`Error connecting using host configured in .env file. Conn:`, connection);
+		log('Adonis env file parser', `Error connecting using host configured in .env file. Conn:`, connection);
 		return;
 	}
 
 	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password, database);
 
 	if (!database || !portOrConnection) {
-		log(`Missing database or port: database=${database}, port=${portOrConnection}`);
+		log('Adonis env file parser', `Missing database or port: database=${database}, port=${portOrConnection}`);
 		return;
 	}
 
-	log(`Laravel/${dialect} connection details:`, host, portOrConnection, username, database);
+	log('Adonis env file parser', `Laravel/${dialect} connection details:`, host, portOrConnection, username, database);
 	if (typeof portOrConnection === 'object') {
 		return portOrConnection
 	}
@@ -46,7 +46,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 }
 
 async function connectUsingHostConfiguredInEnvFile(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
-	return await getConnectionFor(dialect, host, port, username, password, database)
+	return await getConnectionFor('Adonis env file parser', dialect, host, port, username, password, database)
 }
 
 async function getHost() {

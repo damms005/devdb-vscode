@@ -42,6 +42,6 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
   },
 
   async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
-		return this.engine
-	}
+    return this.engine
+  }
 };

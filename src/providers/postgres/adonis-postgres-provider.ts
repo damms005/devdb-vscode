@@ -18,7 +18,7 @@ export const AdonisPostgresProvider: DatabaseEngineProvider = {
         try {
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
             if (!workspaceRoot) {
-                log('Adonis postgres: No workspace root found');
+                log('Adonis PostgreSQL', 'No workspace root found');
                 return false;
             }
 
@@ -51,7 +51,7 @@ export const AdonisPostgresProvider: DatabaseEngineProvider = {
 
             return (await this.engine.isOkay());
         } catch (error) {
-            log('Error checking if Adonis PostgreSQL provider can be used', error);
+            log('Adonis PostgreSQL', 'Could not check if Adonis PostgreSQL provider can be used:' + String(error));
             return false;
         }
     },

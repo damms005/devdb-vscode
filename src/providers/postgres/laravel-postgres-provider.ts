@@ -5,14 +5,14 @@ import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
 import { isDdevProject } from '../../services/ddev/ddev-service';
 
 export const LaravelPostgresProvider: DatabaseEngineProvider = {
-	name: 'Laravel Postgres',
+	name: 'Laravel PostgreSQL',
 	type: 'postgres',
 	id: 'laravel-postgres',
-	description: 'Laravel Postgres with default .env config',
+	description: 'Laravel PostgreSQL with default .env config',
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
-		if(isDdevProject()){
+		if (isDdevProject()) {
 			/**
 			 * This is simply to improve the DX. Else, we report false negative as
 			 * it tries to load from .env, which is not how DDEV projects work.

@@ -8,13 +8,13 @@ import { log } from '../logging-service';
 import { reportError } from '../initialization-error-service';
 
 export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
-	log('Fetching connection details from .env file. Laravel connection: ', connection);
+	log('Laravel env file parser', 'Fetching connection details from .env file. Laravel connection: ', connection);
 	const envConnection = await getEnvFileValue('DB_CONNECTION');
 	const host = await getHost();
 	const username = await getEnvFileValue('DB_USERNAME') || '';
 	const password = await getEnvFileValue('DB_PASSWORD') || '';
 	const database = await getEnvFileValue('DB_DATABASE');
-	log(`Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
+	log('Laravel env file parser', `Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
 
 	if (!database) {
 		reportError('Missing database name in .env file')
@@ -22,25 +22,25 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	}
 
 	if (connection !== envConnection) {
-		log(`Connection type mismatch: expected "${connection}", found "${envConnection}"`);
+		log('Laravel env file parser', `Connection type mismatch: expected "${connection}", found "${envConnection}"`);
 		return;
 	}
 
 	if (dialect !== 'mysql' && dialect !== 'postgres') {
 		vscode.window.showErrorMessage(`No support for '${dialect}' in Laravel Sail yet`)
 
-		log(`Error connecting using host configured in .env file. Conn:`, connection);
+		log('Laravel env file parser', `Error connecting using host configured in .env file. Conn:`, connection);
 		return;
 	}
 
 	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password, database);
 
 	if (!database || !portOrConnection) {
-		log(`Missing database or port: database=${database}, port=${portOrConnection}`);
+		log('Laravel env file parser', `Missing database or port: database=${database}, port=${portOrConnection}`);
 		return;
 	}
 
-	log(`Laravel/${dialect} connection details:`, envConnection, host, portOrConnection, username, database);
+	log('Laravel env file parser', `Laravel/${dialect} connection details:`, envConnection, host, portOrConnection, username, database);
 	if (typeof portOrConnection === 'object') {
 		return portOrConnection
 	}
@@ -53,7 +53,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 }
 
 async function connectUsingHostConfiguredInEnvFile(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
-	return await getConnectionFor(dialect, host, port, username, password, database)
+	return await getConnectionFor('Laravel provider - env file parser', dialect, host, port, username, password, database)
 }
 
 async function getHost() {
@@ -94,6 +94,6 @@ async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, use
 }
 
 async function tryGetConnection(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
-	return await getConnectionFor(dialect, host, port, username, password, database, false)
+	return await getConnectionFor('Laravel provider - env file parser', dialect, host, port, username, password, database, false)
 }
 

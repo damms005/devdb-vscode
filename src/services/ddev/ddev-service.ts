@@ -75,6 +75,7 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
     // Check if the requested dialect matches the DDEV database type
     if (dialect === 'mysql' && (database_type === 'mysql' || database_type === 'mariadb')) {
       return getConnectionFor(
+        'DDEV provider',
         'mysql',
         '127.0.0.1',
         dbinfo.published_port,
@@ -84,6 +85,7 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
       );
     } else if (dialect === 'postgres' && database_type === 'postgres') {
       return getConnectionFor(
+        'DDEV provider',
         'postgres',
         '127.0.0.1',
         dbinfo.published_port,

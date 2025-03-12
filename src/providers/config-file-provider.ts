@@ -98,7 +98,7 @@ async function reportNameError(config: MysqlConfig | PostgresConfig | MssqlConfi
 }
 
 async function mssqlConfigResolver(mssqlConfig: MssqlConfig): Promise<EngineProviderCache | undefined> {
-	const connection = await getConnectionFor('mssql', mssqlConfig.host, mssqlConfig.port, mssqlConfig.username, mssqlConfig.password, mssqlConfig.database, false)
+	const connection = await getConnectionFor('Config file provider', 'mssql', mssqlConfig.host, mssqlConfig.port, mssqlConfig.username, mssqlConfig.password, mssqlConfig.database, false)
 	if (!connection) return
 
 	const engine: MssqlEngine = new MssqlEngine(connection)
@@ -147,7 +147,7 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 }
 
 async function mysqlConfigResolver(mysqlConfig: MysqlConfig): Promise<EngineProviderCache | undefined> {
-	const connection = await getConnectionFor('mysql', mysqlConfig.host, mysqlConfig.port, mysqlConfig.username, mysqlConfig.password, mysqlConfig.database, false)
+	const connection = await getConnectionFor('Config file provider', 'mysql', mysqlConfig.host, mysqlConfig.port, mysqlConfig.username, mysqlConfig.password, mysqlConfig.database, false)
 	if (!connection) {
 		await showErrorWithConfigFileButton(`The MySQL connection ${mysqlConfig.name || ''} specified in your config file is not valid.`, mysqlConfig);
 		return
@@ -168,7 +168,7 @@ async function mysqlConfigResolver(mysqlConfig: MysqlConfig): Promise<EngineProv
 }
 
 async function postgresConfigResolver(postgresConfig: PostgresConfig): Promise<EngineProviderCache | undefined> {
-	const connection = await getConnectionFor('postgres', postgresConfig.host, postgresConfig.port, postgresConfig.username, postgresConfig.password, postgresConfig.database, false)
+	const connection = await getConnectionFor('Config file provider', 'postgres', postgresConfig.host, postgresConfig.port, postgresConfig.username, postgresConfig.password, postgresConfig.database, false)
 	if (!connection) {
 		await showErrorWithConfigFileButton(`The Postgres connection ${postgresConfig.name || ''} specified in your config file is not valid.`, postgresConfig);
 		return
