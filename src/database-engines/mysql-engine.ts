@@ -1,7 +1,6 @@
 import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
 import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
-import { logToOutput } from '../services/output-service';
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
@@ -64,8 +63,6 @@ export class MysqlEngine implements DatabaseEngine {
 			raw: true,
 			logging: false
 		});
-
-		logToOutput(`Tables available: ${tables.length}`, 'MySQL Engine - SHOW TABLES')
 
 		return tables.map((table: any) => table[`Tables_in_${this.sequelize?.getDatabaseName()}`]).sort();
 	}
