@@ -1,4 +1,7 @@
-# [DevDb](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
+# DevDb
+
+[VS Code Marketplace page](https://marketplace.visualstudio.com/items?itemName=damms005.devdb)
+[Open VSX Registry page](https://open-vsx.org/extension/damms005/devdb)
 
 <p align="center">
     <a href="https://github.com/damms005/devdb-vscode/actions"><img alt="Tests passing" src="https://img.shields.io/github/actions/workflow/status/damms005/devdb-vscode/deploy.yml?style=for-the-badge&logo=github&label=TESTS"></a>
