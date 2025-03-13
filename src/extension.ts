@@ -39,11 +39,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(provider);
 
-	context.subscriptions.push(vscode.commands.registerCommand('devdb.focus', () => {
-		if (!devDbViewProvider) return;
-		devDbViewProvider.toggleVisibility();
-	}));
-
 	context.subscriptions.push(vscode.commands.registerCommand('devdb.codelens.open-laravel-model-table', tableName => {
 		if (!devDbViewProvider) return;
 

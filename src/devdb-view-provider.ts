@@ -27,16 +27,6 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		return this._isVisible;
 	}
 
-	public toggleVisibility() {
-		if (this._view?.visible) {
-			// Hide by removing focus, which will collapse the panel
-			vscode.commands.executeCommand('workbench.action.togglePanel');
-		} else {
-			// Show the view
-			vscode.commands.executeCommand('workbench.view.extension.devdb-container');
-		}
-	}
-
 	public async resolveWebviewView(webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext, _token: vscode.CancellationToken) {
 		if (!this.jsFile || !this.cssFile) throw new Error('DevDb bundled asset files not found')
 
