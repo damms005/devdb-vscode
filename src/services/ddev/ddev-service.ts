@@ -5,6 +5,7 @@ import { Sequelize } from 'sequelize';
 import { getConnectionFor } from '../sequelize-connector';
 import path from 'path';
 import fs from 'fs';
+import { logToOutput } from '../output-service';
 
 const execAsync = promisify(exec);
 
@@ -28,12 +29,13 @@ interface DdevConfig {
  * Checks if DDEV is available in the current environment
  * @returns Promise<boolean> indicating if DDEV is installed
  */
-export async function isDdevAvailable(): Promise<boolean> {
+export async function isDdevAvailable(requester: string): Promise<boolean> {
   try {
-    await execAsync('ddev --version');
+    const output = await execAsync('ddev --version');
+    logToOutput(`${output.stdout.trim()}`, requester);
     return true;
   } catch (error) {
-    console.log('DDEV is not available:', error);
+    logToOutput(`Could not get DDEV version: ${String(error).trim()}`, requester);
     return false;
   }
 }

@@ -7,7 +7,7 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
   name: 'DDEV - Laravel MySQL',
   type: 'mysql',
   id: 'laravel-mysql-ddev',
-  description: 'Connect to MySQL databases in Laravel projects running in DDEV',
+  description: 'MySQL databases in Laravel projects running in DDEV',
   engine: undefined,
 
   /**
@@ -17,7 +17,7 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
   async canBeUsedInCurrentWorkspace(): Promise<boolean> {
     try {
       // Check if DDEV is available
-      const isDdevActive = await isDdevAvailable();
+      const isDdevActive = await isDdevAvailable(this.name);
 
       if (!isDdevActive) {
         return false;

@@ -17,7 +17,7 @@ export const DdevLaravelPostgresProvider: DatabaseEngineProvider = {
   async canBeUsedInCurrentWorkspace(): Promise<boolean> {
     try {
       // Check if DDEV is available
-      if (!(await isDdevAvailable())) {
+      if (!(await isDdevAvailable(this.name))) {
         return false;
       }
 
