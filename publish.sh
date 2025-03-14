@@ -19,6 +19,10 @@ cd "$SCRIPT_DIR" || exit 1
 echo "Current working directory:"
 pwd
 
+echo "Ensure OK..."
+bun run pretest || exit 1
+echo "Ok."
+
 echo "Building UI..."
 cd ../devdb-ui || exit 1
 ./build.sh || exit 1
