@@ -17,10 +17,9 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 
 ## Latest Features
 
-1. Add zero-config support for Laravel apps running in DDEV - MySQL
-1. Add zero-config support for Laravel apps running in DDEV - PostgreSQL
-1. Add zero-config support for Adonis apps (Lucid ORM) - MySQL
-1. Add zero-config support for Adonis apps (Lucid ORM) - PostgreSQL
+1. On-click reconnection
+1. Zero-config support for Laravel apps running in DDEV - MySQL and PostgreSQL
+1. Zero-config support for Adonis apps (Lucid ORM) - MySQL and PostgreSQL
 
 ![image](resources/screenshots/new/providers-light-dark.png)
 ![image](resources/screenshots/new/main-light-dark.png)
