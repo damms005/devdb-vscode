@@ -7,6 +7,7 @@ import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const vscode = ref()
+const message = ref('')
 
 const providers = ref([])
 const connected = ref(false)
@@ -52,6 +53,10 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-tables':
+				if (isReconnection()) {
+					notify('Reconnected')
+				}
+
 				tables.value = payload.value
 				break
 
@@ -110,6 +115,12 @@ function setupEventHandlers() {
 				})
 
 				break
+
+			case 'response:reconnect':
+				if (payload) {
+					message.value = 'Reconnected'
+				}
+				break
 		}
 	})
 }
@@ -152,6 +163,14 @@ function destroyUi() {
 	tables.value = []
 	displayedTabs.value = []
 	connected.value = false
+}
+
+function reconnect() {
+	vscode.value.postMessage({ type: 'request:reconnect' })
+}
+
+function isReconnection() {
+	return tables.value.length || displayedTabs.value.length
 }
 
 // JSON strip this so we prevent "[object Object] could not be cloned" error
@@ -294,13 +313,20 @@ function handleRowDeleted(primaryKey, tabId) {
 
 	displayedTabs.value[tabIndex].rows = displayedTabs.value[tabIndex].rows.filter(row => row.id !== primaryKey)
 }
+
+function notify(title) {
+	message.value = title
+
+	setTimeout(() => {
+		message.value = null
+	}, 1500)
+}
 </script>
 
 <template>
-	<!-- eslint-disable vue/no-multiple-template-root -->
+	 <!-- eslint-disable vue/no-multiple-template-root -->
 	<div class="h-full min-h-full w-full min-w-full bg-white">
-		<!-- eslint-disable vue/valid-v-bind -->
-		<DevDB
+		 <!-- eslint-disable vue/valid-v-bind --> <DevDB
 			:activeTabIndex
 			:connected
 			:editSession
@@ -308,9 +334,11 @@ function handleRowDeleted(primaryKey, tabId) {
 			:tables
 			:tabs="displayedTabs"
 			:userPreferences
+			:message
 			@cell-value-changed="handleCellChanged"
 			@commit-mutations="commitToDatabase"
 			@destroy-ui="destroyUi"
+			@reconnect="reconnect"
 			@export-table-data="exportTableData"
 			@get-data-for-tab-page="getDataForTabPage"
 			@get-fresh-table-data="getFreshTableData"
@@ -328,5 +356,6 @@ function handleRowDeleted(primaryKey, tabId) {
 			@update-current-tab-filter="getFilteredData"
 		/>
 	</div>
-	<RouterView />
+	 <RouterView />
 </template>
+
