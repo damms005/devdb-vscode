@@ -60,6 +60,10 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 		return this.cache.length > 0
 	},
 
+	reconnect(): Promise<boolean> {
+		return this.canBeUsedInCurrentWorkspace()
+	},
+
 	async getDatabaseEngine(option: EngineProviderOption): Promise<DatabaseEngine | undefined> {
 		if (option) {
 			const matchedOption = this.cache?.find((cache) => cache.id === option.option.id)
