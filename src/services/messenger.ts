@@ -18,6 +18,8 @@ import { logToOutput } from './output-service';
 
 const workspaceTables: string[] = [];
 
+let selectedProvider: string | null = null
+
 const providers: DatabaseEngineProvider[] = [
 	LaravelLocalSqliteProvider,
 	FilePickerSqliteProvider,
@@ -33,6 +35,11 @@ const providers: DatabaseEngineProvider[] = [
 export let database: DatabaseEngine | null = null;
 
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
+
+	if (data.type === 'request:select-provider') {
+		selectedProvider = data
+	}
+
 	const command = data.type.substring(data.type.indexOf(':') + 1);
 
 	const actions: Record<string, () => unknown> = {
@@ -49,6 +56,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:open-settings': async () => await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:damms005.devdb'),
 		'request:export-table-data': async () => await exportTableData(data.value, database),
 		'request:write-mutations': async () => await writeMutations(data.value),
+		'request:reconnect': async () => await reconnect(webviewView),
 	}
 
 	const action = actions[data.type]
@@ -114,6 +122,10 @@ async function selectProvider(providerId: string): Promise<boolean> {
 	if (!provider) {
 		vscode.window.showErrorMessage(`Could not find provider with id ${providerId}`)
 		return false
+	}
+
+	if (provider.ddev && provider.reconnect) {
+		await provider.reconnect()
 	}
 
 	database = await provider.getDatabaseEngine() as DatabaseEngine
@@ -286,4 +298,13 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 	}
 
 	return response
+}
+
+async function reconnect(webviewView: vscode.WebviewView) {
+	if (selectedProvider) {
+		await handleIncomingMessage(selectedProvider, webviewView);
+		return true
+	}
+
+	vscode.window.showErrorMessage('No existing connection')
 }

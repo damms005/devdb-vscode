@@ -7,6 +7,7 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
   name: 'DDEV - Laravel MySQL',
   type: 'mysql',
   id: 'laravel-mysql-ddev',
+  ddev: true,
   description: 'MySQL databases in Laravel projects running in DDEV',
   engine: undefined,
 
@@ -39,6 +40,10 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
       vscode.window.showErrorMessage(`Error initializing Laravel MySQL DDEV provider: ${error}`);
       return false;
     }
+  },
+
+  reconnect(): Promise<boolean> {
+    return this.canBeUsedInCurrentWorkspace()
   },
 
   async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {

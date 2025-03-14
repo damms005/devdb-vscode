@@ -34,11 +34,14 @@ export type DatabaseEngineProvider = {
 	name: string
 	type: 'sqlite' | 'mysql' | 'postgres'
 	id: string
+	ddev?: boolean
 	description: string
 	engine?: DatabaseEngine
 	cache?: EngineProviderCache[]
 
 	boot?: () => Promise<void>
+
+	reconnect?: () => Promise<boolean>
 
 	/**
 	 * Returns true if this provider can be used in the current VS Code workspace

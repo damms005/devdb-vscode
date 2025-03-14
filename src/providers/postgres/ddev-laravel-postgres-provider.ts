@@ -7,6 +7,7 @@ export const DdevLaravelPostgresProvider: DatabaseEngineProvider = {
   name: 'Laravel PostgreSQL (DDEV)',
   type: 'postgres',
   id: 'laravel-postgres-ddev',
+  ddev: true,
   description: 'PostgreSQL database running in a DDEV environment for Laravel projects',
   engine: undefined as PostgresEngine | undefined,
 
@@ -36,6 +37,10 @@ export const DdevLaravelPostgresProvider: DatabaseEngineProvider = {
       vscode.window.showErrorMessage(`Failed to initialize PostgreSQL engine: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
+  },
+
+  reconnect(): Promise<boolean> {
+    return this.canBeUsedInCurrentWorkspace()
   },
 
   async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
