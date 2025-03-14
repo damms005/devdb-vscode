@@ -14,6 +14,10 @@ export const FilePickerSqliteProvider: DatabaseEngineProvider = {
 		return true;
 	},
 
+	reconnect(): Promise<boolean> {
+		return this.canBeUsedInCurrentWorkspace()
+	},
+
 	async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
 		const filePath = await selectFile();
 		if (!filePath) {

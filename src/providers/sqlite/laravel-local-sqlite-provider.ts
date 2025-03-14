@@ -35,6 +35,10 @@ export const LaravelLocalSqliteProvider: DatabaseEngineProvider = {
 		return (await this.engine.isOkay())
 	},
 
+	reconnect(): Promise<boolean> {
+		return this.canBeUsedInCurrentWorkspace()
+	},
+
 	async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
 		return this.engine
 	}
