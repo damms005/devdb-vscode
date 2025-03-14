@@ -51,6 +51,10 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
         }
     },
 
+    reconnect(): Promise<boolean> {
+        return this.canBeUsedInCurrentWorkspace()
+    },
+
     async getDatabaseEngine(): Promise<DatabaseEngine | undefined> {
         return this.engine
     }

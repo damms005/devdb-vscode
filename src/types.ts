@@ -41,7 +41,7 @@ export type DatabaseEngineProvider = {
 
 	boot?: () => Promise<void>
 
-	reconnect?: () => Promise<boolean>
+	reconnect: () => Promise<boolean>
 
 	/**
 	 * Returns true if this provider can be used in the current VS Code workspace

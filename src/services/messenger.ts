@@ -124,7 +124,7 @@ async function selectProvider(providerId: string): Promise<boolean> {
 		return false
 	}
 
-	if (provider.ddev && provider.reconnect) {
+	if (provider.ddev) {
 		await provider.reconnect()
 	}
 
