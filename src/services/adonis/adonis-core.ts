@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { log } from '../../services/logging-service';
 import * as fs from 'fs';
+import { log } from '../../services/logging-service';
 import { getWorkspaceFileContent } from "../workspace";
 
 /**

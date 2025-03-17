@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import knexlib from "knex";
 import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
@@ -10,10 +11,9 @@ import { DdevLaravelMysqlProvider } from '../providers/mysql/ddev-laravel-mysql-
 import { DdevLaravelPostgresProvider } from '../providers/postgres/ddev-laravel-postgres-provider';
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
 import { AdonisPostgresProvider } from '../providers/postgres/adonis-postgres-provider';
-import { exportTableData } from './export-table-data'; // Import the new export function
+import { exportTableData } from './export-table-data';
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
-import { Transaction } from 'sequelize';
 import { logToOutput } from './output-service';
 
 const workspaceTables: string[] = [];
@@ -276,7 +276,7 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 		return response
 	}
 
-	const transaction: Transaction | undefined = await database.getSequelizeInstance()?.transaction();
+	const transaction = await (database.getConnection())?.transaction();
 
 	if (!transaction) {
 		response.outcome = 'error';

@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
-import { getWebviewHtml } from './services/html';
-import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExists } from './services/messenger';
 import { plural } from 'pluralize';
 import Case from 'case';
+import { getWebviewHtml } from './services/html';
+import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExists } from './services/messenger';
 import { getWordUnderCursor } from './services/document-service';
 import { showEmptyTablesNotification } from './services/error-notification-service';
+import { logToOutput } from './services/output-service';
 
 export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'devdb';
@@ -41,7 +42,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.html = getWebviewHtml(webviewView.webview, this.jsFile, this.cssFile, this._extensionUri);
 
 		webviewView.webview.onDidReceiveMessage(async (data) => {
-			if (!this._view) return console.log(`Message received but the webview not available`)
+			if (!this._view) return logToOutput(`Message received but the webview not available`)
 
 			await handleIncomingMessage(data, this._view)
 		});
@@ -53,7 +54,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public setActiveTable(table: string) {
-		if (!this._view) return console.log(`Message received but the webview not available`)
+		if (!this._view) return logToOutput(`Message received but the webview not available`)
 
 		if (!isTablesLoaded()) {
 			return showEmptyTablesNotification()
@@ -90,7 +91,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public notifyConfigChange(event: vscode.ConfigurationChangeEvent) {
-		if (!this._view) return console.log(`Config changed but webview not available`)
+		if (!this._view) return logToOutput(`Config changed but webview not available`)
 
 		const newSettings = vscode.workspace.getConfiguration('Devdb');
 		sendMessageToWebview(this._view.webview, { type: 'config-changed', value: newSettings })

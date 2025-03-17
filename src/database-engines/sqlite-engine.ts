@@ -1,34 +1,39 @@
-import { format } from 'sql-formatter';
-import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
-import { Column, DatabaseEngine, ForeignKey, QueryResponse, SerializedMutation } from '../types';
+import knexlib from "knex";
+import { stat } from 'fs/promises';
+import { Column, DatabaseEngine, ForeignKey, KnexClient, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
 import { reportError } from '../services/initialization-error-service';
-import { stat } from 'fs/promises';
 
 export class SqliteEngine implements DatabaseEngine {
 
-	public sequelize: Sequelize | null = null;
+	public connection: knexlib.Knex | null = null;
 
 	constructor(sqliteFilePath?: string) {
 		try {
-			this.sequelize = new Sequelize({ dialect: 'sqlite', storage: sqliteFilePath, logging: false });
+			this.connection = knexlib.knex({
+				client: 'better-sqlite3',
+				useNullAsDefault: true,
+				connection: {
+					filename: sqliteFilePath ?? ':memory:',
+				},
+			});
 		} catch (error) {
 			reportError(String(error));
 		}
 	}
 
-	getType(): Dialect {
-		return 'sqlite';
+	getType(): KnexClient {
+		return 'better-sqlite3';
 	}
 
-	getSequelizeInstance(): Sequelize | null {
-		return this.sequelize
+	getConnection(): knexlib.Knex | null {
+		return this.connection
 	}
 
 	async isOkay(): Promise<boolean> {
-		if (!this.sequelize) return false;
+		if (!this.connection) return false;
 
-		const file = (this.sequelize as any).options.storage;
+		const file = (this.connection).client.config.connection.filename;
 		const isInMemory = file === undefined
 
 		if (isInMemory) return true;
@@ -43,48 +48,41 @@ export class SqliteEngine implements DatabaseEngine {
 			return true
 		}
 
-		const result: { integrity_check: 'ok' | string }[] = await this.sequelize.query('PRAGMA integrity_check;', { type: QueryTypes.SELECT });
+		const result: { integrity_check: 'ok' | string }[] = (await this.connection.raw('PRAGMA integrity_check;'))[0];
 		return result[0]['integrity_check'] === 'ok';
 	}
 
 	async disconnect() {
-		if (this.sequelize) await this.sequelize.close();
+		if (this.connection) this.connection.destroy(() => null);
 	}
 
 	async getTableCreationSql(table: string): Promise<string> {
-		if (!this.sequelize) return '';
+		if (!this.connection) return '';
 
-		const creationSql = await this.sequelize.query(`SELECT sql FROM sqlite_master WHERE name = '${table}'`, {
-			type: QueryTypes.SELECT,
-			raw: true,
-			logging: false
-		});
+		const creationSql = (await this.connection.raw(`SELECT sql FROM sqlite_master WHERE name = ?`, [table]))[0];
 
-		const sql = (creationSql[0] as any).sql;
+		const sql = (creationSql as any).sql;
 
-		return format(sql, { language: 'sql' })
+		return (await import('sql-formatter')).format(sql, { language: 'sql' })
 	}
 
 	async getTables(): Promise<string[]> {
-		if (!this.sequelize) return [];
+		if (!this.connection) return [];
 
-		const tables = await this.sequelize.query("SELECT name FROM sqlite_master WHERE type='table'", {
-			type: QueryTypes.SELECT,
-			logging: false
-		});
+		const tables = await this.connection.raw("SELECT name FROM sqlite_master WHERE type='table'");
 
 		return tables.map((table: any) => table.name).sort();
 	}
 
 	async getColumns(table: string): Promise<Column[]> {
-		if (!this.sequelize) return [];
+		if (!this.connection) return [];
 
-		const columns = await this.sequelize.query(`PRAGMA table_info(\`${table}\`)`, { type: QueryTypes.SELECT }) as any[];
+		const columns = (await this.connection.raw(`PRAGMA table_info(??)`, [table])) as any[];
 
 		const computedColumns: Column[] = []
 
 		for (const column of columns) {
-			const foreignKey = await getForeignKeyFor(table, column.name, this.sequelize as Sequelize)
+			const foreignKey = await getForeignKeyFor(table, column.name, this.connection)
 
 			computedColumns.push({
 				name: column.name,
@@ -104,34 +102,30 @@ export class SqliteEngine implements DatabaseEngine {
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows(this, 'sqlite', this.sequelize, table, columns, whereClause);
+		return SqlService.getTotalRows(this, 'better-sqlite3', this.connection, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows(this, 'sqlite', this.sequelize, table, columns, limit, offset, whereClause);
+		return SqlService.getRows(this, 'better-sqlite3', this.connection, table, columns, limit, offset, whereClause);
 	}
 
 	async getVersion(): Promise<string | undefined> {
 		return undefined
 	}
 
-	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
-		await SqlService.commitChange(this.sequelize, serializedMutation, transaction);
+	async commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void> {
+		await SqlService.commitChange(this.connection, serializedMutation, transaction);
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
-		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+		if (!this.connection) throw new Error('Connection not initialized');
 
-		return (await this.sequelize.query(code, { type: QueryTypes.SELECT, logging: false })).toString();
+		return ((await this.connection.raw(code))[0])
 	}
 }
 
-async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<ForeignKey | undefined> {
-	const query = `PRAGMA foreign_key_list(${table});`;
-
-	const foreignKeys = await sequelize.query(query, {
-		type: QueryTypes.RAW,
-	});
+async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<ForeignKey | undefined> {
+	const foreignKeys = await connection.raw(`PRAGMA foreign_key_list(??);`, [table]);
 
 	if (!foreignKeys || !foreignKeys.length) return;
 

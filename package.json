@@ -33,7 +33,7 @@
 		"theme": "light"
 	},
 	"preview": false,
-	"main": "./out/extension.js",
+	"main": "./dist/extension.js",
 	"homepage": "https://github.com/damms005/devdb-vscode/blob/main/README.md",
 	"bugs": {
 		"url": "https://github.com/damms005/devdb-vscode/discussions",
@@ -108,7 +108,8 @@
 				{
 					"type": "webview",
 					"id": "devdb",
-					"name": "DevDb"
+					"name": "DevDb",
+					"icon": "resources/devdb.png"
 				}
 			]
 		},
@@ -209,15 +210,19 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"hot-reload": "chokidar './package.json' './src/**/*.ts' -c \"clear && echo 'Compiling extension code\\n' && npm run compile \"",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
 		"mocha": "./node_modules/.bin/mocha --bail --require ts-node/register",
 		"test-services": "./node_modules/.bin/mocha --bail --timeout 30000 --require ts-node/register ./src/test/suite/**/*.test.ts",
-		"publish": "./publish.sh"
+		"publish": "./publish.sh",
+		"compile": "npm run check-types && node esbuild.js",
+		"check-types": "tsc --noEmit",
+		"watch": "npm-run-all -p watch:*",
+		"watch:esbuild": "node esbuild.js --watch",
+		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+		"vscode:prepublish": "npm run package",
+		"package": "npm run check-types && node esbuild.js --production"
 	},
 	"devDependencies": {
 		"@testcontainers/mssqlserver": "^10.18.0",
@@ -241,19 +246,29 @@
 		"typescript": "^5.8.2"
 	},
 	"dependencies": {
+		"@azure/app-configuration": "^1.8.0",
+		"@azure/keyvault-secrets": "^4.9.0",
+		"better-sqlite3": "^11.9.0",
 		"case": "^1.6.3",
 		"cosmiconfig": "^8.3.6",
 		"csv-parse": "^5.6.0",
 		"dotenv": "^16.4.7",
+		"esbuild": "^0.25.1",
+		"knex": "^3.1.0",
 		"lru-cache": "^11.0.2",
+		"mysql": "^2.18.1",
 		"mysql2": "^3.13.0",
-		"pg": "^8.13.3",
+		"npm-run-all": "^4.1.5",
+		"oci-common": "^2.105.0",
+		"oci-objectstorage": "^2.105.0",
+		"oci-secrets": "^2.105.0",
+		"oracledb": "^6.8.0",
+		"pg": "^8.14.0",
 		"pg-hstore": "^2.3.4",
+		"pg-query-stream": "^4.8.0",
 		"php-parser": "^3.2.2",
 		"pluralize": "^8.0.0",
-		"sequelize": "^6.37.6",
 		"sql-formatter": "^13.1.0",
-		"sqlite3": "^5.1.7",
 		"tedious": "^18.6.1",
 		"yaml": "^2.7.0"
 	},

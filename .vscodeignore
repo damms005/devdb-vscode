@@ -1,32 +1,20 @@
 # Ignore everything by default
 *
-*/**
+**
 
 # Include only necessary files
 !package.json
-!README.md
 !LICENSE*
-!CHANGELOG.md
 
 # Include source and compiled files
 !*.js
-!lib/**/*.js
-!src/**/*.js
-!out/**/*.js
+!dist/**/*.js
 !ui-shell/dist/**
 
-# Include resources
-!resources/**/*.{png,gif,jpg,ico,svg}
+# Include icons
+!resources/devdb-128x128.png
+!resources/devdb.png
 
 # Include snippets and schemas
 !snippets/*
 !schemas/*
-
-# Include node_modules
-!node_modules/**
-
-# Re-ignore unnecessary node_modules content
-node_modules/**/test/**
-node_modules/**/*.d.ts
-node_modules/**/*.md
-node_modules/**/.npmignore

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
-import { Sequelize } from 'sequelize';
-import { MssqlEngine } from '../../../database-engines/mssql-engine';
+import knexlib from "knex";
 import { MSSQLServerContainer, StartedMSSQLServerContainer } from '@testcontainers/mssqlserver';
+import { MssqlEngine } from '../../../database-engines/mssql-engine';
 import { SerializedMutation } from '../../../types';
 
 /**
@@ -19,25 +19,29 @@ describe('MSSQL Tests', () => {
 		container = await new MSSQLServerContainer(dockerImage)
 			.acceptLicense()
 			.withPassword('yourStrong(!)Password')
+			.withReuse()
 			.start();
 	})
 
 	it('should return foreign key definitions', async () => {
-		const sequelize: Sequelize = new Sequelize('master', 'sa', 'yourStrong(!)Password', {
-			dialect: 'mssql',
-			port: container.getMappedPort(1433),
-			host: container.getHost(),
-			dialectModule: require('tedious'),
-			logging: false
+		const connection = knexlib.knex({
+			client: 'mssql',
+			connection: {
+				host: container.getHost(),
+				port: container.getMappedPort(1433),
+				database: 'master',
+				user: 'sa',
+				password: 'yourStrong(!)Password',
+			}
 		});
 
-		await sequelize.query(`
+		await connection.raw(`
         CREATE TABLE ParentTable (
             id INT PRIMARY KEY IDENTITY(1,1)
         )
     `);
 
-		await sequelize.query(`
+		await connection.raw(`
         CREATE TABLE ChildTable (
             id INT PRIMARY KEY IDENTITY(1,1),
             parentId INT,
@@ -45,37 +49,40 @@ describe('MSSQL Tests', () => {
         )
     `);
 
-		const mssql = new MssqlEngine(sequelize);
+		const mssql = new MssqlEngine(connection);
 		const columns = await mssql.getColumns('ChildTable');
 
 		const foreignKeyColumn = columns.find(column => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
 
-		await mssql.sequelize?.query(`DROP TABLE ChildTable`);
-		await mssql.sequelize?.query(`DROP TABLE ParentTable`);
+		await mssql.connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
+		await mssql.connection?.raw(`DROP TABLE IF EXISTS ParentTable`);
 	})
 
 	describe('MssqlEngine Tests', () => {
-		let mssql: MssqlEngine;
+		let engine: MssqlEngine;
 
 		before(async function () {
-			const sequelize: Sequelize = new Sequelize('master', 'sa', 'yourStrong(!)Password', {
-				dialect: 'mssql',
-				port: container.getMappedPort(1433),
-				host: container.getHost(),
-				dialectModule: require('tedious'),
-				logging: false
+			const connection = knexlib.knex({
+				client: 'mssql',
+				connection: {
+					host: container.getHost(),
+					port: container.getMappedPort(1433),
+					database: 'master',
+					user: 'sa',
+					password: 'yourStrong(!)Password',
+				}
 			});
-			await sequelize.authenticate();
 
-			mssql = new MssqlEngine(sequelize);
-			const ok = await mssql.isOkay();
+			engine = new MssqlEngine(connection);
+			const ok = await engine.isOkay();
 			assert.strictEqual(ok, true);
 		})
 
 		beforeEach(async function () {
-			await mssql.sequelize?.query(`
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.raw(`
 				CREATE TABLE users (
 						id INT PRIMARY KEY IDENTITY(1,1),
 						name varchar(255),
@@ -85,13 +92,12 @@ describe('MSSQL Tests', () => {
 		});
 
 		afterEach(async function () {
-			await mssql.sequelize?.query(`
-				DROP TABLE users
-			`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
 		})
 
 		it('should return table names', async () => {
-			await mssql.sequelize?.query(`
+			await engine.connection?.raw(`
             CREATE TABLE products (
                 id INT PRIMARY KEY,
                 name varchar(255),
@@ -99,13 +105,13 @@ describe('MSSQL Tests', () => {
             )
         `);
 
-			const tables = await mssql.getTables();
+			const tables = await engine.getTables();
 			assert.deepStrictEqual(tables, ['products', 'users']);
 		})
 			;
 
 		it('should return column definitions', async () => {
-			const columns = await mssql.getColumns('users');
+			const columns = await engine.getColumns('users');
 			assert.deepStrictEqual(columns, [
 				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined },
 				{ name: 'name', type: 'varchar', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined },
@@ -115,27 +121,27 @@ describe('MSSQL Tests', () => {
 			;
 
 		it('should return total rows', async () => {
-			await mssql.sequelize?.query(`
+			await engine.connection?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
             ('Bob', 40)
         `);
 
-			const totalRows = await mssql.getTotalRows('users');
+			const totalRows = await engine.getTotalRows('users');
 			assert.strictEqual(totalRows, 3);
 		})
 			;
 
 		it('should return rows', async () => {
-			await mssql.sequelize?.query(`
+			await engine.connection?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
             ('Bob', 40)
         `);
 
-			const rows = await mssql.getRows('users', [], 2, 0);
+			const rows = await engine.getRows('users', [], 2, 0);
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }
@@ -144,7 +150,7 @@ describe('MSSQL Tests', () => {
 			;
 
 		it('should save changes', async () => {
-			await mssql.sequelize?.query(`
+			await engine.connection?.raw(`
 				INSERT INTO users (name, age) VALUES
 				('John', 30)
 			`);
@@ -160,20 +166,42 @@ describe('MSSQL Tests', () => {
 				table: 'users'
 			};
 
-			await mssql.commitChange(mutation);
+			await engine.commitChange(mutation);
 
-			const rows = await mssql.getRows('users', [], 1, 0);
+			const rows = await engine.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);
 		});
 
 		it('should return table creation SQL', async () => {
-			const creationSql = (await mssql.getTableCreationSql('users'))
+			const creationSql = (await engine.getTableCreationSql('users'))
 				.replace(/\[|\]/g, '')
 				.replace(/\n|\t/g, '')
 				.replace(/\s+/g, ' ')
 				.trim();
 
 			assert.strictEqual(creationSql, '{ "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "id", "DATA_TYPE": 4, "TYPE_NAME": "int identity", "PRECISION": 10, "LENGTH": 4, "SCALE": 0, "RADIX": 10, "NULLABLE": 0, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 4, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": null, "ORDINAL_POSITION": 1, "IS_NULLABLE": "NO", "SS_DATA_TYPE": 56 }, { "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "name", "DATA_TYPE": 12, "TYPE_NAME": "varchar", "PRECISION": 255, "LENGTH": 255, "SCALE": null, "RADIX": null, "NULLABLE": 1, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 12, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": 255, "ORDINAL_POSITION": 2, "IS_NULLABLE": "YES", "SS_DATA_TYPE": 39 }, { "TABLE_QUALIFIER": "master", "TABLE_OWNER": "dbo", "TABLE_NAME": "users", "COLUMN_NAME": "age", "DATA_TYPE": 4, "TYPE_NAME": "int", "PRECISION": 10, "LENGTH": 4, "SCALE": 0, "RADIX": 10, "NULLABLE": 1, "REMARKS": null, "COLUMN_DEF": null, "SQL_DATA_TYPE": 4, "SQL_DATETIME_SUB": null, "CHAR_OCTET_LENGTH": null, "ORDINAL_POSITION": 3, "IS_NULLABLE": "YES", "SS_DATA_TYPE": 38 }');
-		})
+		});
+
+		it('should return rows with a where clause', async () => {
+			await engine.connection?.raw(`
+				INSERT INTO users (name, age) VALUES
+				('John', 30),
+				('Jane', 25),
+				('Bob', 40),
+				('Alice', 30)
+			`);
+
+			const whereClause = { age: 30, name: 'John' }
+
+			const rows = await engine.getRows('users', [], 10, 0, whereClause);
+
+			assert.strictEqual(rows?.rows.length, 1);
+			assert.deepStrictEqual(rows?.rows[0], { id: 1, name: 'John', age: 30 });
+		});
+
+		it('should return version information', async () => {
+			const version = await engine.getVersion();
+			assert.strictEqual(version, undefined);
+		});
 	})
 });

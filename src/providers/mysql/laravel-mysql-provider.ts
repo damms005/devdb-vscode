@@ -25,7 +25,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 		}
 
 		log('Laravel MySQL', 'Checking if Laravel MySQL provider can be used in the current workspace...');
-		const connection = await getConnectionInEnvFile('mysql', 'mysql');
+		const connection = await getConnectionInEnvFile('mysql', 'mysql2');
 		log('Laravel MySQL', `Connection status: ${connection ? 'successful' : 'failed'}`);
 		if (!connection) return false
 

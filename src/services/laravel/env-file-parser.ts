@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { getEnvFileValue } from "./laravel-core";
-import { Dialect, Sequelize } from "sequelize";
-import { getConnectionFor } from "../sequelize-connector";
-import { LaravelConnection } from '../../types';
+import { getConnectionFor } from "../connector";
+import { KnexClient, KnexClientType, LaravelConnection } from '../../types';
 import { getPortFromDockerCompose, hasLaravelSailDockerComposeFile } from './sail';
 import { log } from '../logging-service';
 import { reportError } from '../initialization-error-service';
+import knexlib from "knex";
 
-export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
+export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: KnexClient): Promise<knexlib.Knex | undefined> {
 	log('Laravel env file parser', 'Fetching connection details from .env file. Laravel connection: ', connection);
 	const envConnection = await getEnvFileValue('DB_CONNECTION');
 	const host = await getHost();
@@ -26,7 +26,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 		return;
 	}
 
-	if (dialect !== 'mysql' && dialect !== 'postgres') {
+	if (dialect !== 'mysql2' && dialect !== 'postgres') {
 		vscode.window.showErrorMessage(`No support for '${dialect}' in Laravel Sail yet`)
 
 		log('Laravel env file parser', `Error connecting using host configured in .env file. Conn:`, connection);
@@ -46,13 +46,13 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	}
 
 	try {
-		return await connectUsingHostConfiguredInEnvFile(dialect, host, portOrConnection, username, password, database)
+		return await connectUsingHostConfiguredInEnvFile(dialect, host, (portOrConnection as number), username, password, database)
 	} catch (error) {
 		return
 	}
 }
 
-async function connectUsingHostConfiguredInEnvFile(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
+async function connectUsingHostConfiguredInEnvFile(dialect: KnexClientType, host: string, port: number, username: string, password: string, database: string): Promise<knexlib.Knex | undefined> {
 	return await getConnectionFor('Laravel provider - env file parser', dialect, host, port, username, password, database)
 }
 
@@ -76,7 +76,7 @@ async function getHost() {
  * This change below ensures that we only prioritize Sails config if we able to connect to
  * it.
  */
-async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, username: string, password: string, database: string): Promise<Sequelize | number | undefined> {
+async function getSuccessfulConnectionOrPort(dialect: KnexClientType, host: string, username: string, password: string, database: string): Promise<knexlib.Knex | number | undefined> {
 	if (await hasLaravelSailDockerComposeFile()) {
 
 		const dockerPort = await getPortFromDockerCompose(dialect)
@@ -93,7 +93,7 @@ async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, use
 	return parseInt(portInEnvFile || '3306')
 }
 
-async function tryGetConnection(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
+async function tryGetConnection(dialect: KnexClientType, host: string, port: number, username: string, password: string, database: string): Promise<knexlib.Knex | undefined> {
 	return await getConnectionFor('Laravel provider - env file parser', dialect, host, port, username, password, database, false)
 }
 

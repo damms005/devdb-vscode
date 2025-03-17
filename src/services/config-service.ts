@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
+import { CosmiconfigResult, cosmiconfig } from 'cosmiconfig';
 import { SqliteConfig, MysqlConfig, MssqlConfig, PostgresConfig } from '../types';
 import { getPathToWorkspaceFile } from './workspace';
-import { CosmiconfigResult, cosmiconfig } from 'cosmiconfig';
 
 export const DEVDB_CONFIG_FILE_NAME = '.devdbrc'
 

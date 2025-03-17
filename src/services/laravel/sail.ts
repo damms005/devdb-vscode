@@ -1,8 +1,8 @@
-import { Dialect } from "sequelize";
 import { join } from "path";
+import { parse } from 'yaml'
 import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent } from "../workspace";
 import { getEnvFileValue } from "./laravel-core";
-import { parse } from 'yaml'
+import { KnexClientType } from "../../types";
 
 export async function hasLaravelSailDockerComposeFile() {
 	const workspacePath = getFirstWorkspacePath()
@@ -15,7 +15,7 @@ export async function hasLaravelSailDockerComposeFile() {
 	return exists
 }
 
-export async function getPortFromDockerCompose(dialect: Dialect): Promise<number | undefined> {
+export async function getPortFromDockerCompose(dialect: KnexClientType): Promise<number | undefined> {
 	const dockerComposeContent = (getWorkspaceFileContent('docker-compose.yml'))?.toString()
 	if (!dockerComposeContent) return
 

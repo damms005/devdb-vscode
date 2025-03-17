@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
 import { Runner } from '../../laravel/code-runner/runner';
+import { CancellationToken, CodeLens, ProviderResult, TextDocument } from 'vscode';
 import {
     extractUseStatements,
     getAst,
 } from '../../laravel/code-runner/qualifier-service';
-import { CancellationToken, CodeLens, ProviderResult, TextDocument } from 'vscode';
 import { database } from '../../messenger';
 import { getCurrentVersion } from '../../welcome-message-service';
 import { extractVariables, replaceVariables } from '../../string';
 import httpClient from '../../http-client';
 import { passesBasicExplainerCheck, validateSelectedPhpCode } from './query-explain-checker-service';
+import { logToOutput } from '../../output-service';
 
 export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -54,7 +55,7 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
         const selectionAst = getAst(selectionText)
         const validation = validateSelectedPhpCode(selectionAst)
         if (!validation.isValid) {
-            console.log(`Invalid php code. ${validation.reason}`)
+            logToOutput(`Invalid php code. ${validation.reason}`)
             return [];
         }
 

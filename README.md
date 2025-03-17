@@ -137,7 +137,8 @@ The configuration file should contain a single array of database connection obje
 ### Context Menu Entry
 
 Open any database table in DevDb by right-clicking its name/model/entity from the editor in **any** framework/programming language.
-Example from a Node.js app ([Sequelize model definition](https://sequelize.org/docs/v6/core-concepts/model-basics/#model-definition)):
+
+Example from a Node.js app
 
 ![image](resources/screenshots/new/context-menu-contributions.png)
 

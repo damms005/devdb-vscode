@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import pluralize from 'pluralize';
-import { getWorkspaceTables } from '../../messenger';
 import Case from 'case';
+import { getWorkspaceTables } from '../../messenger';
 import { ModelMap } from '../../../types';
 
 export const LaravelCodelensService = {

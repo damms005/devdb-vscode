@@ -1,91 +1,64 @@
-import { Dialect, QueryTypes, Sequelize, Transaction } from "sequelize";
-import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from "../types";
+import knexlib from "knex";
+import { Column, DatabaseEngine, KnexClientType, QueryResponse, SerializedMutation, WhereEntry } from "../types";
 import { reportError } from "./initialization-error-service";
 
 export const SqlService = {
 
-	buildWhereClause(engine: DatabaseEngine, dialect: Dialect, columns: Column[], openDelimiter: string, whereClause?: Record<string, any>): { where: string[], replacements: string[] } {
-		if (!whereClause) return {
-			where: [],
-			replacements: []
-		}
+	buildWhereClause(engine: DatabaseEngine, dialect: KnexClientType, columns: Column[], whereClause?: Record<string, any>): WhereEntry[] {
+		if (!whereClause) return []
 
-		return buildWhereClause(engine, dialect, whereClause, columns, openDelimiter);
+		return buildWhereClause(engine, dialect, whereClause, columns);
 	},
 
-	async getRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		if (!sequelize) return;
+	async getRows(engine: DatabaseEngine, dialect: KnexClientType, connection: knexlib.Knex | null, table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+		if (!connection) return;
 
-		let openDelimiter = '`'
-		if (dialect === 'postgres') {
-			openDelimiter = '"';
+		if (!columns.length) {
+			throw new Error(`No columns in target table ${table}`)
 		}
 
-		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, openDelimiter, whereClause);
-
-		let limitConstraint = limit ? `LIMIT ${limit}` : '';
-		limitConstraint += offset ? ` OFFSET ${offset}` : '';
-
-		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
-		let loggedSql = '';
-		let rows
-
-		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
-		const sql = `SELECT * FROM ${openDelimiter}${table}${closeDelimiter} ${whereString} ${limitConstraint}`
-
 		try {
-			rows = await sequelize.query(sql, {
-				type: QueryTypes.SELECT,
-				raw: true,
-				replacements,
-				logging: query => loggedSql = `${loggedSql}\n${query}`
-			});
+			let loggedSql = '';
+			let rows
+			let query = connection(table).select("*")
+			if (whereClause) {
+				const build = buildWhereClause(engine, dialect, whereClause, columns)
+				for (let index = 0; index < build.length; index++) {
+					const element = build[index];
+					if (element.useRawCast) {
+						// Use raw to cast the column to text for the comparison
+						query = query.whereRaw(`${element.column}::text ${element.operator} ?`, [element.value]);
+					} else {
+						query = query.where(element.column, element.operator, element.value);
+					}
+				}
+			}
+			if (limit) {
+				query = query.limit(limit)
+			}
+			if (offset) {
+				query = query.offset(offset)
+			}
+
+			rows = (await query)
+			loggedSql = query.toString()
+			return { rows, sql: loggedSql };
 		} catch (error) {
 			reportError(String(error));
 			return
 		}
-
-		return { rows, sql: loggedSql };
 	},
 
-	async getTotalRows(engine: DatabaseEngine, dialect: Dialect, sequelize: Sequelize | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		if (!sequelize) return;
+	async getTotalRows(engine: DatabaseEngine, dialect: KnexClientType, connection: knexlib.Knex | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
+		if (!connection) return;
 
-		let openDelimiter = '`'
-		if (dialect === 'postgres') {
-			openDelimiter = '"';
-		}
-		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
+		const result = await connection(table).where(whereClause ?? {}).count('* as count');
 
-		const { where, replacements } = this.buildWhereClause(engine, dialect, columns, openDelimiter, whereClause);
-		const whereString = where.length ? `WHERE ${where.join(' AND ')}` : '';
-		let count;
-
-		try {
-			count = await sequelize.query(`SELECT COUNT(*) FROM ${openDelimiter}${table}${closeDelimiter} ${whereString}`, {
-				type: QueryTypes.SELECT,
-				raw: true,
-				replacements,
-				logging: false
-			});
-		} catch (error) {
-			reportError(String(error))
-			return
-		}
-
-		let totalRows = (count[0] as { 'COUNT(*)': string })['COUNT(*)'];
-
-		if (dialect === 'postgres') {
-			totalRows = (count[0] as { count: string })['count'];
-		}
-
-		return totalRows
-			? Number(totalRows)
-			: 0
+		return (result[0])?.count as number;
 	},
 
-	async commitChange(sequelize: Sequelize | null, serializedMutation: SerializedMutation, transaction?: Transaction, openDelimiter: string = '`'): Promise<void> {
-		if (!sequelize) return;
+	async commitChange(connection: knexlib.Knex | null, serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction, openDelimiter: string = '`'): Promise<void> {
+		if (!connection) return;
 
 		const { table, primaryKey, primaryKeyColumn } = serializedMutation;
 		let query = '';
@@ -100,35 +73,27 @@ export const SqlService = {
 			query = `DELETE FROM ${openDelimiter}${table}${closeDelimiter} WHERE ${openDelimiter}${primaryKeyColumn}${closeDelimiter} = :primaryKey`;
 		}
 
-		if (query) {
-			await sequelize.query(query, {
-				replacements,
-				type: serializedMutation.type === 'cell-update' ? QueryTypes.UPDATE : QueryTypes.DELETE,
-				transaction
-			});
+		if (transaction) {
+			await transaction.raw(query, replacements);
+		} else {
+			await (connection).raw(query, replacements);
 		}
 	}
 }
 
-function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause: Record<string, any>, columns: Column[], openDelimiter: string) {
-	const where: string[] = [];
-	const replacements: string[] = [];
-
+function buildWhereClause(engine: DatabaseEngine, dialect: KnexClientType, whereClause: Record<string, any>, columns: Column[]): WhereEntry[] {
+	const whereEntries: WhereEntry[] = [];
 	Object.entries(whereClause)
 		.forEach(([column, value]) => {
-
 			const targetColumn = columns.find((c: Column) => c.name === column);
-
 			if (!targetColumn) {
 				throw new Error(`Invalid column name: ${column}`)
 			}
-
 			if (value === '') { // e.g. user cleared the textbox, do not filter the column
 				return;
 			}
 
 			let operator = 'LIKE';
-
 			if (targetColumn.type === 'boolean') {
 				operator = ' is ';
 			}
@@ -138,21 +103,18 @@ function buildWhereClause(engine: DatabaseEngine, dialect: Dialect, whereClause:
 				operator = '=';
 			}
 
-
 			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/i.test(targetColumn.type) && dialect === 'postgres';
-			if (isStringablePostgresComparison) {
-				column = `"${column}"::text`;
-				openDelimiter = ''
-			}
+			let columnExpression = column;
 
 			value = getTransformedValue(targetColumn, value, isNumericComparison);
-			const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
-
-			where.push(`${openDelimiter}${column}${closeDelimiter} ${operator} ?`);
-			replacements.push(value);
+			whereEntries.push({
+				column: columnExpression,
+				operator,
+				value,
+				useRawCast: isStringablePostgresComparison && !isNumericComparison
+			});
 		})
-
-	return { where, replacements }
+	return whereEntries
 }
 
 function getTransformedValue(targetColumn: Column, value: any, isNumericComparison: boolean) {

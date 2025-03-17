@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { DatabaseEngine, FileExportType, TableFilterExportPayload, TableQueryResponse } from '../types';
 import { getFilteredTableData } from './messenger';
-import { formatDialect, sql } from 'sql-formatter';
 import { showMissingDatabaseNotification } from './error-notification-service';
 
 export async function exportTableData(payload: TableFilterExportPayload, database: DatabaseEngine | null) {
@@ -56,7 +55,7 @@ async function exportToFile(data: Record<string, any>[], exportType: FileExportT
             fileContent = JSON.stringify(data, null, 2);
             break;
         case 'sql':
-            fileContent = generateSQLInsertStatements(data, table);
+            fileContent = await generateSQLInsertStatements(data, table);
             break;
         default:
             vscode.window.showErrorMessage('Unsupported file type');
@@ -73,7 +72,7 @@ async function copyToClipboard(data: Record<string, any>[], exportType: FileExpo
 
     switch (exportType) {
         case 'sql':
-            fileContent = generateSQLInsertStatements(data, table);
+            fileContent = await generateSQLInsertStatements(data, table);
             break;
     }
 
@@ -82,7 +81,7 @@ async function copyToClipboard(data: Record<string, any>[], exportType: FileExpo
     vscode.window.showInformationMessage('Data copied to clipboard');
 }
 
-function generateSQLInsertStatements(data: Record<string, any>[], table: string): string {
+async function generateSQLInsertStatements(data: Record<string, any>[], table: string): Promise<string> {
     if (!data.length) return '';
 
     const keys = Object.keys(data[0]);
@@ -94,8 +93,8 @@ function generateSQLInsertStatements(data: Record<string, any>[], table: string)
     const query = sqlStatements.join('\n');
 
     try {
-        return formatDialect(query, {
-            dialect: sql,
+        return (await import('sql-formatter')).formatDialect(query, {
+            dialect: (await import('sql-formatter')).sql,
             keywordCase: 'upper',
         });
     } catch (error) {

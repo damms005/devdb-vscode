@@ -1,30 +1,30 @@
-import { Dialect, QueryTypes, Sequelize, Transaction } from 'sequelize';
-import { Column, DatabaseEngine, QueryResponse, SerializedMutation } from '../types';
+import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
+import knexlib from "knex";
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
 export class MysqlEngine implements DatabaseEngine {
 
-	public sequelize: Sequelize | null = null;
+	public connection: knexlib.Knex | null = null;
 
-	constructor(sequelizeInstance: Sequelize) {
-		this.sequelize = sequelizeInstance;
+	constructor(connector: knexlib.Knex) {
+		this.connection = connector;
 	}
 
-	getType(): Dialect {
-		return 'mysql';
+	getType(): KnexClient {
+		return 'mysql2';
 	}
 
-	getSequelizeInstance(): Sequelize | null {
-		return this.sequelize
+	getConnection(): knexlib.Knex | null {
+		return this.connection
 	}
 
 	async isOkay(): Promise<boolean> {
-		if (!this.sequelize) return false;
+		if (!this.connection) return false;
 
 		try {
-			await this.sequelize.authenticate();
+			await this.connection.raw('SELECT VERSION()');
 			return true;
 		} catch (error) {
 			return false;
@@ -32,17 +32,13 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	async disconnect() {
-		if (this.sequelize) await this.sequelize.close();
+		if (this.connection) this.connection.destroy(() => null);
 	}
 
 	async getTableCreationSql(table: string): Promise<string> {
-		if (!this.sequelize) return '';
+		if (!this.connection) return '';
 
-		const creationSql = await this.sequelize.query(`SHOW CREATE TABLE \`${table}\`;`, {
-			type: QueryTypes.SELECT,
-			raw: true,
-			logging: false
-		});
+		const creationSql = (await this.connection.raw(`SHOW CREATE TABLE ??`, [table]))[0];
 
 		const sql = (creationSql[0] as any)['Create Table'];
 
@@ -56,30 +52,22 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	async getTables(): Promise<string[]> {
-		if (!this.sequelize) return [];
+		if (!this.connection) return [];
 
-		const tables = await this.sequelize.query('SHOW TABLES;', {
-			type: QueryTypes.SELECT,
-			raw: true,
-			logging: false
-		});
+		const tables = ((await this.connection.raw('SHOW TABLES'))[0]).map((entry: Record<string, string>) => Object.values(entry)[0]);
 
-		return tables.map((table: any) => table[`Tables_in_${this.sequelize?.getDatabaseName()}`]).sort();
+		return tables;
 	}
 
 	async getColumns(table: string): Promise<Column[]> {
-		if (!this.sequelize) return [];
+		if (!this.connection) return [];
 
-		const columns = await this.sequelize.query(`SHOW COLUMNS FROM \`${table}\`;`, {
-			type: QueryTypes.SELECT,
-			raw: true,
-			logging: false
-		}) as any[];
+		const columns = (await this.connection.raw(`SHOW COLUMNS FROM ??`, [table]) as any[])[0];
 
 		const computedColumns: Column[] = []
 
 		for (const column of columns) {
-			const foreignKey = await getForeignKeyFor(table, column.Field, this.sequelize as Sequelize)
+			const foreignKey = await getForeignKeyFor(table, column.Field, this.connection)
 
 			computedColumns.push({
 				name: column.Field,
@@ -99,20 +87,17 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		return SqlService.getTotalRows(this, 'mysql', this.sequelize, table, columns, whereClause);
+		return SqlService.getTotalRows(this, 'mysql2', this.connection, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		return SqlService.getRows(this, 'mysql', this.sequelize, table, columns, limit, offset, whereClause);
+		return SqlService.getRows(this, 'mysql2', this.connection, table, columns, limit, offset, whereClause);
 	}
 
 	async getVersion(): Promise<string | undefined> {
-		if (!this.sequelize) return undefined;
+		if (!this.connection) return undefined;
 
-		const version = await this.sequelize.query('SELECT VERSION();', {
-			type: QueryTypes.SELECT,
-			logging: false
-		});
+		const version = (await this.connection.raw('SELECT VERSION();'))[0];
 
 		if (!version[0]) {
 			return undefined
@@ -121,36 +106,30 @@ export class MysqlEngine implements DatabaseEngine {
 		return (version[0] as any)['VERSION()'];
 	}
 
-	async commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void> {
-		await SqlService.commitChange(this.sequelize, serializedMutation, transaction);
+	async commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void> {
+		await SqlService.commitChange(this.connection, serializedMutation, transaction);
 	}
 
 	async runArbitraryQueryAndGetOutput(code: string): Promise<any> {
-		if (!this.sequelize) throw new Error('Sequelize instance not initialized');
+		if (!this.connection) throw new Error('Connection not initialized');
 
-		return (await this.sequelize.query(code, {
-			type: QueryTypes.SELECT,
-			logging: false,
-		}));
+		return (await this.connection.raw(code))[0];
 	}
 }
 
-async function getForeignKeyFor(table: string, column: string, sequelize: Sequelize): Promise<{ table: string, column: string } | undefined> {
-	const foreignKeys = await sequelize.query(`
+async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<{ table: string, column: string } | undefined> {
+
+	const foreignKeys = (await (connection).raw(`
 		SELECT
 			REFERENCED_TABLE_NAME AS \`table\`,
 			REFERENCED_COLUMN_NAME AS \`column\`
 		FROM
 			INFORMATION_SCHEMA.KEY_COLUMN_USAGE
 		WHERE
-			TABLE_NAME = '${table}'
-			AND COLUMN_NAME = '${column}'
+			TABLE_NAME = ?
+			AND COLUMN_NAME = ?
 			AND REFERENCED_TABLE_NAME IS NOT NULL
-	`, {
-		type: QueryTypes.SELECT,
-		raw: true,
-		logging: false
-	});
+	`, [table, column]))[0];
 
 	if (foreignKeys.length === 0) return;
 

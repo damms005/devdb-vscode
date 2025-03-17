@@ -1,6 +1,7 @@
-import { Dialect, Sequelize, Transaction } from "sequelize"
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
+import knexlib from "knex";
+import { MssqlEngine } from "./database-engines/mssql-engine";
 
 export type ConnectionType = 'laravel-sail' | 'laravel-local-sqlite'
 
@@ -27,12 +28,19 @@ export type EngineProviderCache = {
 	id: string,
 	details?: string,
 	description: string,
-	engine: MysqlEngine,
+	engine: MysqlEngine | MssqlEngine,
 }
+
+/**
+ * Important to use mysql2 instead of mysql
+ *
+ * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
+ */
+export type KnexClient = 'better-sqlite3' | 'mysql2' | 'postgres' | 'mssql'
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql' | 'postgres'
+	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql'
 	id: string
 	ddev?: boolean
 	description: string
@@ -55,9 +63,9 @@ export type DatabaseEngineProvider = {
 }
 
 export interface DatabaseEngine {
-	getType(): Dialect
+	getType(): KnexClient
 
-	getSequelizeInstance(): Sequelize | null
+	getConnection(): knexlib.Knex | null
 
 	/**
 	 * Returns true if the connection is okay
@@ -82,7 +90,7 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	commitChange(serializedMutation: SerializedMutation, transaction?: Transaction): Promise<void>
+	commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 
@@ -130,7 +138,7 @@ export type SqliteConfig = {
 
 export type SqlConfig = {
 	name: string
-	type: Dialect
+	type: KnexClientType | 'mariadb'
 	host: string
 	port: number
 	username: string
@@ -139,7 +147,7 @@ export type SqlConfig = {
 }
 
 export interface MysqlConfig extends SqlConfig {
-	type: 'mysql' | 'mariadb'
+	type: 'mariadb' | 'mysql2'
 }
 
 export interface PostgresConfig extends SqlConfig {
@@ -193,4 +201,13 @@ export type ModelMap = {
 		filePath: string,
 		table: string
 	}
+}
+
+export type KnexClientType = 'mysql2' | 'postgres' | 'better-sqlite3' | 'mssql'
+
+export type WhereEntry = {
+	column: string
+	operator: string
+	value: any
+	useRawCast?: boolean
 }

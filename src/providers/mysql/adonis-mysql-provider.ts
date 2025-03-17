@@ -37,7 +37,7 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
                 return false;
             }
 
-            const connection = await getConnectionInEnvFile('mysql', 'mysql');
+            const connection = await getConnectionInEnvFile('mysql', 'mysql2');
             if (!connection) {
                 log('Adonis PostgreSQL', 'Could not extract MySQL connection details from .env file');
                 return false;

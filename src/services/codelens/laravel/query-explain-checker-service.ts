@@ -10,7 +10,7 @@ export function passesBasicExplainerCheck(document: vscode.TextDocument, selecti
 		return false
 	}
 
-	if (database.getType() !== 'mysql') {
+	if (database.getType() !== 'mysql2') {
 		if (!quietly) vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
 		return false
 	}

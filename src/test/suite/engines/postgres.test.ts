@@ -1,7 +1,7 @@
 import * as assert from 'assert';
-import { Sequelize } from 'sequelize';
-import { PostgresEngine } from '../../../database-engines/postgres-engine';
+import knexlib from "knex";
 import { StartedPostgreSqlContainer, PostgreSqlContainer } from '@testcontainers/postgresql';
+import { PostgresEngine } from '../../../database-engines/postgres-engine';
 import { SerializedMutation } from '../../../types';
 
 /**
@@ -16,24 +16,33 @@ describe('PostgreSQL Tests', () => {
 	let container: StartedPostgreSqlContainer;
 
 	before(async function () {
-		container = await new PostgreSqlContainer(dockerImage).start();
+		container = await new PostgreSqlContainer(dockerImage)
+			.withReuse()
+			.start();
 	})
 
 	it('should return foreign key definitions', async () => {
-		let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getPassword(), {
-			dialect: 'postgres',
-			port: container.getPort(),
-			host: container.getHost(),
-			logging: false
-		});
+		let connection = knexlib.knex({
+			client: 'postgres',
+			connection: {
+				host: container.getHost(),
+				port: container.getPort(),
+				user: container.getUsername(),
+				password: container.getPassword(),
+				database: container.getDatabase(),
+			},
+		})
 
-		await sequelize.query(`
+		await connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
+		await connection?.raw(`DROP TABLE IF EXISTS parenttable`);
+
+		await connection.raw(`
         CREATE TABLE ParentTable (
             id SERIAL PRIMARY KEY
         )
     `);
 
-		await sequelize.query(`
+		await connection.raw(`
         CREATE TABLE ChildTable (
             id SERIAL PRIMARY KEY,
             parentId INT,
@@ -41,36 +50,44 @@ describe('PostgreSQL Tests', () => {
         )
     `);
 
-		const postgres = new PostgresEngine(sequelize);
+		const postgres = new PostgresEngine(connection);
 		const columns = await postgres.getColumns('ChildTable');
 
-		const foreignKeyColumn = columns.find(column => column.name === 'parentid');
+		const foreignKeyColumn = columns.find((column: { name: string }) => column.name === 'parentid');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'parenttable');
 
-		await postgres.sequelize?.query(`DROP TABLE ChildTable`);
-		await postgres.sequelize?.query(`DROP TABLE ParentTable`);
+		await postgres.connection?.raw(`DROP TABLE ChildTable`);
+		await postgres.connection?.raw(`DROP TABLE ParentTable`);
 	})
 
 	describe('PostgresEngine Tests', () => {
-		let postgres: PostgresEngine;
+		let engine: PostgresEngine;
 
 		before(async function () {
-			let sequelize: Sequelize = new Sequelize(container.getDatabase(), container.getUsername(), container.getPassword(), {
-				dialect: 'postgres',
-				port: container.getPort(),
-				host: container.getHost(),
-				logging: false
-			});
-			await sequelize.authenticate();
+			let connection = knexlib.knex({
+				client: 'postgres',
+				connection: {
+					host: container.getHost(),
+					port: container.getPort(),
+					user: container.getUsername(),
+					password: container.getPassword(),
+					database: container.getDatabase(),
+				},
+			})
 
-			postgres = new PostgresEngine(sequelize);
-			const ok = await postgres.isOkay();
+			engine = new PostgresEngine(connection);
+			const ok = await engine.isOkay();
 			assert.strictEqual(ok, true);
 		})
 
 		beforeEach(async function () {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`DROP TABLE IF EXISTS parenttable`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS test_table`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS timestamp_test`);
+
+			await engine.connection?.raw(`
             CREATE TABLE users (
                 id SERIAL PRIMARY KEY,
                 name varchar(255),
@@ -80,11 +97,12 @@ describe('PostgreSQL Tests', () => {
 		});
 
 		afterEach(async function () {
-			await postgres.sequelize?.query(`DROP TABLE users;`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
 		})
 
 		it('should return table names', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
             CREATE TABLE products (
                 id SERIAL PRIMARY KEY,
                 name varchar(255),
@@ -92,12 +110,12 @@ describe('PostgreSQL Tests', () => {
             )
         `);
 
-			const tables = await postgres.getTables();
+			const tables = await engine.getTables();
 			assert.deepStrictEqual(tables.sort(), ['products', 'users']);
 		});
 
 		it('should return column definitions', async () => {
-			const columns = await postgres.getColumns('users');
+			const columns = await engine.getColumns('users');
 
 			assert.deepStrictEqual(columns, [
 				{ name: 'id', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: false, foreignKey: undefined },
@@ -107,26 +125,27 @@ describe('PostgreSQL Tests', () => {
 		});
 
 		it('should return total rows', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
             ('Bob', 40)
         `);
 
-			const totalRows = await postgres.getTotalRows('users', []);
-			assert.strictEqual(totalRows, 3);
+			const totalRows = await engine.getTotalRows('users', []);
+			assert.strictEqual(totalRows, '3');
 		});
 
 		it('should return rows', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
             ('Bob', 40)
         `);
 
-			const rows = await postgres.getRows('users', [], 2, 0);
+			const rows = await engine.getRows('users', await engine.getColumns('users'), 2, 0);
+
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }
@@ -134,7 +153,7 @@ describe('PostgreSQL Tests', () => {
 		});
 
 		it('should save changes', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
 				INSERT INTO users (name, age) VALUES
 				('John', 30)
 			`);
@@ -150,14 +169,14 @@ describe('PostgreSQL Tests', () => {
 				table: 'users'
 			};
 
-			await postgres.commitChange(mutation);
+			await engine.commitChange(mutation);
 
-			const rows = await postgres.getRows('users', [], 1, 0);
+			const rows = await engine.getRows('users', await engine.getColumns('users'), 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);
 		});
 
 		it('should return table creation SQL', async () => {
-			const creationSql = (await postgres.getTableCreationSql('users'))
+			const creationSql = (await engine.getTableCreationSql('users'))
 				.replace(/"/g, '')
 				.replace(/\n|\t/g, '')
 				.replace(/\s+/g, ' ')
@@ -167,7 +186,7 @@ describe('PostgreSQL Tests', () => {
 		});
 
 		it('should filter values in uuid and integer column types', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
 					CREATE TABLE test_table (
 						id SERIAL PRIMARY KEY,
 						uuid_col UUID,
@@ -178,41 +197,72 @@ describe('PostgreSQL Tests', () => {
 			const uuid1 = '33e09dc0-838e-4584-bc22-8de273c4f1c9';
 			const uuid2 = '3314dc82-2989-4133-8108-ee9b0ba475b9';
 
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
 		INSERT INTO test_table (uuid_col, int_col) VALUES
 		('${uuid1}', 100),
 		('${uuid2}', 200)
 	`);
 
-			const integerFilteredRows = await postgres.getRows('test_table', [
-				{ name: 'uuid_col', type: 'uuid', isPrimaryKey: false, isNullable: true },
-				{ name: 'int_col', type: 'int4', isPrimaryKey: false, isNullable: true }
-			], 10, 0, { int_col: 20 });
+			const columns = await engine.getColumns('test_table')
+			const uuidFilteredRows = await engine.getRows('test_table', columns, 10, 0, { uuid_col: '4584' });
+			const integerFilteredRows = await engine.getRows('test_table', columns, 10, 0, { int_col: 200 });
 
+			assert.strictEqual(uuidFilteredRows?.rows.length, 1);
 			assert.strictEqual(integerFilteredRows?.rows.length, 1);
+
+			assert.strictEqual(uuidFilteredRows?.rows[0].uuid_col, '33e09dc0-838e-4584-bc22-8de273c4f1c9');
 			assert.strictEqual(integerFilteredRows?.rows[0].int_col, 200);
 		});
 
 		it('should filter values in timestamp column types', async () => {
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
 				CREATE TABLE timestamp_test (
 					id SERIAL PRIMARY KEY,
 					created_at TIMESTAMP
 				)
 			`);
 
-			await postgres.sequelize?.query(`
+			await engine.connection?.raw(`
 				INSERT INTO timestamp_test (created_at) VALUES
 				('2024-10-14 10:00:00'),
 				('2024-10-14 12:00:00')
 			`);
 
-			const timestampFilteredRows = await postgres.getRows('timestamp_test', [
+			const timestampFilteredRows = await engine.getRows('timestamp_test', [
 				{ name: 'created_at', type: 'timestamp', isPrimaryKey: false, isNullable: true }
 			], 10, 0, { created_at: '2024-10-14 10:00:00' });
 
 			assert.strictEqual(timestampFilteredRows?.rows.length, 1);
 			assert.strictEqual(timestampFilteredRows?.rows[0].created_at.toISOString(), new Date('2024-10-14 10:00:00').toISOString());
+		});
+
+		it('should filter rows with where clause', async () => {
+			await engine.connection?.raw(`
+				INSERT INTO users (name, age) VALUES
+				('John', 30),
+				('Jane', 25),
+				('Bob', 40)
+			`);
+
+			const columns = await engine.getColumns('users')
+
+			// Test numeric filtering
+			const ageFilteredRows = await engine.getRows('users', columns, 10, 0, { age: 30 });
+
+			assert.strictEqual(ageFilteredRows?.rows.length, 1);
+			assert.strictEqual(ageFilteredRows?.rows[0].name, 'John');
+			assert.strictEqual(ageFilteredRows?.rows[0].age, 30);
+
+			// Test string filtering
+			const nameFilteredRows = await engine.getRows('users', columns, 10, 0, { name: 'Jane' });
+			assert.strictEqual(nameFilteredRows?.rows.length, 1);
+			assert.strictEqual(nameFilteredRows?.rows[0].name, 'Jane');
+			assert.strictEqual(nameFilteredRows?.rows[0].age, 25);
+		});
+
+		it('should return undefined for getVersion', async () => {
+			const version = await engine.getVersion();
+			assert.strictEqual(version, undefined);
 		});
 	})
 });

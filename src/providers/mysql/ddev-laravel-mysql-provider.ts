@@ -25,7 +25,7 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
       }
 
       // Get database connection from DDEV
-      const connection = await getDatabaseConnection('mysql');
+      const connection = await getDatabaseConnection('mysql2');
 
       if (!connection) {
         return false;

@@ -1,28 +1,26 @@
 import * as assert from 'assert';
-import { Sequelize } from 'sequelize';
+import knexlib from "knex";
 import { SqlService } from '../../../services/sql';
 import { Column } from '../../../types';
 import { SqliteEngine } from '../../../database-engines/sqlite-engine';
 
 describe('SqliteService Tests', () => {
-	let sequelize: Sequelize;
+	let connection: knexlib.Knex;
 	let sqlite: SqliteEngine;
 
 	beforeEach(async () => {
-		sequelize = new Sequelize({ dialect: 'sqlite', logging: false });
-		await sequelize.authenticate();
+		connection = (new SqliteEngine()).getConnection()!;
 
 		sqlite = new SqliteEngine();
 	});
 
 	afterEach(async () => {
-		await sequelize.close();
+		await connection.destroy();
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const { where, replacements } = SqlService.buildWhereClause(sqlite, 'sqlite', [], '`', undefined);
+		const where = SqlService.buildWhereClause(sqlite, 'better-sqlite3', []);
 		assert.deepStrictEqual(where, []);
-		assert.deepStrictEqual(replacements, []);
 	});
 
 	it('ensures buildWhereClause returns expected arrays when whereClause is defined', () => {
@@ -40,13 +38,15 @@ describe('SqliteService Tests', () => {
 			isNullable: true,
 		}]
 
-		const { where, replacements } = SqlService.buildWhereClause(sqlite, 'sqlite', columns, '`', whereClause);
-		assert.deepStrictEqual(where, ['`name` LIKE ?', '`age` = ?']);
-		assert.deepStrictEqual(replacements, ['%John%', 30]);
+		const whereEntry = SqlService.buildWhereClause(sqlite, 'better-sqlite3', columns, whereClause);
+		assert.deepStrictEqual(whereEntry, [
+			{ column: "name", operator: "LIKE", useRawCast: false, value: "%John%" },
+			{ column: "age", operator: "=", useRawCast: false, value: 30 },
+		]);
 	});
 
-	it('ensures getRows returns expected rows and sql when sequelize is not null', async () => {
-		await sequelize.query(`
+	it('ensures getRows returns expected rows and sql when connection is not null', async () => {
+		await connection.raw(`
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY,
 				name TEXT,
@@ -54,7 +54,7 @@ describe('SqliteService Tests', () => {
 			)
 		`);
 
-		await sequelize.query(`
+		await connection.raw(`
 			INSERT INTO users (name, age) VALUES
 			('John', 30),
 			('Jane', 25),
@@ -75,23 +75,23 @@ describe('SqliteService Tests', () => {
 			isNullable: true,
 		}]
 
-		const result = await SqlService.getRows(sqlite, 'sqlite', sequelize, 'users', columns, 2, 0, whereClause);
+		const result = await SqlService.getRows(sqlite, 'better-sqlite3', connection, 'users', columns, 2, 0, whereClause);
 
 		assert.deepStrictEqual(result?.rows, [
 			{ id: 1, name: 'John', age: 30 },
 			{ id: 2, name: 'Jane', age: 25 }
 		]);
 
-		assert.strictEqual(result?.sql?.trim(), "Executing (default): SELECT * FROM `users` WHERE `name` LIKE '%J%' LIMIT 2");
+		assert.strictEqual(result?.sql?.trim(), "select * from `users` where `name` like '%J%' limit 2");
 	});
 
-	it('ensures initializePaginationFor returns null when sequelize is null', async () => {
-		const result = await SqlService.getTotalRows(sqlite, 'sqlite', null, 'users', []);
+	it('ensures initializePaginationFor returns null when connection is null', async () => {
+		const result = await SqlService.getTotalRows(sqlite, 'better-sqlite3', null, 'users', []);
 		assert.strictEqual(result, undefined);
 	});
 
-	it('ensures initializePaginationFor returns expected pagination data when sequelize is not null', async () => {
-		await sequelize.query(`
+	it('ensures initializePaginationFor returns expected pagination data when connection is not null', async () => {
+		await connection.raw(`
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY,
 				name TEXT,
@@ -99,14 +99,14 @@ describe('SqliteService Tests', () => {
 			)
 		`);
 
-		await sequelize.query(`
+		await connection.raw(`
 			INSERT INTO users (name, age) VALUES
 			('John', 30),
 			('Jane', 25),
 			('Bob', 40)
 		`);
 
-		const result = await SqlService.getTotalRows(sqlite, 'sqlite', sequelize, 'users', [],);
+		const result = await SqlService.getTotalRows(sqlite, 'better-sqlite3', connection, 'users', [],);
 
 		assert.equal(result, 3);
 	});

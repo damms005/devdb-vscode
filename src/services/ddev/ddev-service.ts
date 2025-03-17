@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { Sequelize } from 'sequelize';
-import { getConnectionFor } from '../sequelize-connector';
 import path from 'path';
 import fs from 'fs';
+import { getConnectionFor } from '../connector';
 import { logToOutput } from '../output-service';
+import knexlib from "knex";
+import { KnexClientType } from '../../types';
 
 const execAsync = promisify(exec);
 
@@ -54,17 +55,15 @@ export async function getDdevConfig(): Promise<DdevConfig | undefined> {
     const { stdout } = await execAsync(`ddev describe -j`, { cwd: path });
     return JSON.parse(stdout) as DdevConfig;
   } catch (error) {
-    console.log('Failed to get DDEV configuration:', error);
+    logToOutput(`Failed to get DDEV configuration: ${String(error)}`);
     return undefined;
   }
 }
 
 /**
  * Gets a database connection for the specified dialect using DDEV configuration
- * @param dialect The database dialect ('mysql', 'postgres', or 'sqlite')
- * @returns Promise<Sequelize | undefined> A Sequelize instance or undefined if connection fails
  */
-export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sqlite'): Promise<Sequelize | undefined> {
+export async function getDatabaseConnection(dialect: KnexClientType): Promise<knexlib.Knex | undefined> {
   try {
     const config = await getDdevConfig();
 
@@ -75,10 +74,10 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
     const { dbinfo, database_type } = config.raw;
 
     // Check if the requested dialect matches the DDEV database type
-    if (dialect === 'mysql' && (database_type === 'mysql' || database_type === 'mariadb')) {
+    if (dialect === 'mysql2' && (database_type === 'mysql' || database_type === 'mariadb')) {
       return getConnectionFor(
         'DDEV provider',
-        'mysql',
+        'mysql2',
         '127.0.0.1',
         dbinfo.published_port,
         dbinfo.username,
@@ -99,7 +98,7 @@ export async function getDatabaseConnection(dialect: 'mysql' | 'postgres' | 'sql
 
     return undefined;
   } catch (error) {
-    console.log(`Failed to get ${dialect} connection from DDEV:`, error);
+    logToOutput(`Failed to get ${dialect} connection from DDEV: ${String(error)}`);
     return undefined;
   }
 }

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import { getEnvFileValue } from "./adonis-core";
-import { Dialect, Sequelize } from "sequelize";
-import { getConnectionFor } from "../sequelize-connector";
-import { LaravelConnection } from '../../types';
+import { getConnectionFor } from "../connector";
+import { KnexClientType, LaravelConnection } from '../../types';
 import { log } from '../logging-service';
 import { reportError } from '../initialization-error-service';
+import knexlib from "knex";
 
-export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: Dialect): Promise<Sequelize | undefined> {
+export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: KnexClientType): Promise<knexlib.Knex | undefined> {
 	log('Adonis env file parser', 'Fetching connection details from .env file. Laravel connection: ', connection);
 	const host = await getHost();
 	const username = await getEnvFileValue('DB_USER') || '';
@@ -19,14 +19,14 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 		return
 	}
 
-	if (dialect !== 'mysql' && dialect !== 'postgres') {
+	if (dialect !== 'mysql2' && dialect !== 'postgres') {
 		vscode.window.showErrorMessage(`No support for '${dialect}' in Laravel Sail yet`)
 
 		log('Adonis env file parser', `Error connecting using host configured in .env file. Conn:`, connection);
 		return;
 	}
 
-	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password, database);
+	let portOrConnection = await getPort();
 
 	if (!database || !portOrConnection) {
 		log('Adonis env file parser', `Missing database or port: database=${database}, port=${portOrConnection}`);
@@ -45,7 +45,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	}
 }
 
-async function connectUsingHostConfiguredInEnvFile(dialect: Dialect, host: string, port: number, username: string, password: string, database: string): Promise<Sequelize | undefined> {
+async function connectUsingHostConfiguredInEnvFile(dialect: KnexClientType, host: string, port: number, username: string, password: string, database: string): Promise<knexlib.Knex | undefined> {
 	return await getConnectionFor('Adonis env file parser', dialect, host, port, username, password, database)
 }
 
@@ -55,7 +55,7 @@ async function getHost() {
 	return (await getEnvFileValue('DB_HOST')) || localhost
 }
 
-async function getSuccessfulConnectionOrPort(dialect: Dialect, host: string, username: string, password: string, database: string): Promise<Sequelize | number | undefined> {
+async function getPort(): Promise<number | undefined> {
 	const portInEnvFile = await getEnvFileValue('DB_PORT')
 	return parseInt(portInEnvFile || '3306')
 }

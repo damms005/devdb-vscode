@@ -3,7 +3,7 @@ import { getWorkspaceFileContent } from "../workspace";
 /**
  * Returns the hostname portion of the APP_URL environment variable.
  */
-export async function getHostname(): Promise<string|undefined> {
+export async function getHostname(): Promise<string | undefined> {
 	const appUrl = await getEnvFileValue('APP_URL')
 	if (!appUrl) return
 
@@ -23,7 +23,7 @@ export async function getEnvFileValue(envFileKey: string): Promise<string | unde
 	if (!envFileContents) return
 
 	const lines = envFileContents.split('\n');
-	const appUrlLine = lines.find(line => line.startsWith(`${envFileKey}=`))
+	const appUrlLine = lines.find((line: string) => line.startsWith(`${envFileKey}=`))
 	if (!appUrlLine) return
 
 	const appUrl = appUrlLine.substring(appUrlLine.indexOf('=') + 1)

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getConfigFileContent, getConfigFilePath } from './config-service';
+import { getConfigFilePath } from './config-service';
 import { MssqlConfig, MysqlConfig, PostgresConfig, SqliteConfig } from '../types';
 
 type ConfigType = SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig;
@@ -112,7 +112,7 @@ function matchesConfig(objText: string, config: ConfigType): boolean {
 			case 'sqlite':
 				return obj.path === (config as SqliteConfig).path;
 
-			case 'mysql':
+			case 'mysql2':
 			case 'mariadb':
 				return obj.name === (config as MysqlConfig).name &&
 					obj.database === (config as MysqlConfig).database;
