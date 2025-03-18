@@ -23,12 +23,9 @@ export class MysqlEngine implements DatabaseEngine {
 	async isOkay(): Promise<boolean> {
 		if (!this.connection) return false;
 
-		try {
-			await this.connection.raw('SELECT VERSION()');
-			return true;
-		} catch (error) {
-			return false;
-		}
+		await this.connection.raw('SELECT VERSION()');
+
+		return true;
 	}
 
 	async disconnect() {
