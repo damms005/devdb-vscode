@@ -19,5 +19,5 @@
 !snippets/*
 !schemas/*
 
-!node_modules/@vscode/better-sqlite3/**
+# Include @vscode/sqlite3 because we excluded it from build in esbuild.js
 !node_modules/@vscode/sqlite3/**
