@@ -1,7 +1,10 @@
 #!/bin/bash
 
+# Compute the script directory and set the database file path
+DB_PATH="$(dirname "$(readlink -f "$0")")/devdb-triage.sqlite"
+
 # Create a SQLite database file
-sqlite3 devdb-triage.sqlite << EOF
+sqlite3 "$DB_PATH" << EOF
 CREATE TABLE book (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -26,9 +29,9 @@ echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
 {
-    "database": "devdb-triage.sqlite"
+    "database": "$DB_PATH"
 }
 EXAMPLE_CONNECTION
 
 echo "When done, remove the SQLite database file by runing:"
-echo "rm devdb-triage.sqlite"
+echo "rm \"$DB_PATH\""
