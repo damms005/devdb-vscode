@@ -121,7 +121,7 @@ export class MssqlEngine implements DatabaseEngine {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction, '[');
 	}
 
-	async runArbitraryQueryAndGetOutput(code: string): Promise<string | undefined> {
+	async rawQuery(code: string): Promise<string | undefined> {
 		if (!this.connection) throw new Error('Connection not initialized');
 
 		return (await this.connection.raw(code)).toString();

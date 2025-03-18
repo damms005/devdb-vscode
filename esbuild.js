@@ -13,7 +13,7 @@ async function main () {
 		sourcesContent: false,
 		platform: 'node',
 		outfile: 'dist/extension.js',
-		external: ['vscode', 'sqlite3'],
+		external: ['vscode', '@vscode/sqlite3', 'sqlite3'],
 		metafile: true,
 		logLevel: 'warning',
 		plugins: [

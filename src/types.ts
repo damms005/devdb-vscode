@@ -2,6 +2,8 @@ import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 import knexlib from "knex";
 import { MssqlEngine } from "./database-engines/mssql-engine";
+import { SQLiteEngineProvider, SQLiteTransaction } from "./database-engines/sqlite-engine-provider";
+import { SqliteEngine } from "./database-engines/sqlite-engine";
 
 export type ConnectionType = 'laravel-sail' | 'laravel-local-sqlite'
 
@@ -28,7 +30,7 @@ export type EngineProviderCache = {
 	id: string,
 	details?: string,
 	description: string,
-	engine: MysqlEngine | MssqlEngine,
+	engine: MysqlEngine | MssqlEngine | SqliteEngine,
 }
 
 /**
@@ -36,7 +38,7 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'better-sqlite3' | 'mysql2' | 'postgres' | 'mssql'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'custom-sqlite3'
 
 export type DatabaseEngineProvider = {
 	name: string
@@ -65,7 +67,7 @@ export type DatabaseEngineProvider = {
 export interface DatabaseEngine {
 	getType(): KnexClient
 
-	getConnection(): knexlib.Knex | null
+	getConnection(): knexlib.Knex | SQLiteEngineProvider | null
 
 	/**
 	 * Returns true if the connection is okay
@@ -90,11 +92,11 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void>
+	commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 
-	runArbitraryQueryAndGetOutput(code: string): Promise<any>
+	rawQuery(code: string): Promise<any>
 }
 
 export type QueryResponse = {
@@ -203,7 +205,7 @@ export type ModelMap = {
 	}
 }
 
-export type KnexClientType = 'mysql2' | 'postgres' | 'better-sqlite3' | 'mssql'
+export type KnexClientType = 'mysql2' | 'postgres' | 'mssql'
 
 export type WhereEntry = {
 	column: string

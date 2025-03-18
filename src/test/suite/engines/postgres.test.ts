@@ -59,6 +59,7 @@ describe('PostgreSQL Tests', () => {
 
 		await postgres.connection?.raw(`DROP TABLE ChildTable`);
 		await postgres.connection?.raw(`DROP TABLE ParentTable`);
+		await connection.destroy();
 	})
 
 	describe('PostgresEngine Tests', () => {
@@ -263,6 +264,10 @@ describe('PostgreSQL Tests', () => {
 		it('should return undefined for getVersion', async () => {
 			const version = await engine.getVersion();
 			assert.strictEqual(version, undefined);
+		});
+
+		after(async function () {
+			await engine.connection?.destroy();
 		});
 	})
 });

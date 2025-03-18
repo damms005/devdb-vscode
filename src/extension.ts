@@ -15,7 +15,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	let assets;
 
-	vscode.window.showInformationMessage('El-roi.');
+	vscode.window.showInformationMessage('1');
 
 	try {
 		assets = await getVueAssets(context)

@@ -134,7 +134,7 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 
 	const engine: SqliteEngine = new SqliteEngine(sqliteConnection.path)
 	const isOkay = (await engine.isOkay())
-	if (!isOkay || !engine.connection) {
+	if (!isOkay) {
 		await showErrorWithConfigFileButton(
 			'The SQLite database specified in your config file is not valid.',
 			sqliteConnection

@@ -19,4 +19,5 @@
 !snippets/*
 !schemas/*
 
-!node_modules/sqlite3/**
+!node_modules/@vscode/better-sqlite3/**
+!node_modules/@vscode/sqlite3/**

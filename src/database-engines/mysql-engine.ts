@@ -83,7 +83,7 @@ export class MysqlEngine implements DatabaseEngine {
 	}
 
 	getNumericColumnTypeNamesLowercase(): string[] {
-		return ['tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'double'];
+		return ['tinyint', 'smallint', 'integer', 'mediumint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'double'];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
@@ -110,7 +110,7 @@ export class MysqlEngine implements DatabaseEngine {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction);
 	}
 
-	async runArbitraryQueryAndGetOutput(code: string): Promise<any> {
+	async rawQuery(code: string): Promise<any> {
 		if (!this.connection) throw new Error('Connection not initialized');
 
 		return (await this.connection.raw(code))[0];

@@ -1,17 +1,44 @@
 import * as assert from 'assert';
+import { MySqlContainer, StartedMySqlContainer } from '@testcontainers/mysql';
 import knexlib from "knex";
 import { SqlService } from '../../../services/sql';
 import { Column } from '../../../types';
-import { SqliteEngine } from '../../../database-engines/sqlite-engine';
+import { MysqlEngine } from '../../../database-engines/mysql-engine';
+
+/**
+ * We use a predefined image like this because docker image download can be ery very slow, hence
+ * on new computer/initial setup when the image is not already existing, it takes a very long time
+ * to run this test. Using a predefined image name like this makes it possible to us to manually
+ * download the image (e.g. using `docker run ...`) to ensure it exists in the system before running the test.
+ */
+const dockerImage = 'mysql:8.0.31'
 
 describe('SqliteService Tests', () => {
+	let container: StartedMySqlContainer;
 	let connection: knexlib.Knex;
-	let sqlite: SqliteEngine;
+	let engine: MysqlEngine;
+
+	before(async function () {
+		container = await new MySqlContainer(dockerImage)
+			.withReuse()
+			.start();
+	})
 
 	beforeEach(async () => {
-		connection = (new SqliteEngine()).getConnection()!;
+		connection = knexlib.knex({
+			client: 'mysql2',
+			connection: {
+				host: container.getHost(),
+				port: container.getPort(),
+				user: container.getUsername(),
+				password: container.getUserPassword(),
+				database: container.getDatabase(),
+			},
+		});
 
-		sqlite = new SqliteEngine();
+		engine = new MysqlEngine(connection);
+
+		await engine.getConnection()?.raw(`DROP TABLE IF EXISTS users`);
 	});
 
 	afterEach(async () => {
@@ -19,7 +46,7 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures buildWhereClause returns empty arrays when whereClause is undefined', () => {
-		const where = SqlService.buildWhereClause(sqlite, 'better-sqlite3', []);
+		const where = SqlService.buildWhereClause(engine, 'mysql2', []);
 		assert.deepStrictEqual(where, []);
 	});
 
@@ -38,7 +65,7 @@ describe('SqliteService Tests', () => {
 			isNullable: true,
 		}]
 
-		const whereEntry = SqlService.buildWhereClause(sqlite, 'better-sqlite3', columns, whereClause);
+		const whereEntry = SqlService.buildWhereClause(engine, 'mysql2', columns, whereClause);
 		assert.deepStrictEqual(whereEntry, [
 			{ column: "name", operator: "LIKE", useRawCast: false, value: "%John%" },
 			{ column: "age", operator: "=", useRawCast: false, value: 30 },
@@ -48,7 +75,7 @@ describe('SqliteService Tests', () => {
 	it('ensures getRows returns expected rows and sql when connection is not null', async () => {
 		await connection.raw(`
 			CREATE TABLE users (
-				id INTEGER PRIMARY KEY,
+				id INTEGER PRIMARY KEY AUTO_INCREMENT,
 				name TEXT,
 				age INTEGER
 			)
@@ -75,7 +102,7 @@ describe('SqliteService Tests', () => {
 			isNullable: true,
 		}]
 
-		const result = await SqlService.getRows(sqlite, 'better-sqlite3', connection, 'users', columns, 2, 0, whereClause);
+		const result = await SqlService.getRows(engine, 'mysql2', connection, 'users', columns, 2, 0, whereClause);
 
 		assert.deepStrictEqual(result?.rows, [
 			{ id: 1, name: 'John', age: 30 },
@@ -86,14 +113,14 @@ describe('SqliteService Tests', () => {
 	});
 
 	it('ensures initializePaginationFor returns null when connection is null', async () => {
-		const result = await SqlService.getTotalRows(sqlite, 'better-sqlite3', null, 'users', []);
+		const result = await SqlService.getTotalRows(engine, 'mysql2', null, 'users', []);
 		assert.strictEqual(result, undefined);
 	});
 
 	it('ensures initializePaginationFor returns expected pagination data when connection is not null', async () => {
 		await connection.raw(`
 			CREATE TABLE users (
-				id INTEGER PRIMARY KEY,
+				id INTEGER PRIMARY KEY AUTO_INCREMENT,
 				name TEXT,
 				age INTEGER
 			)
@@ -106,7 +133,7 @@ describe('SqliteService Tests', () => {
 			('Bob', 40)
 		`);
 
-		const result = await SqlService.getTotalRows(sqlite, 'better-sqlite3', connection, 'users', [],);
+		const result = await SqlService.getTotalRows(engine, 'mysql2', connection, 'users', [],);
 
 		assert.equal(result, 3);
 	});

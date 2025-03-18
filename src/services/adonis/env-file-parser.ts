@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
+import knexlib from "knex";
 import { getEnvFileValue } from "./adonis-core";
 import { getConnectionFor } from "../connector";
 import { KnexClientType, LaravelConnection } from '../../types';
 import { log } from '../logging-service';
 import { reportError } from '../initialization-error-service';
-import knexlib from "knex";
 
 export async function getConnectionInEnvFile(connection: LaravelConnection, dialect: KnexClientType): Promise<knexlib.Knex | undefined> {
 	log('Adonis env file parser', 'Fetching connection details from .env file. Laravel connection: ', connection);

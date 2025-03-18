@@ -12,9 +12,6 @@ import { SerializedMutation } from '../../../types';
  */
 const dockerImage = 'mysql:8.0.31'
 
-/**
- * Skipping because of https://github.com/testcontainers/testcontainers-node/issues/868
- */
 describe('MySQL Tests', () => {
 	let container: StartedMySqlContainer;
 
@@ -59,6 +56,8 @@ describe('MySQL Tests', () => {
 
 		await mysql.connection?.raw(`DROP TABLE ChildTable`);
 		await mysql.connection?.raw(`DROP TABLE ParentTable`);
+
+		await connection.destroy();
 	})
 
 	describe('MysqlEngine Tests', () => {
@@ -80,6 +79,7 @@ describe('MySQL Tests', () => {
 			const ok = await engine.isOkay();
 			assert.strictEqual(ok, true);
 
+			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
 			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
 
 			await engine.connection?.raw(`
@@ -94,7 +94,12 @@ describe('MySQL Tests', () => {
 		afterEach(async function () {
 			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
 			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.destroy();
 		})
+
+		after(async function () {
+			await engine.connection?.destroy()
+		});
 
 		it('should return table names', async () => {
 			await engine.connection?.raw(`
@@ -194,7 +199,7 @@ describe('MySQL Tests', () => {
 			`);
 
 			const query = "EXPLAIN FORMAT=TREE SELECT * FROM users WHERE age > 25";
-			const result = await engine.runArbitraryQueryAndGetOutput(query);
+			const result = await engine.rawQuery(query);
 
 			assert.ok(result[0]['EXPLAIN'].includes('Table scan on users'));
 		});

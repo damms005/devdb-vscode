@@ -21,13 +21,13 @@ describe('Sqlite Tests', () => {
         )
     `);
 
-		const sqlite = new SqliteEngine();
-		sqlite.connection = connection;
-		const columns = await sqlite.getColumns('ChildTable');
+		const columns = await connection.getColumns('ChildTable');
 
 		const foreignKeyColumn = columns.find((column: { name: string }) => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
+
+		await connection.destroy();
 	});
 
 	describe('SqliteEngine Tests', () => {
@@ -38,18 +38,18 @@ describe('Sqlite Tests', () => {
 		});
 
 		beforeEach(async () => {
-			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.getConnection()?.raw(`DROP TABLE IF EXISTS products`);
 		});
 
 		afterEach(async () => {
 			const tables = await engine.getTables();
 			for (const table of tables) {
-				await engine.connection?.raw(`DROP TABLE ${table}`);
+				await engine.getConnection()?.raw(`DROP TABLE ${table}`);
 			}
 		});
 
 		it('should return table names', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -57,7 +57,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE products (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -70,7 +70,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return column definitions', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY NOT NULL,
                 name TEXT,
@@ -87,7 +87,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return total rows', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -95,7 +95,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
@@ -107,7 +107,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return rows', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -115,7 +115,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
@@ -123,6 +123,7 @@ describe('Sqlite Tests', () => {
         `);
 
 			const rows = await engine.getRows('users', await engine.getColumns('users'), 2, 0);
+
 			assert.deepStrictEqual(rows?.rows, [
 				{ id: 1, name: 'John', age: 30 },
 				{ id: 2, name: 'Jane', age: 25 }
@@ -130,7 +131,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should save changes', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
 				CREATE TABLE users (
 					id INTEGER PRIMARY KEY,
 					name TEXT,
@@ -138,7 +139,7 @@ describe('Sqlite Tests', () => {
 				)
 			`);
 
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
 				INSERT INTO users (name, age) VALUES
 				('John', 30)
 			`);
@@ -161,7 +162,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return table creation SQL', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -179,7 +180,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return rows with where clause', async () => {
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -187,7 +188,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.connection?.raw(`
+			await engine.getConnection()?.raw(`
             INSERT INTO users (name, age) VALUES
             ('Jane', 25),
             ('John', 30),
@@ -215,6 +216,10 @@ describe('Sqlite Tests', () => {
 		it('should return version information', async () => {
 			const version = await engine.getVersion();
 			assert.strictEqual(version, undefined);
+		});
+
+		after(async function () {
+			await engine.getConnection()?.destroy();
 		});
 	});
 });

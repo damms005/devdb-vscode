@@ -58,6 +58,7 @@ describe('MSSQL Tests', () => {
 
 		await mssql.connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
 		await mssql.connection?.raw(`DROP TABLE IF EXISTS ParentTable`);
+		await connection.destroy();
 	})
 
 	describe('MssqlEngine Tests', () => {
@@ -202,6 +203,10 @@ describe('MSSQL Tests', () => {
 		it('should return version information', async () => {
 			const version = await engine.getVersion();
 			assert.strictEqual(version, undefined);
+		});
+
+		after(async function () {
+			await engine.connection?.destroy();
 		});
 	})
 });

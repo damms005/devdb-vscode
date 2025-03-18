@@ -132,7 +132,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             const version = await database.getVersion();
 
             progress.report({ message: 'Getting query execution plan...' });
-            const explainJsonResult = await database.runArbitraryQueryAndGetOutput(`EXPLAIN FORMAT=JSON ${boundQuery}`);
+            const explainJsonResult = await database.rawQuery(`EXPLAIN FORMAT=JSON ${boundQuery}`);
             if (!Array.isArray(explainJsonResult) || !explainJsonResult[0] || !explainJsonResult[0]['EXPLAIN']) {
                 vscode.window.showErrorMessage('Failed to get EXPLAIN JSON output from MySQL. The query might not be supported for explanation.');
                 return;
@@ -141,7 +141,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
 
             let explainTree: string | undefined;
             try {
-                const explainTreeResult = await database.runArbitraryQueryAndGetOutput(`EXPLAIN FORMAT=TREE ${boundQuery}`);
+                const explainTreeResult = await database.rawQuery(`EXPLAIN FORMAT=TREE ${boundQuery}`);
                 if (Array.isArray(explainTreeResult) && explainTreeResult[0] && explainTreeResult[0]['EXPLAIN']) {
                     explainTree = explainTreeResult[0]['EXPLAIN'];
                 }
