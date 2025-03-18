@@ -3,7 +3,7 @@ import { ExtensionConstants } from "../constants";
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
-const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support this Project"
+const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support Us"
 const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
