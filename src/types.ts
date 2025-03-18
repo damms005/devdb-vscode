@@ -30,6 +30,7 @@ export type EngineProviderCache = {
 	id: string,
 	details?: string,
 	description: string,
+	type: ConfigFileConnectionTypes,
 	engine: MysqlEngine | MssqlEngine | SqliteEngine,
 }
 
@@ -38,7 +39,7 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'custom-sqlite3'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite'
 
 export type DatabaseEngineProvider = {
 	name: string
@@ -47,7 +48,7 @@ export type DatabaseEngineProvider = {
 	ddev?: boolean
 	description: string
 	engine?: DatabaseEngine
-	cache?: EngineProviderCache[]
+	cache?: Record<ConfigFileConnectionTypes, EngineProviderCache>
 
 	boot?: () => Promise<void>
 
@@ -57,6 +58,8 @@ export type DatabaseEngineProvider = {
 	 * Returns true if this provider can be used in the current VS Code workspace
 	 */
 	canBeUsedInCurrentWorkspace(): Promise<boolean>
+
+	resolveConfiguration?: (config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig) => Promise<boolean>
 
 	/**
 	 * The handler provided by this provider
@@ -138,9 +141,12 @@ export type SqliteConfig = {
 	path: string
 }
 
+// As used in snippets/devdbrc.json
+export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql'
+
 export type SqlConfig = {
 	name: string
-	type: KnexClientType | 'mariadb'
+	type: ConfigFileConnectionTypes
 	host: string
 	port: number
 	username: string
@@ -149,7 +155,7 @@ export type SqlConfig = {
 }
 
 export interface MysqlConfig extends SqlConfig {
-	type: 'mariadb' | 'mysql2'
+	type: 'mysql' | 'mariadb'
 }
 
 export interface PostgresConfig extends SqlConfig {
