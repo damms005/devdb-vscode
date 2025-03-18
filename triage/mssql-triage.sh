@@ -3,8 +3,14 @@
 # Pull the latest MSSQL image
 docker pull mcr.microsoft.com/mssql/server:2019-latest
 
-# Run a MSSQL container
-docker run --name mssql-devdb-triage -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=MyS3cretPassw0rd' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
+# Check if container exists and start it, or create a new one
+if [ "$(docker ps -a --filter 'name=^/mssql-devdb-triage$' --format '{{.Names}}')" == "mssql-devdb-triage" ]; then
+    echo "Container exists. Starting mssql-devdb-triage if not already running..."
+    docker start mssql-devdb-triage
+else
+    echo "Container does not exist. Creating a new mssql-devdb-triage container..."
+    docker run --name mssql-devdb-triage -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=MyS3cretPassw0rd' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
+fi
 
 # Wait for the database to start
 echo "Waiting for MSSQL to start..."

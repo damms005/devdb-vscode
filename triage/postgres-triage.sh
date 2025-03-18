@@ -3,8 +3,14 @@
 # Pull the latest PostgreSQL image
 docker pull postgres:latest
 
-# Run a PostgreSQL container
-docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
+# Check if container exists
+if [ "$(docker ps -a --filter 'name=^/postgres-devdb-triage$' --format '{{.Names}}')" == "postgres-devdb-triage" ]; then
+    echo "Container exists. Starting postgres-devdb-triage if not already running..."
+    docker start postgres-devdb-triage
+else
+    echo "Container does not exist. Creating a new postgres-devdb-triage container..."
+    docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
+fi
 
 # Wait for the database to start
 echo "Waiting for PostgreSQL to start..."
