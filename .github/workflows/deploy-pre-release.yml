@@ -65,14 +65,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-      # Prebuilt binaries or nothing
-      - run: npm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          npm_config_arch: ${{ matrix.npm_config_arch }}
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+      - run: bun install
       - shell: pwsh
         run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
-      - run: npm run compile && npx vsce package --pre-release --target ${{ env.target }}
+      - run: bun run compile && npx vsce package --pre-release --target ${{ env.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.target }}
