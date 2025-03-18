@@ -17,9 +17,36 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 
 ## Latest Features
 
+1. New zero-config support: applications running in DDEV
+1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
 1. On-click reconnection
-1. Zero-config support for Laravel apps running in DDEV - MySQL and PostgreSQL
-1. Zero-config support for Adonis apps (Lucid ORM) - MySQL and PostgreSQL
+
+## Featured In
+
+<table>
+<tr><td>
+<a title="Laravel News" href="https://laravel-news.com/devdb">
+<img alt="Laravel News" height="40" src="resources/featured/laravel-new.png" /></a>
+</td>
+<td>
+<a title="DDEV documentation" href="https://ddev.readthedocs.io/en/latest/users/usage/database-management/#database-guis">
+<img alt="DDEV documentation" height="40" src="resources/featured/ddev.png" />
+</a>
+</td>
+<td>
+<a title="Daily dev" href="https://app.daily.dev/posts/JAhlsLY2E">
+<img alt="Daily dev" height="20" src="resources/featured/daily-dev.png" />
+</a>
+</td>
+<td>
+<a title="TestDevTools" href="https://testdev.tools/dev-db">
+<img alt="TestDevTools" height="40" src="resources/featured/test-dev-tools.png" />
+</a>
+</td>
+</tr>
+</table>
+
+## Screenshots
 
 ![image](resources/screenshots/new/providers-light-dark.png)
 ![image](resources/screenshots/new/main-light-dark.png)
@@ -38,7 +65,7 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 ## Quick Start
 
 - In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly configured and accessible from your application code.
-- For zero-config environments, DevDb [auto-loads your database](#loading-databases). View your database by opening the DevDb view as shown in the screenshot or by using the [shortcut](#keybinding).
+- For [zero-config environments](#1-zero-config-automatic-database-loading), DevDb [auto-loads your database](#loading-databases). View your database by opening the DevDb view like in the screenshot shown, or by [using the shortcut](#keybinding).
 
 > [!NOTE]
 > DevDb also provides several [Language and Framework Integrations](#language-and-framework-integrations)
@@ -54,7 +81,7 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 - During edit sessions: `Cmd + Z` to undo changes, `Cmd + Y` to redo changes, and `Cmd + S` to save changes
 - Added new "Suggest New Feature" button
 
-### One-click Actions
+### One-click Actions (Data Manipulation)
 
 - Click the trash icon on a table row to delete it
 - Click the `Set null` button on a database value to set the value to `null`
@@ -82,17 +109,13 @@ DevDb can automatically load your database using connection details from your VS
 
 ### 1. Zero-config (Automatic Database Loading)
 
-No [configuration file](#2-config-based-database-loading) needed for:
+No [configuration file](#2-config-based-database-loading) is needed for:
 
-1. Laravel with local default SQLite database
-1. Laravel MySQL/MariaDB with default .env config
+1. Applications managed by [DDEV](https://ddev.com)
+1. [Adonis](https://adonisjs.com) using default .env config for MySQL and PostgreSQL (with Lucid ORM)
+1. [Laravel](https://laravel.com) with default local SQLite database
+1. Laravel with default .env config for MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server
 1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
-1. Laravel PostgreSQL with default .env config
-1. Laravel Microsoft SQL Server with default .env config
-1. Laravel running in a [DDEV](https://ddev.com) container - MySQL
-1. Laravel running in a [DDEV](https://ddev.com) container - PostgreSQL
-1. Adonis MySQL with default .env config (with Lucid ORM)
-1. Adonis PostgreSQL with default .env config (with Lucid ORM)
 
 ### 2. Config-based Database Loading
 
@@ -166,18 +189,6 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 4. View the explanation in your browser or copy the URL
 
 ![image](resources/screenshots/new/mysql-explain.png)
-
-## Why DevDb?
-
-Two words: Better DX.
-
-DevDb aims to be a DB GUI client specifically designed for improved development experience when working with databases by addressing common pain points:
-
-1. Eliminating the need to configure database connections separately in both application code and then in a DB client
-1. Reducing context switching between IDE and DB client windows by providing database visibility directly within VS Code
-1. Offering a streamlined, development-focused interface without overwhelming features
-1. Providing a beautiful, intuitive UI that enhances the development experience
-1. Provide affordances for easily performing common database tasks, as well as for improving DX during development and debugging.
 
 > [!NOTE]
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
