@@ -49,13 +49,13 @@ echo "PostgreSQL triage setup complete."
 echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
-connect(
-    dbname="sample_db",
-    user="postgres",
-    password="mysecretpassword",
-    host="localhost",
-    port="5432"
-)
+{
+    "dbname"   : "sample_db",
+    "user"     : "postgres",
+    "password" : "mysecretpassword",
+    "host"     : "localhost",
+    "port"     : "5432"
+}
 EXAMPLE_CONNECTION
 
 echo "You can connect to it from inside the container like: 'psql sample_db postgres'"

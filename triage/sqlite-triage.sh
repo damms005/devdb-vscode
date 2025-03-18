@@ -25,10 +25,10 @@ echo "SQLite triage setup complete."
 echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
-connect(
-    database="devdb-triage.sqlite"
-)
+{
+    "database": "devdb-triage.sqlite"
+}
 EXAMPLE_CONNECTION
 
-echo "To remove the SQLite database file, run the following command:"
+echo "When done, remove the SQLite database file by runing:"
 echo "rm devdb-triage.sqlite"

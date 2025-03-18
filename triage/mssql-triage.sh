@@ -50,13 +50,13 @@ echo "MSSQL triage setup complete."
 echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
-connect(
-    dbname="sample_db",
-    user="SA",
-    password="MyS3cretPassw0rd",
-    host="localhost",
-    port="1433"
-)
+{
+    "dbname"   : "sample_db",
+    "user"     : "SA",
+    "password" : "MyS3cretPassw0rd",
+    "host"     : "localhost",
+    "port"     : "1433"
+}
 EXAMPLE_CONNECTION
 
 echo "To stop the MSSQL container, run the following command:"

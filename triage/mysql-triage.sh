@@ -46,13 +46,13 @@ echo "MySQL triage setup complete."
 echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
-connect(
-    dbname="sample_db",
-    user="root",
-    password="mysecretpassword",
-    host="localhost",
-    port="3306"
-)
+{
+    "dbname"   : "sample_db",
+    "user"     : "root",
+    "password" : "mysecretpassword",
+    "host"     : "localhost",
+    "port"     : "3306"
+}
 EXAMPLE_CONNECTION
 
 echo "To stop the MySQL container, run the following command:"
