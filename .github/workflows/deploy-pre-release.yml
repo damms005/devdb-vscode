@@ -61,9 +61,9 @@ jobs:
             npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install Python setup tools
-        run: |
-          brew install python-setuptools
+      - name: Install dependencies (macOS)
+        if: contains(matrix.os, 'macos')
+        run: brew install python-setuptools
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
