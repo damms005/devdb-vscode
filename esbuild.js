@@ -13,7 +13,14 @@ async function main () {
 		sourcesContent: false,
 		platform: 'node',
 		outfile: 'dist/extension.js',
-		external: ['vscode', '@vscode/sqlite3', 'sqlite3'],
+
+		/**
+		 * Reasons for externalizing:
+		 *  - vscode: not a typical npm package - injected by the IDE at runtime
+		 *  - @vscode/sqlite3: has native bindings
+		 */
+		external: ['vscode', '@vscode/sqlite3'],
+
 		metafile: true,
 		logLevel: 'warning',
 		plugins: [
