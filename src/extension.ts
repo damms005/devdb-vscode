@@ -15,8 +15,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	let assets;
 
-	vscode.window.showInformationMessage('1');
-
 	try {
 		assets = await getVueAssets(context)
 	} catch (error) {
