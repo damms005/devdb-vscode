@@ -1,5 +1,4 @@
 #!/bin/bash
-clear
 echo 'Building Vue assets'
 pwd
 npm run build
