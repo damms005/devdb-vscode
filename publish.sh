@@ -19,7 +19,7 @@ fi
 
 # Check if the current branch is 'main'
 current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current_branch" != "heads/main" ]; then
+if [ "$current_branch" != "main" ]; then
   echo -e "\x1b[31mThe publish script can only be run from the main branch."
   exit 1
 fi
