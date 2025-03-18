@@ -97,4 +97,4 @@ fi
 # Push the tags with git push --follow-tags
 git push --follow-tags
 
-echo -e "\n\nCD pipeline will now handle publishing to VS Code Marketplace.\n\n"
+echo -e "\n\nCD pipeline will now handle publishing to VS Code Marketplace and Open VSX Registry.\n\n"
