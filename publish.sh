@@ -23,6 +23,10 @@ echo "Ensure OK..."
 bun run pretest || exit 1
 echo "Ok."
 
+echo "Ensure tests are passing..."
+bun run test-services || exit 1
+echo "Ok."
+
 echo "Building UI..."
 cd ../devdb-ui || exit 1
 ./build.sh || exit 1
