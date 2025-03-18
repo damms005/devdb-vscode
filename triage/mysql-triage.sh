@@ -48,7 +48,7 @@ echo "Example connection details:"
 cat << EXAMPLE_CONNECTION
 {
     "host"     : "localhost",
-    "port"     : 3306
+    "port"     : 3306,
     "username" : "root",
     "password" : "mysecretpassword",
     "database" : "sample_db"

@@ -12,14 +12,54 @@ else
     docker run --name mssql-devdb-triage -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=MyS3cretPassw0rd' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 fi
 
-# Wait for the database to start
+# Install the SQL tools if not present
+echo "Installing mssql-tools and dependencies..."
+docker exec --user root mssql-devdb-triage bash -c "apt-get update && apt-get install -y curl gnupg"
+docker exec --user root mssql-devdb-triage bash -c "curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -"
+docker exec --user root mssql-devdb-triage bash -c "curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list"
+docker exec --user root mssql-devdb-triage bash -c "apt-get update && ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev"
+
+# Dynamically locate the sqlcmd binary using find
+echo "Locating sqlcmd binary..."
+SQLCMD_PATH=$(docker exec mssql-devdb-triage bash -c 'find /opt -name sqlcmd 2>/dev/null | head -1 || echo ""')
+
+# If sqlcmd is not found, try to reinstall and check again
+if [ -z "$SQLCMD_PATH" ]; then
+  echo "sqlcmd not found. Attempting to reinstall mssql-tools..."
+  docker exec --user root mssql-devdb-triage bash -c "ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev"
+
+  # Check again after reinstall
+  SQLCMD_PATH=$(docker exec mssql-devdb-triage bash -c 'find /opt -name sqlcmd 2>/dev/null | head -1 || echo ""')
+
+  # Check common locations as fallback
+  if [ -z "$SQLCMD_PATH" ]; then
+    for path in "/opt/mssql-tools/bin/sqlcmd" "/opt/mssql-tools18/bin/sqlcmd"; do
+      if docker exec mssql-devdb-triage bash -c "[ -f $path ]"; then
+        SQLCMD_PATH=$path
+        break
+      fi
+    done
+  fi
+
+  # Exit if still not found
+  if [ -z "$SQLCMD_PATH" ]; then
+    echo "ERROR: Could not locate sqlcmd binary after installation attempts. Exiting."
+    exit 1
+  fi
+fi
+
+echo "Using sqlcmd at: $SQLCMD_PATH"
+
+# Wait for the database to start using the detected sqlcmd path
 echo "Waiting for MSSQL to start..."
-until docker exec mssql-devdb-triage /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P 'MyS3cretPassw0rd' -Q "SELECT 1" &> /dev/null; do
-  sleep 1
+until docker exec mssql-devdb-triage bash -c "[ -f \"$SQLCMD_PATH\" ] && \"$SQLCMD_PATH\" -S localhost -U SA -P 'MyS3cretPassw0rd' -Q 'SELECT 1'" &> /dev/null; do
+  echo "Waiting for SQL Server to be ready or for sqlcmd to be available..."
+  sleep 2
 done
 
 # Create a sample database and table
-docker exec -i mssql-devdb-triage /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P 'MyS3cretPassw0rd' << EOF
+# Using the dynamically detected sqlcmd path
+docker exec -i mssql-devdb-triage "$SQLCMD_PATH" -S localhost -U SA -P 'MyS3cretPassw0rd' << EOF
 CREATE DATABASE sample_db;
 GO
 USE sample_db;
@@ -52,7 +92,7 @@ echo "Example connection details:"
 cat << EXAMPLE_CONNECTION
 {
     "host"     : "localhost",
-    "port"     : 1433
+    "port"     : 1433,
     "username" : "SA",
     "password" : "MyS3cretPassw0rd",
     "database" : "sample_db"
