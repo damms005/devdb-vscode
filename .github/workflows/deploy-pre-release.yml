@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Install Python setup tools
         run: |
-          pip install setuptools
+          brew install python-setuptools
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
