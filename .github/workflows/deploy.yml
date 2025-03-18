@@ -61,12 +61,14 @@ jobs:
             npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Install macOS dependencies
+        if: contains(matrix.os, 'macos')
+        run: brew install python-setuptools
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-      # Prebuilt binaries or nothing
-      - run: npm install --no-build-from-source
+      - run: npm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
