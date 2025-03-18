@@ -1,8 +1,19 @@
 #!/bin/bash
 
+# Initialize pre-release flag
+PRE_RELEASE=false
+
+# Parse arguments
+for arg in "$@"; do
+  if [ "$arg" = "--pre-release" ]; then
+    PRE_RELEASE=true
+    break
+  fi
+done
+
 # Check if version argument is provided
 if [ -z "$1" ]; then
-  echo -e "\x1b[31mUsage: $0 <version> [closes-<issue number> | no-closures]"
+  echo -e "\x1b[31mUsage: $0 <version> [closes-<issue number> | no-closures] [--pre-release]"
   exit 1
 fi
 
@@ -60,6 +71,27 @@ if [ -n "$commit_body" ]; then
 else
   # Just use npm version without custom commit message body
   npm version "$1" || exit 1
+fi
+
+# If this is a pre-release, check if we need to bump the minor version
+if [ "$PRE_RELEASE" = true ]; then
+  # Extract current version from package.json
+  current_version=$(grep '"version":' package.json | head -1 | awk -F'"' '{print $4}')
+
+  # Extract minor version number
+  minor_version=$(echo "$current_version" | cut -d. -f2)
+
+  # Check if minor version is even
+  if [ $((minor_version % 2)) -eq 0 ]; then
+    echo "Pre-release detected with even minor version. Bumping minor version..."
+    npm version minor --no-git-tag-version || exit 1
+    git add . && git commit --amend --no-edit || exit 1
+  fi
+fi
+
+# Push the tags and to dev branch if pre-release
+if [ "$PRE_RELEASE" = true ]; then
+  git push origin HEAD:dev || exit 1
 fi
 
 # Push the tags with git push --follow-tags
