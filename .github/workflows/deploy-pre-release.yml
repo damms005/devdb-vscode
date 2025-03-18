@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deployment
+  group: pre-release
   cancel-in-progress: true
 
 jobs:
