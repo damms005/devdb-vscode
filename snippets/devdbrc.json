@@ -55,7 +55,7 @@
     "description": "Add a new SQLite database configuration"
   },
   "DevDB MSSQL Configuration": {
-    "prefix": "devdb mssql",
+    "prefix": "devdb mssql sqlserver",
     "body": [
       "{",
       "\t\"name\": \"${1:My MSSQL Connection}\",",
