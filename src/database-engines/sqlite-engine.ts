@@ -16,7 +16,7 @@ export class SqliteEngine implements DatabaseEngine {
 	}
 
 	getType(): KnexClient {
-		return 'custom-sqlite3';
+		return 'sqlite';
 	}
 
 	getConnection(): SQLiteEngineProvider {

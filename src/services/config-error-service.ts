@@ -112,7 +112,7 @@ function matchesConfig(objText: string, config: ConfigType): boolean {
 			case 'sqlite':
 				return obj.path === (config as SqliteConfig).path;
 
-			case 'mysql2':
+			case 'mysql':
 			case 'mariadb':
 				return obj.name === (config as MysqlConfig).name &&
 					obj.database === (config as MysqlConfig).database;
