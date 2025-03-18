@@ -18,3 +18,5 @@
 # Include snippets and schemas
 !snippets/*
 !schemas/*
+
+!node_modules/sqlite3/**
