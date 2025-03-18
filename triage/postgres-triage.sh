@@ -50,11 +50,11 @@ echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
 {
-    "dbname"   : "sample_db",
-    "user"     : "postgres",
-    "password" : "mysecretpassword",
     "host"     : "localhost",
-    "port"     : "5432"
+    "port"     : 5432
+    "username" : "postgres",
+    "password" : "mysecretpassword",
+    "database" : "sample_db"
 }
 EXAMPLE_CONNECTION
 

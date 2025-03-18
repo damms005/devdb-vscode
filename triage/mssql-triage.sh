@@ -51,11 +51,11 @@ echo "Example connection details:"
 
 cat << EXAMPLE_CONNECTION
 {
-    "dbname"   : "sample_db",
-    "user"     : "SA",
-    "password" : "MyS3cretPassw0rd",
     "host"     : "localhost",
-    "port"     : "1433"
+    "port"     : 1433
+    "username" : "SA",
+    "password" : "MyS3cretPassw0rd",
+    "database" : "sample_db"
 }
 EXAMPLE_CONNECTION
 
