@@ -112,9 +112,9 @@ describe('SqliteService Tests', () => {
 		assert.strictEqual(result?.sql?.trim(), "select * from `users` where `name` like '%J%' limit 2");
 	});
 
-	it('ensures initializePaginationFor returns null when connection is null', async () => {
+	it('ensures initializePaginationFor returns nought when connection is null', async () => {
 		const result = await SqlService.getTotalRows(engine, 'mysql2', null, 'users', []);
-		assert.strictEqual(result, undefined);
+		assert.strictEqual(result, 0);
 	});
 
 	it('ensures initializePaginationFor returns expected pagination data when connection is not null', async () => {
