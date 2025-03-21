@@ -123,8 +123,8 @@ export class SqliteEngine implements DatabaseEngine {
 		return ['integer', 'real', 'numeric'];
 	}
 
-	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		if (!this.provider) return undefined;
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
+		if (!this.provider) return 0;
 
 		return this.provider.getTotalRows(table, columns, whereClause);
 	}

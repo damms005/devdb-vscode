@@ -114,7 +114,7 @@ export class PostgresEngine implements DatabaseEngine {
 		return ['smallint', 'integer', 'bigint', 'decimal', 'numeric', 'real', 'double precision'];
 	}
 
-	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
 		return SqlService.getTotalRows(this, 'postgres', this.connection, table, columns, whereClause);
 	}
 

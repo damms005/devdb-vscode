@@ -191,13 +191,11 @@ async function getTableData(requestPayload: {
 
 	if (!database) return
 
-	const totalRows = (await database?.getTotalRows(requestPayload.table, requestPayload.filters)) || 0
-	const pagination = getPaginationFor(requestPayload.table, 1, totalRows, requestPayload.itemsPerPage)
-	const limit = pagination.itemsPerPage
-	const offset = 0
-	const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
 	const columns = await database.getColumns(requestPayload.table)
-	const queryResponse = await database.getRows(requestPayload.table, columns, limit, offset, requestPayload.filters)
+	const queryResponse = await database.getRows(requestPayload.table, columns, requestPayload.itemsPerPage, 0, requestPayload.filters)
+	const totalRows = (await database?.getTotalRows(requestPayload.table, columns, requestPayload.filters))
+	const pagination = getPaginationFor(requestPayload.table, 1, totalRows, requestPayload.itemsPerPage)
+	const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
 
 	if (!queryResponse) return
 

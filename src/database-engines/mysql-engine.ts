@@ -83,7 +83,7 @@ export class MysqlEngine implements DatabaseEngine {
 		return ['tinyint', 'smallint', 'integer', 'mediumint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'double'];
 	}
 
-	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
 		return SqlService.getTotalRows(this, 'mysql2', this.connection, table, columns, whereClause);
 	}
 

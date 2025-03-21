@@ -21,27 +21,23 @@ export const SqlService = {
 			let loggedSql = '';
 			let rows
 			let query = connection(table).select("*")
+
 			if (whereClause) {
-				const build = buildWhereClause(engine, dialect, whereClause, columns)
-				for (let index = 0; index < build.length; index++) {
-					const element = build[index];
-					if (element.useRawCast) {
-						// Use raw to cast the column to text for the comparison
-						query = query.whereRaw(`${element.column}::text ${element.operator} ?`, [element.value]);
-					} else {
-						query = query.where(element.column, element.operator, element.value);
-					}
-				}
+				const conditions = buildWhereClause(engine, dialect, whereClause, columns)
+				query = applyConditionToQuery(query, conditions)
 			}
+
 			if (limit) {
 				query = query.limit(limit)
 			}
+
 			if (offset) {
 				query = query.offset(offset)
 			}
 
 			rows = (await query)
 			loggedSql = query.toString()
+
 			return { rows, sql: loggedSql };
 		} catch (error) {
 			reportError(String(error));
@@ -49,10 +45,19 @@ export const SqlService = {
 		}
 	},
 
-	async getTotalRows(engine: DatabaseEngine, dialect: KnexClientType, connection: knexlib.Knex | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number | undefined> {
-		if (!connection) return;
+	async getTotalRows(engine: DatabaseEngine, dialect: KnexClientType, connection: knexlib.Knex | null, table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
+		if (!connection) return 0;
 
-		const result = await connection(table).where(whereClause ?? {}).count('* as count');
+		let query = connection(table);
+
+		if (whereClause) {
+			const conditions = buildWhereClause(engine, dialect, whereClause, columns)
+			query = applyConditionToQuery(query, conditions)
+		}
+
+		const result = await query.count('* as count');
+
+		const sql = query.count('* as count').toSQL();
 
 		return (result[0])?.count as number;
 	},
@@ -115,6 +120,19 @@ function buildWhereClause(engine: DatabaseEngine, dialect: KnexClientType, where
 			});
 		})
 	return whereEntries
+}
+
+function applyConditionToQuery(query: knexlib.Knex.QueryBuilder, conditions: WhereEntry[]): knexlib.Knex.QueryBuilder {
+	for (const clause of conditions) {
+		if (clause.useRawCast) {
+			// Use raw to cast the column to text for the comparison
+			query = query.whereRaw(`${clause.column}::text ${clause.operator} ?`, [clause.value]);
+		} else {
+			query = query.where(clause.column, clause.operator, clause.value);
+		}
+	}
+
+	return query;
 }
 
 function getTransformedValue(targetColumn: Column, value: any, isNumericComparison: boolean) {

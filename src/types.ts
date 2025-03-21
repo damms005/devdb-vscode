@@ -91,7 +91,7 @@ export interface DatabaseEngine {
 	 */
 	getNumericColumnTypeNamesLowercase(): string[]
 
-	getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number | undefined>
+	getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number>
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
