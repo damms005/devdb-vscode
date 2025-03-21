@@ -13,13 +13,9 @@
     <a href="https://open-vsx.org/extension/damms005/devdb">Open VSX Registry page</a>
 </p>
 
-A lightweight VS Code extension that auto-loads your database and provides affordances from your database to aid development and debugging. Built with 💖 for developers.
+A lightweight VS Code extension that auto-loads your database and provides affordances from your database to aid development and debugging.
 
-## Latest Features
-
-1. New zero-config support: applications running in DDEV
-1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
-1. On-click reconnection
+Built with 💖 for developers.
 
 ## Featured In
 
@@ -45,6 +41,12 @@ A lightweight VS Code extension that auto-loads your database and provides affor
 </td>
 </tr>
 </table>
+
+## Latest Features
+
+1. New zero-config support: applications running in DDEV
+1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
+1. On-click reconnection
 
 ## Screenshots
 
