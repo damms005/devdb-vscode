@@ -18,7 +18,7 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
         try {
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
             if (!workspaceRoot) {
-                log('Adonis PostgreSQL', 'No workspace root found');
+                log('Adonis MySQL', 'No workspace root found');
                 return false;
             }
 
@@ -33,13 +33,13 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
             const configContent = fs.readFileSync(configPath, 'utf8');
 
             if (!configContent.includes('mysql') || configContent.includes('postgresql') || configContent.includes('postgres')) {
-                log('Adonis PostgreSQL', 'MySQL not configured in Adonis database config');
+                log('Adonis MySQL', 'MySQL not configured in Adonis database config');
                 return false;
             }
 
             const connection = await getConnectionInEnvFile('mysql', 'mysql2');
             if (!connection) {
-                log('Adonis PostgreSQL', 'Could not extract MySQL connection details from .env file');
+                log('Adonis MySQL', 'Could not extract MySQL connection details from .env file');
                 return false;
             }
 
