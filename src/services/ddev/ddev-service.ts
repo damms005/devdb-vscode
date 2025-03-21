@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import path from 'path';
-import fs from 'fs';
 import { getConnectionFor } from '../connector';
 import { logToOutput } from '../output-service';
 import knexlib from "knex";
@@ -101,14 +99,4 @@ export async function getDatabaseConnection(dialect: KnexClientType): Promise<kn
     logToOutput(`Failed to get ${dialect} connection from DDEV: ${String(error)}`);
     return undefined;
   }
-}
-
-export function isDdevProject(): boolean {
-  // simply check if workspace root contains a .ddev directory
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (!workspaceRoot) {
-    return false;
-  }
-
-  return fs.existsSync(path.join(workspaceRoot, '.ddev'));
 }

@@ -3,7 +3,7 @@ import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
 import { log } from '../../services/logging-service';
-import { isDdevProject } from '../../services/ddev/ddev-service';
+import { isComposerPhpProject, isDdevProject } from '../../services/workspace';
 
 export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	name: 'Laravel Mysql (with Sail support)',
@@ -13,6 +13,9 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
+		if (!isComposerPhpProject()) {
+			return false;
+		}
 
 		if (isDdevProject()) {
 			/**

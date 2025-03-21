@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { PostgresEngine } from '../../database-engines/postgres-engine';
 import { getConnectionInEnvFile } from '../../services/laravel/env-file-parser';
-import { isDdevProject } from '../../services/ddev/ddev-service';
+import { isDdevProject, isComposerPhpProject } from '../../services/workspace';
 
 export const LaravelPostgresProvider: DatabaseEngineProvider = {
 	name: 'Laravel PostgreSQL',
@@ -12,6 +12,10 @@ export const LaravelPostgresProvider: DatabaseEngineProvider = {
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
+		if (!isComposerPhpProject()) {
+			return false;
+		}
+
 		if (isDdevProject()) {
 			/**
 			 * This is simply to improve the DX. Else, we report false negative as

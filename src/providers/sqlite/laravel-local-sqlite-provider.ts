@@ -3,7 +3,7 @@ import { join } from 'path';
 import { DotenvParseOutput, parse } from 'dotenv';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { SqliteEngine } from '../../database-engines/sqlite-engine';
-import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent } from '../../services/workspace';
+import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent, isComposerPhpProject } from '../../services/workspace';
 
 export const LaravelLocalSqliteProvider: DatabaseEngineProvider = {
 	name: 'Laravel Local SQLite (default)',
@@ -13,6 +13,10 @@ export const LaravelLocalSqliteProvider: DatabaseEngineProvider = {
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
+		if (!isComposerPhpProject()) {
+			return false;
+		}
+
 		const configContent = getWorkspaceFileContent('config', 'database.php');
 		if (!configContent) return false;
 

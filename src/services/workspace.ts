@@ -1,3 +1,5 @@
+import path from 'path';
+import fs from 'fs';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import * as vscode from 'vscode';
@@ -37,3 +39,24 @@ export async function fileExists(path: string): Promise<boolean> {
 		return false
 	}
 }
+
+export function isDdevProject(): boolean {
+	// simply check if workspace root contains a .ddev directory
+	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	if (!workspaceRoot) {
+		return false;
+	}
+
+	return fs.existsSync(path.join(workspaceRoot, '.ddev'));
+}
+
+export function isComposerPhpProject(): boolean {
+	// simply check if workspace root contains a .ddev directory
+	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	if (!workspaceRoot) {
+		return false;
+	}
+
+	return fs.existsSync(path.join(workspaceRoot, 'composer.json'));
+}
+
