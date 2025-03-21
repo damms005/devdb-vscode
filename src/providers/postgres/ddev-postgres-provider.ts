@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { PostgresEngine } from '../../database-engines/postgres-engine';
 import { isDdevAvailable, getDatabaseConnection } from '../../services/ddev/ddev-service';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
+import { isDdevProject } from '../../services/workspace';
+import { logToOutput } from '../../services/output-service';
 
 export const DdevPostgresProvider: DatabaseEngineProvider = {
   name: 'DDEV - PostgreSQL',
@@ -17,6 +19,11 @@ export const DdevPostgresProvider: DatabaseEngineProvider = {
    */
   async canBeUsedInCurrentWorkspace(): Promise<boolean> {
     try {
+      if (!isDdevProject()) {
+        logToOutput('Not a DDEV project', 'Postgres DDEV')
+        return false;
+      }
+
       // Check if DDEV is available
       if (!(await isDdevAvailable(this.name))) {
         return false;

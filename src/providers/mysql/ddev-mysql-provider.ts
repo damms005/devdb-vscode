@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { isDdevAvailable, getDatabaseConnection } from '../../services/ddev/ddev-service';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
+import { isDdevProject } from '../../services/workspace';
+import { logToOutput } from '../../services/output-service';
 
 export const DdevMysqlProvider: DatabaseEngineProvider = {
   name: 'DDEV - MySQL',
@@ -17,6 +19,11 @@ export const DdevMysqlProvider: DatabaseEngineProvider = {
    */
   async canBeUsedInCurrentWorkspace(): Promise<boolean> {
     try {
+      if (!isDdevProject()) {
+        logToOutput('Not a DDEV project', 'Postgres DDEV')
+        return false;
+      }
+
       // Check if DDEV is available
       const isDdevActive = await isDdevAvailable(this.name);
 

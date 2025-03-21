@@ -59,4 +59,3 @@ export function isComposerPhpProject(): boolean {
 
 	return fs.existsSync(path.join(workspaceRoot, 'composer.json'));
 }
-
