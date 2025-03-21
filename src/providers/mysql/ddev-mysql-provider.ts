@@ -3,12 +3,12 @@ import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { isDdevAvailable, getDatabaseConnection } from '../../services/ddev/ddev-service';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 
-export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
-  name: 'DDEV - Laravel MySQL',
+export const DdevMysqlProvider: DatabaseEngineProvider = {
+  name: 'DDEV - MySQL',
   type: 'mysql',
-  id: 'laravel-mysql-ddev',
+  id: 'ddev-mysql',
   ddev: true,
-  description: 'MySQL databases in Laravel projects running in DDEV',
+  description: 'MySQL databases in projects running in DDEV',
   engine: undefined,
 
   /**
@@ -37,7 +37,7 @@ export const DdevLaravelMysqlProvider: DatabaseEngineProvider = {
       // Verify the connection is working
       return await this.engine.isOkay();
     } catch (error) {
-      vscode.window.showErrorMessage(`Error initializing Laravel MySQL DDEV provider: ${error}`);
+      vscode.window.showErrorMessage(`Error initializing MySQL DDEV provider: ${error}`);
       return false;
     }
   },

@@ -3,12 +3,12 @@ import { PostgresEngine } from '../../database-engines/postgres-engine';
 import { isDdevAvailable, getDatabaseConnection } from '../../services/ddev/ddev-service';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 
-export const DdevLaravelPostgresProvider: DatabaseEngineProvider = {
-  name: 'Laravel PostgreSQL (DDEV)',
+export const DdevPostgresProvider: DatabaseEngineProvider = {
+  name: 'DDEV - PostgreSQL',
   type: 'postgres',
-  id: 'laravel-postgres-ddev',
+  id: 'ddev-postgres',
   ddev: true,
-  description: 'PostgreSQL database running in a DDEV environment for Laravel projects',
+  description: 'PostgreSQL databases in projects running in DDEV',
   engine: undefined as PostgresEngine | undefined,
 
   /**

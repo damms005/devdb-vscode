@@ -6,8 +6,8 @@ import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
-import { DdevLaravelMysqlProvider } from '../providers/mysql/ddev-laravel-mysql-provider';
-import { DdevLaravelPostgresProvider } from '../providers/postgres/ddev-laravel-postgres-provider';
+import { DdevMysqlProvider } from '../providers/mysql/ddev-mysql-provider';
+import { DdevPostgresProvider } from '../providers/postgres/ddev-postgres-provider';
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
 import { AdonisPostgresProvider } from '../providers/postgres/adonis-postgres-provider';
 import { exportTableData } from './export-table-data';
@@ -25,8 +25,8 @@ const providers: DatabaseEngineProvider[] = [
 	ConfigFileProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
-	DdevLaravelMysqlProvider,
-	DdevLaravelPostgresProvider,
+	DdevMysqlProvider,
+	DdevPostgresProvider,
 	AdonisMysqlProvider,
 	AdonisPostgresProvider,
 ]
