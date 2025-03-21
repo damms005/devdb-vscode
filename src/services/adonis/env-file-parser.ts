@@ -15,7 +15,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	log('Adonis env file parser', `Laravel/${dialect} connection details: host=${host}, username=${username}, database=${database}`);
 
 	if (!database) {
-		reportError('Missing database name in .env file')
+		reportError('Adonis env file parser: missing database name in .env file')
 		return
 	}
 

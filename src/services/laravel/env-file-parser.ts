@@ -17,7 +17,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	log('Laravel env file parser', `Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
 
 	if (!database) {
-		reportError('Missing database name in .env file')
+		reportError('Laravel env file parser: missing database name in .env file')
 		return
 	}
 
