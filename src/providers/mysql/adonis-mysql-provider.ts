@@ -6,6 +6,7 @@ import { log } from '../../services/logging-service';
 import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { getConnectionInEnvFile } from '../../services/adonis/env-file-parser';
 import { isAdonisProject } from '../../services/adonis/adonis-core';
+import { logToOutput } from '../../services/output-service';
 
 export const AdonisMysqlProvider: DatabaseEngineProvider = {
     name: 'Adonis MySQL (Lucid ORM)',
@@ -26,6 +27,7 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
             const databaseJsPath = path.join(workspaceRoot, 'config', 'database.js');
 
             if (!isAdonisProject()) {
+                logToOutput('Not an AdonisJS project', 'MySQL AdonisJS')
                 return false;
             }
 

@@ -6,6 +6,7 @@ import { log } from '../../services/logging-service';
 import { PostgresEngine } from '../../database-engines/postgres-engine';
 import { getConnectionInEnvFile } from '../../services/adonis/env-file-parser';
 import { isAdonisProject } from '../../services/adonis/adonis-core';
+import { logToOutput } from '../../services/output-service';
 
 export const AdonisPostgresProvider: DatabaseEngineProvider = {
     name: 'Adonis PostgreSQL (Lucid ORM)',
@@ -26,6 +27,7 @@ export const AdonisPostgresProvider: DatabaseEngineProvider = {
             const databaseJsPath = path.join(workspaceRoot, 'config', 'database.js');
 
             if (!isAdonisProject()) {
+                logToOutput('Not an AdonisJS project', 'Postgres AdonisJS')
                 return false;
             }
 
