@@ -107,12 +107,14 @@ async function getAvailableProviders() {
 			type: provider.type,
 			id: provider.id,
 			description: provider.description,
-			options: Object.values(provider.cache ?? {}).map((cache) => ({
-				id: cache.id,
-				type: cache.engine.getType(),
-				description: cache.description,
-				details: cache.details,
-			})),
+			options: provider.cache
+				? Object.values(provider.cache).map((cache) => ({
+					id: cache.id,
+					type: cache.engine.getType(),
+					description: cache.description || provider.description,
+					details: cache.details,
+				}))
+				: null,
 		}))
 }
 
