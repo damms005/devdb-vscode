@@ -27,7 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
 					✨ Zero-config support for all DDEV projects
-					✨ UI improvements
+					✨ Add DDEV and Adonis icons
 					✨ (see details in the repo's README)
 			`, context);
 }
