@@ -48,6 +48,12 @@ Built with 💖 for developers.
 1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
 1. On-click reconnection
 
+## Sponsors
+
+We are genuinely grateful to the following sponsors of DevDb:
+
+- [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
+
 ## Screenshots
 
 ![image](resources/screenshots/new/providers-light-dark.png)
