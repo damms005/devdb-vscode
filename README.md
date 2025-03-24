@@ -201,6 +201,14 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 > [!NOTE]
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
 
+## Support
+
+You can support the development of DevDb by [contributing](#contribution) or by [sponsoring the development](https://github.com/sponsors/damms005). We appreciate your DevDb sponsorships with perks. Check the [sponsorship page](https://github.com/sponsors/damms005) for available sponsorship options.
+
+We also appreciate your support by saying 'thank you' to our existing sponsors by patronizing or subscribing to the amazing services they offer:
+
+- [Traycer AI](https://traycer.ai/#pricing1)
+
 ## Contribution
 
 > [!IMPORTANT]

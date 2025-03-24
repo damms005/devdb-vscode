@@ -3,7 +3,8 @@ import { ExtensionConstants } from "../constants";
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
-const BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT = "❤️ Support Us"
+const BUTTON_CONDITIONAL_SUPPORT = "❤️ Support Us"
+const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor DevDb"
 const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
@@ -35,8 +36,12 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 function showMessageAndButtons(message: string, context: vscode.ExtensionContext) {
 	const buttons = [];
 
-	if (!hasUserClickedButton(context, ExtensionConstants.clickedToSupportTheProject)) {
-		buttons.push(BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT);
+	if (!hasUserClickedButton(context, ExtensionConstants.clickedToSupport)) {
+		buttons.push(BUTTON_CONDITIONAL_SUPPORT);
+	}
+
+	if (!hasUserClickedButton(context, ExtensionConstants.clickedToSponsor)) {
+		buttons.push(BUTTON_CONDITIONAL_SPONSOR);
 	}
 
 	const config = vscode.workspace.getConfiguration('Devdb');
@@ -60,9 +65,14 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then((val: string | undefined) => {
 			switch (val) {
-				case BUTTON_CONDITIONAL_SUPPORT_THE_PROJECT:
-					updateUserAction(context, ExtensionConstants.clickedToSupportTheProject);
+				case BUTTON_CONDITIONAL_SPONSOR:
+					updateUserAction(context, ExtensionConstants.clickedToSupport);
 					openExternalLink('https://github.com/sponsors/damms005');
+					break;
+
+				case BUTTON_CONDITIONAL_SUPPORT:
+					updateUserAction(context, ExtensionConstants.clickedToSupport);
+					openExternalLink('https://github.com/damms005/devdb-vscode?tab=readme-ov-file#support');
 					break;
 
 				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:

@@ -3,5 +3,6 @@ export const enum ExtensionConstants {
 	globalVersionKey = "devdb-version",
 	clickedGitHubStarring = "clicked-on-devdb-github-repo-starring",
 	clickedToFollowOnX = "clicked-to-follow-on-x",
-	clickedToSupportTheProject = "clicked-to-support-the-project",
+	clickedToSupport = "clicked-to-support",
+	clickedToSponsor = "clicked-to-sponsor",
 }
