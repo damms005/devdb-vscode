@@ -9,7 +9,7 @@ if [ "$(docker ps -a --filter 'name=^/postgres-devdb-triage$' --format '{{.Names
     docker start postgres-devdb-triage
 else
     echo "Container does not exist. Creating a new postgres-devdb-triage container..."
-    docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
+    docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 3333:5432 -d postgres
 fi
 
 # Wait for the database to start
@@ -51,7 +51,7 @@ echo "Example connection details:"
 cat << EXAMPLE_CONNECTION
 {
     "host"     : "localhost",
-    "port"     : 5432,
+    "port"     : 3333,
     "username" : "postgres",
     "password" : "mysecretpassword",
     "database" : "sample_db"

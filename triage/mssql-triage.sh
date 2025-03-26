@@ -9,7 +9,7 @@ if [ "$(docker ps -a --filter 'name=^/mssql-devdb-triage$' --format '{{.Names}}'
     docker start mssql-devdb-triage
 else
     echo "Container does not exist. Creating a new mssql-devdb-triage container..."
-    docker run --name mssql-devdb-triage -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=MyS3cretPassw0rd' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
+    docker run --name mssql-devdb-triage -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=MyS3cretPassw0rd' -p 1111:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 fi
 
 # Install the SQL tools if not present
@@ -92,7 +92,7 @@ echo "Example connection details:"
 cat << EXAMPLE_CONNECTION
 {
     "host"     : "localhost",
-    "port"     : 1433,
+    "port"     : 1111,
     "username" : "SA",
     "password" : "MyS3cretPassw0rd",
     "database" : "sample_db"
