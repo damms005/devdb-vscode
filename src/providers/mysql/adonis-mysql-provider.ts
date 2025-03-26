@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
@@ -7,6 +6,7 @@ import { MysqlEngine } from '../../database-engines/mysql-engine';
 import { getConnectionInEnvFile } from '../../services/adonis/env-file-parser';
 import { isAdonisProject } from '../../services/adonis/adonis-core';
 import { logToOutput } from '../../services/output-service';
+import { getBasePath } from '../../services/workspace';
 
 export const AdonisMysqlProvider: DatabaseEngineProvider = {
     name: 'Adonis MySQL (Lucid ORM)',
@@ -17,7 +17,7 @@ export const AdonisMysqlProvider: DatabaseEngineProvider = {
 
     async canBeUsedInCurrentWorkspace(): Promise<boolean> {
         try {
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+            const workspaceRoot = getBasePath();
             if (!workspaceRoot) {
                 log('Adonis MySQL', 'No workspace root found');
                 return false;

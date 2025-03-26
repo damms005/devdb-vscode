@@ -27,7 +27,8 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ You can now support DevDb develpment!
+					✨ You can now support DevDb develpment
+					✨ Added support for custom workspace base bath
 					✨ (see details in the repo's README)
 			`, context);
 }

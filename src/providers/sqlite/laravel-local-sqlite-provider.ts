@@ -3,7 +3,7 @@ import { join } from 'path';
 import { DotenvParseOutput, parse } from 'dotenv';
 import { DatabaseEngine, DatabaseEngineProvider } from '../../types';
 import { SqliteEngine } from '../../database-engines/sqlite-engine';
-import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent, isComposerPhpProject } from '../../services/workspace';
+import { fileExists, getBasePath, getWorkspaceFileContent, isComposerPhpProject } from '../../services/workspace';
 
 export const LaravelLocalSqliteProvider: DatabaseEngineProvider = {
 	name: 'Laravel Local SQLite (default)',
@@ -56,7 +56,7 @@ async function getSqliteFilePath(configContent: string, envFileContent: DotenvPa
 	const databasePathDefinedInEnv = envFileContent.DB_DATABASE;
 	if (databasePathDefinedInEnv) return databasePathDefinedInEnv;
 
-	const workspacePath = getFirstWorkspacePath()
+	const workspacePath = getBasePath()
 	if (!workspacePath) return ''
 
 	const databaseFilePath = join(workspacePath, 'database', 'database.sqlite');

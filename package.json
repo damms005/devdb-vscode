@@ -175,7 +175,7 @@
 					"title": "Color Theme",
 					"type": "string",
 					"default": "light",
-					"description": "The color theme for the webview",
+					"description": "The color theme for the webview.",
 					"enum": [
 						"light",
 						"dark"
@@ -205,6 +205,12 @@
 					"type": "boolean",
 					"default": false,
 					"markdownDescription": "Show fewer actions on new update notification."
+				},
+				"Devdb.customBasePath": {
+					"type": "string",
+					"default": "",
+					"title": "Custom path for zero config",
+					"markdownDescription": "Custom path to use for zero config instead of defaulting to current workspace path."
 				}
 			}
 		}

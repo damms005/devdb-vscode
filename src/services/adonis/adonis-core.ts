@@ -1,8 +1,7 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { log } from '../../services/logging-service';
-import { getWorkspaceFileContent } from "../workspace";
+import { getBasePath, getWorkspaceFileContent } from "../workspace";
 
 /**
  * Returns the hostname portion of the APP_URL environment variable.
@@ -43,7 +42,7 @@ export async function getEnvFileValue(envFileKey: string): Promise<string | unde
 }
 
 export function isAdonisProject() {
-	const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+	const workspaceRoot = getBasePath();
 	if (!workspaceRoot) {
 		log('Adonis PostgreSQL', 'No workspace root found');
 		return false;

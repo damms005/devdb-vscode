@@ -1,11 +1,11 @@
 import { join } from "path";
 import { parse } from 'yaml'
-import { fileExists, getFirstWorkspacePath, getWorkspaceFileContent } from "../workspace";
+import { fileExists, getBasePath, getWorkspaceFileContent } from "../workspace";
 import { getEnvFileValue } from "./laravel-core";
 import { KnexClientType } from "../../types";
 
 export async function hasLaravelSailDockerComposeFile() {
-	const workspacePath = getFirstWorkspacePath()
+	const workspacePath = getBasePath()
 	if (!workspacePath) return false
 
 	const dockerComposeFilePath = join(workspacePath, 'docker-compose.yml');

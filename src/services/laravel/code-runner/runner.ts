@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as os from 'os';
+import { getBasePath } from '../../workspace';
 
 export class Runner {
     /**
@@ -123,7 +123,7 @@ export class Runner {
 
         return new Promise((resolve, reject) => {
             cp.exec(command, {
-                cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+                cwd: getBasePath()
             }, (err, stdout, stderr) => {
                 if (err) {
                     reject(stderr || stdout);
@@ -138,7 +138,7 @@ export class Runner {
      * Get the Laravel project path
      */
     private static getProjectPath(path: string, escape: boolean = false): string {
-        const basePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        const basePath = getBasePath() || '';
         const fullPath = `${basePath}/${path}`;
         return escape ? fullPath.replace(/\\/g, '\\\\') : fullPath;
     }

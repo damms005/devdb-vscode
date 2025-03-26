@@ -4,10 +4,17 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import * as vscode from 'vscode';
 
-export function getFirstWorkspacePath(): string | undefined {
+export function getBasePath(): string | undefined {
+
+	const customBasePath = vscode.workspace.getConfiguration('Devdb').get<string>('customBasePath');
+
+	if (customBasePath && customBasePath.trim() !== '' && fs.existsSync(customBasePath)) {
+		return customBasePath;
+	}
+
 	const workspaceFolders = vscode.workspace.workspaceFolders;
 
-	if (!workspaceFolders) return undefined
+	if (!workspaceFolders || !workspaceFolders.length) return undefined
 
 	return workspaceFolders[0].uri.fsPath;
 }
@@ -16,7 +23,7 @@ export function getFirstWorkspacePath(): string | undefined {
  * Returns the path to the workspace file.
  */
 export function getPathToWorkspaceFile(...subPath: string[]): string | undefined {
-	const firstWorkspacePath = getFirstWorkspacePath()
+	const firstWorkspacePath = getBasePath()
 	if (!firstWorkspacePath) return undefined
 
 	return join(firstWorkspacePath, ...subPath);
@@ -41,8 +48,7 @@ export async function fileExists(path: string): Promise<boolean> {
 }
 
 export function isDdevProject(): boolean {
-	// simply check if workspace root contains a .ddev directory
-	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const workspaceRoot = getBasePath();
 	if (!workspaceRoot) {
 		return false;
 	}
@@ -52,7 +58,7 @@ export function isDdevProject(): boolean {
 
 export function isComposerPhpProject(): boolean {
 	// simply check if workspace root contains a .ddev directory
-	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const workspaceRoot = getBasePath();
 	if (!workspaceRoot) {
 		return false;
 	}

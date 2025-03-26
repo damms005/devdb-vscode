@@ -1,10 +1,10 @@
-import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { getConnectionFor } from '../connector';
 import { logToOutput } from '../output-service';
 import knexlib from "knex";
 import { KnexClientType } from '../../types';
+import { getBasePath } from '../workspace';
 
 const execAsync = promisify(exec);
 
@@ -45,7 +45,7 @@ export async function isDdevAvailable(requester: string): Promise<boolean> {
  */
 export async function getDdevConfig(): Promise<DdevConfig | undefined> {
   try {
-    let path = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+    let path = getBasePath();
     if (!path) {
       throw new Error('No workspace folder found');
     }
