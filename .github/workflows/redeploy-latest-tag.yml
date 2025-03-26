@@ -1,8 +1,5 @@
 name: Redeploy latest tag
 on:
-  push:
-    tags:
-      - '*'
   workflow_dispatch:
 
 concurrency:
