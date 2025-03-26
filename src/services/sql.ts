@@ -1,6 +1,7 @@
 import knexlib from "knex";
 import { Column, DatabaseEngine, KnexClientType, QueryResponse, SerializedMutation, WhereEntry } from "../types";
 import { reportError } from "./initialization-error-service";
+import { SQLiteEngineProvider } from "../database-engines/sqlite-engine-provider";
 
 export const SqlService = {
 
@@ -86,7 +87,7 @@ export const SqlService = {
 	}
 }
 
-function buildWhereClause(engine: DatabaseEngine, dialect: KnexClientType, whereClause: Record<string, any>, columns: Column[]): WhereEntry[] {
+export function buildWhereClause(engine: DatabaseEngine | SQLiteEngineProvider, dialect: KnexClientType | 'sqlite3', whereClause: Record<string, any>, columns: Column[]): WhereEntry[] {
 	const whereEntries: WhereEntry[] = [];
 	Object.entries(whereClause)
 		.forEach(([column, value]) => {

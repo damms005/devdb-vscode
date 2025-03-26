@@ -1,6 +1,7 @@
 import { Database } from '@vscode/sqlite3';
 import { reportError } from '../services/initialization-error-service';
 import { Column, QueryResponse, SerializedMutation } from '../types';
+import { buildWhereClause } from '../services/sql';
 
 export class SQLiteEngineProvider {
   private db: Database | null = null;
@@ -240,8 +241,8 @@ export class SQLiteEngineProvider {
       const params: any[] = [];
 
       if (whereClause && Object.keys(whereClause).length > 0) {
-        const { whereString, whereParams } = this.buildWhereClause(whereClause);
-        query += ` WHERE ${whereString}`;
+        const { whereString, whereParams } = this.buildWhereClause(whereClause, columns);
+        query += whereString.trim() ? ` WHERE ${whereString}` : '';
         params.push(...whereParams);
       }
 
@@ -271,8 +272,8 @@ export class SQLiteEngineProvider {
       const params: any[] = [];
 
       if (whereClause && Object.keys(whereClause).length > 0) {
-        const { whereString, whereParams } = this.buildWhereClause(whereClause);
-        query += ` WHERE ${whereString}`;
+        const { whereString, whereParams } = this.buildWhereClause(whereClause, columns);
+        query += whereString.trim() ? ` WHERE ${whereString}` : '';
         params.push(...whereParams);
       }
 
@@ -482,24 +483,19 @@ export class SQLiteEngineProvider {
     });
   }
 
-  // Helper methods
-  private buildWhereClause(whereClause: Record<string, any>): { whereString: string; whereParams: any[] } {
-    const conditions: string[] = [];
-    const params: any[] = [];
+  private buildWhereClause(whereClause: Record<string, any>, columns: Column[]): { whereString: string; whereParams: any[] } {
 
-    Object.entries(whereClause).forEach(([column, value]) => {
-      if (value === null) {
-        conditions.push(`${this.escapeIdentifier(column)} IS NULL`);
-      } else {
-        conditions.push(`${this.escapeIdentifier(column)} = ?`);
-        params.push(this.transformValueForSqlite(value));
-      }
-    });
+    const wheres: string[] = []
+    const whereParams: any[] = []
 
-    return {
-      whereString: conditions.join(' AND '),
-      whereParams: params
-    };
+    const clause = buildWhereClause(this, 'sqlite3', whereClause, columns)
+
+    for (const entry of clause) {
+      wheres.push(`${entry.column} ${entry.operator} ?`)
+      whereParams.push(entry.value)
+    }
+
+    return { whereString: wheres.join(' AND '), whereParams }
   }
 
   private transformValueForSqlite(value: any): any {
