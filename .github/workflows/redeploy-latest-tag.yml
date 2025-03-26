@@ -92,7 +92,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete -y ${{ steps.get-latest-tag.outputs.tag }}
           gh release create ${{ steps.get-latest-tag.outputs.tag }} --generate-notes
           for file in **/*.vsix; do
             gh release upload ${{ steps.get-latest-tag.outputs.tag }} "$file"
