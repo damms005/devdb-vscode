@@ -9,7 +9,7 @@ if [ "$(docker ps -a --filter 'name=^/mysql-devdb-triage$' --format '{{.Names}}'
     docker start mysql-devdb-triage
 else
     echo "Container does not exist. Creating a new mysql-devdb-triage container..."
-    docker run --name mysql-devdb-triage -e MYSQL_ROOT_PASSWORD=mysecretpassword -p 3306:3306 -d mysql
+    docker run --name mysql-devdb-triage -e MYSQL_ROOT_PASSWORD=mysecretpassword -p 2222:3306 -d mysql
 fi
 
 # Wait for the database to start
@@ -19,11 +19,11 @@ until docker exec mysql-devdb-triage mysqladmin ping -h "localhost" --silent; do
 done
 
 # Create a sample database and table
-docker exec -i mysql-devdb-triage mysql -uroot -pmysecretpassword << EOF
-CREATE DATABASE sample_db;
+docker exec -i mysql-devdb-triage mysql -uroot -pmysecretpassword -P 2222 << EOF
+CREATE DATABASE IF NOT EXISTS sample_db;
 USE sample_db;
 
-CREATE TABLE book (
+CREATE TABLE IF NOT EXISTS book (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255) NOT NULL,
@@ -48,7 +48,7 @@ echo "Example connection details:"
 cat << EXAMPLE_CONNECTION
 {
     "host"     : "localhost",
-    "port"     : 3306,
+    "port"     : 2222,
     "username" : "root",
     "password" : "mysecretpassword",
     "database" : "sample_db"
