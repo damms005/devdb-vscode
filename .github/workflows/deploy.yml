@@ -35,19 +35,19 @@ jobs:
             platform: win32
             arch: x64
             npm_config_arch: x64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
             arch: x64
             npm_config_arch: x64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
             arch: arm64
             npm_config_arch: arm64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
             arch: armhf
             npm_config_arch: arm
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: alpine
             arch: x64
             npm_config_arch: x64
