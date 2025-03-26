@@ -29,7 +29,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 		const configContent: (SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig)[] | undefined = await getConfigFileContent()
 		if (!configContent) return false
 		if (!configContent.length) return false
-		if (!this.cache) this.cache = {} as Record<ConfigFileConnectionTypes, EngineProviderCache>
+		if (!this.cache) this.cache = []
 
 		for (const config of configContent) {
 
@@ -40,15 +40,15 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 			}
 		}
 
-		return Object.keys(this.cache).length > 0
+		return (this.cache ?? []).length > 0
 	},
 
 	async resolveConfiguration(config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig): Promise<boolean> {
-		if (!this.cache) this.cache = {} as Record<ConfigFileConnectionTypes, EngineProviderCache>
+		if (!this.cache) this.cache = []
 
 		if (config.type === 'sqlite') {
 			const connection = await sqliteConfigResolver(config)
-			if (connection) this.cache[config.type] = connection
+			if (connection) this.cache.push(connection)
 		}
 
 		const requiresName = config.type === 'mysql' || config.type === 'mariadb' || config.type === 'postgres' || config.type === 'mssql'
@@ -58,17 +58,17 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 
 		if (config.type === 'mysql') {
 			const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)
-			if (connection) this.cache[config.type] = connection
+			if (connection) this.cache?.push(connection)
 		}
 
 		if (config.type === 'postgres') {
 			const connection: EngineProviderCache | undefined = await postgresConfigResolver(config)
-			if (connection) this.cache[config.type] = connection
+			if (connection) this.cache?.push(connection)
 		}
 
 		if (config.type === 'mssql') {
 			const connection: EngineProviderCache | undefined = await mssqlConfigResolver(config)
-			if (connection) this.cache[config.type] = connection
+			if (connection) this.cache?.push(connection)
 		}
 
 		return true

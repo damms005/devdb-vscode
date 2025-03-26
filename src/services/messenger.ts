@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -108,7 +108,7 @@ async function getAvailableProviders() {
 			id: provider.id,
 			description: provider.description,
 			options: provider.cache
-				? Object.values(provider.cache).map((cache) => ({
+				? provider.cache.map((cache: EngineProviderCache) => ({
 					id: cache.id,
 					type: cache.engine.getType(),
 					description: cache.description || provider.description,

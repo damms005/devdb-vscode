@@ -48,7 +48,7 @@ export type DatabaseEngineProvider = {
 	ddev?: boolean
 	description: string
 	engine?: DatabaseEngine
-	cache?: Record<ConfigFileConnectionTypes, EngineProviderCache>
+	cache?: EngineProviderCache[]
 
 	boot?: () => Promise<void>
 
