@@ -1,0 +1,108 @@
+name: Redeploy latest tag
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+concurrency:
+  group: deployment
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run service tests
+        run: bun run test-services
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            npm_config_arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            npm_config_arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            npm_config_arch: arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: armhf
+            npm_config_arch: arm
+          - os: ubuntu-latest
+            platform: alpine
+            arch: x64
+            npm_config_arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+            npm_config_arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            npm_config_arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install macOS dependencies
+        if: contains(matrix.os, 'macos')
+        run: brew install python-setuptools
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_arch: ${{ matrix.npm_config_arch }}
+      - shell: pwsh
+        run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
+      - run: npm run compile && npx vsce package --target ${{ env.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.target }}
+          path: '*.vsix'
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        with:
+          semver_only: true
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for file in **/*.vsix; do
+            gh release upload ${{ steps.get-latest-tag.outputs.tag }} "$file"
+          done
+      - run: npx vsce publish --packagePath $(find . -iname *.vsix)
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to OpenVSX Registry
+        run: |
+          for file in **/*.vsix; do
+            npx ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
+          done
