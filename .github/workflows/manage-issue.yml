@@ -151,7 +151,8 @@ jobs:
               await updateIssue("open");
             }
 
-            const NO_REPRO_STEPS = reproSteps?.length < 25;
+            const MIN_ALLOWED_REPRO_STEPS_CHARS = 10
+            const NO_REPRO_STEPS = reproSteps?.length < MIN_ALLOWED_REPRO_STEPS_CHARS;
             const NO_SCREENSHOTS = !screenshotUrls ;
 
             if( !NO_REPRO_STEPS && !NO_SCREENSHOTS ) {
@@ -202,7 +203,7 @@ jobs:
             }
 
             if (NO_REPRO_STEPS) {
-              comment += ` it doesn't look like you've provided much information on how to replicate the issue. Please edit your original post with clear steps needed to recreate this issue.`;
+              comment += ` it doesn't look like you've provided much information on how to replicate the issue. Please edit your original post and update the "Steps to reproduce" section with clear steps needed to recreate this issue.`;
             }
 
             closeWithComment(comment);
