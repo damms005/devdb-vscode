@@ -13,6 +13,7 @@ export interface Column {
 	isPrimaryKey: boolean,
 	isNumeric?: boolean,
 	isNullable?: boolean,
+	isEditable?: boolean,
 	foreignKey?: ForeignKey
 }
 

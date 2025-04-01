@@ -92,6 +92,7 @@ export class PostgresEngine implements DatabaseEngine {
 					isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
+					isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					foreignKey
 				},
 				// add a temporary property for sorting via type assertion
@@ -112,6 +113,12 @@ export class PostgresEngine implements DatabaseEngine {
 
 	getNumericColumnTypeNamesLowercase(): string[] {
 		return ['smallint', 'integer', 'bigint', 'decimal', 'numeric', 'real', 'double precision'];
+	}
+
+	getEditableColumnTypeNamesLowercase(): string[] {
+		const numericTypes = this.getNumericColumnTypeNamesLowercase();
+		const stringTypes = ['character', 'character varying', 'text', 'json', 'jsonb'];
+		return [...numericTypes, ...stringTypes];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {

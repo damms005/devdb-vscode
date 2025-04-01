@@ -77,6 +77,7 @@ export class MssqlEngine implements DatabaseEngine {
 				type: column.Type,
 				isPrimaryKey: column.Key === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isNullable: column.Null === 'YES',
 				foreignKey
 			})
@@ -87,6 +88,12 @@ export class MssqlEngine implements DatabaseEngine {
 
 	getNumericColumnTypeNamesLowercase(): string[] {
 		return ['tinyint', 'smallint', 'int', 'bigint', 'decimal', 'numeric', 'float', 'real'];
+	}
+
+	getEditableColumnTypeNamesLowercase(): string[] {
+		const numericTypes = this.getNumericColumnTypeNamesLowercase();
+		const stringTypes = ['char', 'varchar', 'text', 'nchar', 'nvarchar', 'ntext'];
+		return [...numericTypes, ...stringTypes];
 	}
 
 	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number> {

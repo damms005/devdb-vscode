@@ -94,6 +94,7 @@ export class SqliteEngine implements DatabaseEngine {
 				isPrimaryKey: column.pk === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 				isNullable: column.notnull === 0,
+				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 				foreignKey
 			});
 		}
@@ -121,6 +122,12 @@ export class SqliteEngine implements DatabaseEngine {
 
 	getNumericColumnTypeNamesLowercase(): string[] {
 		return ['integer', 'real', 'numeric'];
+	}
+
+	getEditableColumnTypeNamesLowercase(): string[] {
+		const numericTypes = this.getNumericColumnTypeNamesLowercase();
+		const stringTypes = ['text', 'varchar', 'character', 'json'];
+		return [...numericTypes, ...stringTypes];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
