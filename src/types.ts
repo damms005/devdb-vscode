@@ -12,6 +12,7 @@ export interface Column {
 	type: string,
 	isPrimaryKey: boolean,
 	isNumeric?: boolean,
+	isPlainTextType?: boolean,
 	isNullable?: boolean,
 	isEditable?: boolean,
 	foreignKey?: ForeignKey
