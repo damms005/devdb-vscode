@@ -135,7 +135,7 @@ DevDb can automatically load your database using connection details from your VS
 
 ### 1. Zero-config (Automatic Database Loading)
 
-No [configuration file](#2-config-based-database-loading) is needed for:
+No [configuration file](#2-config-based-database-loading) is needed when the workspace root contains any of the following:
 
 1. Applications managed by [DDEV](https://ddev.com)
 1. [Adonis](https://adonisjs.com) using default .env config for MySQL and PostgreSQL (with Lucid ORM)
