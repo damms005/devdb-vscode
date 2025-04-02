@@ -27,9 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ You can now support DevDb develpment
-					✨ Allow multiple connections of same type in .devdbrc
-					✨ Fix SQLite connection issues on legacy Ubuntu systems
+					✨ Cell actions on hover
 					✨ (see details in the repo's README)
 			`, context);
 }
