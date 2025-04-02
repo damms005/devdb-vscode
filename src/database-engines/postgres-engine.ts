@@ -91,6 +91,7 @@ export class PostgresEngine implements DatabaseEngine {
 					type: column.type,
 					isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
+					isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
 					isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
 					isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					foreignKey
@@ -117,8 +118,12 @@ export class PostgresEngine implements DatabaseEngine {
 
 	getEditableColumnTypeNamesLowercase(): string[] {
 		const numericTypes = this.getNumericColumnTypeNamesLowercase();
-		const stringTypes = ['character', 'character varying', 'text', 'json', 'jsonb'];
+		const stringTypes = this.getPlainStringTypes();
 		return [...numericTypes, ...stringTypes];
+	}
+
+	getPlainStringTypes(): string[] {
+		return ['character', 'character varying', 'text', 'json', 'jsonb'];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {

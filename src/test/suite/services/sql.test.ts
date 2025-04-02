@@ -58,10 +58,12 @@ describe('SqliteService Tests', () => {
 			type: 'text',
 			isPrimaryKey: false,
 			isNullable: true,
+			isPlainTextType: true,
 		}, {
 			name: 'age',
 			type: 'integer',
 			isPrimaryKey: false,
+			isPlainTextType: true,
 			isNullable: true,
 		}]
 
@@ -95,10 +97,12 @@ describe('SqliteService Tests', () => {
 			type: 'text',
 			isPrimaryKey: false,
 			isNullable: true,
+			isPlainTextType: true,
 		}, {
 			name: 'age',
 			type: 'integer',
 			isPrimaryKey: false,
+			isPlainTextType: true,
 			isNullable: true,
 		}]
 

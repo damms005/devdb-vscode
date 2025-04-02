@@ -6,6 +6,9 @@ describe('Sqlite Tests', () => {
 	it('should return foreign key definitions', async () => {
 		let connection = (new SqliteEngine()).getConnection()!;
 
+		await connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
+		await connection?.raw(`DROP TABLE IF EXISTS ParentTable`);
+
 		// Create two tables with a foreign key relationship for testing
 		await connection.raw(`
         CREATE TABLE ParentTable (
@@ -79,10 +82,11 @@ describe('Sqlite Tests', () => {
         `);
 
 			const columns = await engine.getColumns('users');
+
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'INTEGER', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined },
-				{ name: 'name', type: 'TEXT', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined },
-				{ name: 'age', type: 'INTEGER', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined }
+				{ name: 'id', type: 'INTEGER', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false },
+				{ name: 'name', type: 'TEXT', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: true },
+				{ name: 'age', type: 'INTEGER', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: false }
 			]);
 		});
 
@@ -148,7 +152,13 @@ describe('Sqlite Tests', () => {
 				type: 'cell-update',
 				id: '1',
 				tabId: 'abc',
-				column: { name: 'age', type: 'INTEGER', isPrimaryKey: false },
+				column: {
+					name: 'age', type: 'INTEGER',
+					isPlainTextType: true,
+					isNumeric: true,
+					isNullable: true,
+					isPrimaryKey: false
+				},
 				newValue: 31,
 				primaryKey: 1,
 				primaryKeyColumn: 'id',

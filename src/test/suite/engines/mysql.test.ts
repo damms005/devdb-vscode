@@ -33,6 +33,9 @@ describe('MySQL Tests', () => {
 			},
 		});
 
+		await connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
+		await connection?.raw(`DROP TABLE IF EXISTS ParentTable`);
+
 		await connection.raw(`
         CREATE TABLE ParentTable (
             id INT PRIMARY KEY AUTO_INCREMENT
@@ -116,10 +119,11 @@ describe('MySQL Tests', () => {
 
 		it('should return column definitions', async () => {
 			const columns = await engine.getColumns('users');
+
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined },
-				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined },
-				{ name: 'age', type: 'int', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined }
+				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false },
+				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined, isEditable: false, isPlainTextType: false },
+				{ name: 'age', type: 'int', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: false }
 			]);
 		});
 
@@ -160,7 +164,12 @@ describe('MySQL Tests', () => {
 				type: 'cell-update',
 				id: '1',
 				tabId: 'abc',
-				column: { name: 'age', type: 'int', isPrimaryKey: false },
+				column: {
+					name: 'age', type: 'int', isPlainTextType: true,
+					isNumeric: true,
+					isNullable: true,
+					isPrimaryKey: false
+				},
 				newValue: 31,
 				primaryKey: 1,
 				primaryKeyColumn: 'id',

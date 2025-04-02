@@ -46,7 +46,7 @@ Built with 💖 for developers.
 
 1. New zero-config support: applications running in DDEV
 1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
-1. On-click reconnection
+1. One-click reconnection
 
 ## Sponsors
 

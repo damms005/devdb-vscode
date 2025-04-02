@@ -211,6 +211,7 @@ export class SQLiteEngineProvider {
           isNullable: column.notnull === 0,
           isPrimaryKey: column.pk > 0,
           isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
+          isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
           foreignKey: foreignKey ? {
             table: foreignKey.table,
             column: foreignKey.to
@@ -227,6 +228,11 @@ export class SQLiteEngineProvider {
 
   getNumericColumnTypeNamesLowercase(): string[] {
     return ['integer', 'real', 'numeric'];
+  }
+
+
+  getPlainStringTypes(): string[] {
+    return ['text', 'varchar', 'character', 'json'];
   }
 
   async getTotalRows(

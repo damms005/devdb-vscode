@@ -71,6 +71,7 @@ export class MysqlEngine implements DatabaseEngine {
 				type: column.Type,
 				isPrimaryKey: column.Key === 'PRI',
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isPlainTextType: this.getPlainStringTypes().includes(column.Type.toLowerCase()),
 				isNullable: column.Null === 'YES',
 				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				foreignKey
@@ -86,8 +87,12 @@ export class MysqlEngine implements DatabaseEngine {
 
 	getEditableColumnTypeNamesLowercase(): string[] {
 		const numericTypes = this.getNumericColumnTypeNamesLowercase();
-		const stringTypes = ['char', 'varchar', 'text', 'tinytext', 'mediumtext', 'longtext', 'json'];
+		const stringTypes = this.getPlainStringTypes();
 		return [...numericTypes, ...stringTypes];
+	}
+
+	getPlainStringTypes(): string[] {
+		return ['char', 'varchar', 'text', 'tinytext', 'mediumtext', 'longtext', 'json'];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
