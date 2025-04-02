@@ -78,10 +78,14 @@ export class SqliteEngine implements DatabaseEngine {
 	async getColumns(table: string): Promise<Column[]> {
 		if (!this.provider) return [];
 
+		type TableColumn = { "type": string, name: string, notnull: number, pk: number }
+
 		const columnsResult = await this.rawQuery(`PRAGMA table_info(${table})`);
-		const columns = columnsResult ? JSON.parse(columnsResult) : null;
+		const columns: TableColumn[] | null = columnsResult ? JSON.parse(columnsResult) : null;
 
 		if (!columns) return [];
+
+		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
 		const computedColumns: Column[] = [];
 
@@ -95,7 +99,7 @@ export class SqliteEngine implements DatabaseEngine {
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 				isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
 				isNullable: column.notnull === 0,
-				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
+				isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()),
 				foreignKey
 			});
 		}

@@ -59,9 +59,13 @@ export class MysqlEngine implements DatabaseEngine {
 	async getColumns(table: string): Promise<Column[]> {
 		if (!this.connection) return [];
 
-		const columns = (await this.connection.raw(`SHOW COLUMNS FROM ??`, [table]) as any[])[0];
+		type TableColumn = { "Type": string, "Field": string, "Key": string, Null: string }
+
+		const columns: TableColumn[] = (await this.connection.raw(`SHOW COLUMNS FROM ??`, [table]) as any[])[0];
 
 		const computedColumns: Column[] = []
+
+		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.Field, this.connection)
@@ -73,7 +77,7 @@ export class MysqlEngine implements DatabaseEngine {
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isPlainTextType: this.getPlainStringTypes().includes(column.Type.toLowerCase()),
 				isNullable: column.Null === 'YES',
-				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isEditable: editableColumnTypeNamesLowercase.includes(column.Type.toLowerCase()) || editableColumnTypeNamesLowercase.some(edtiableColumn => column.Type.toLowerCase().startsWith(edtiableColumn)),
 				foreignKey
 			})
 		}

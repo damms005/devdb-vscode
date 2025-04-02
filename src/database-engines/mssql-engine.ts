@@ -65,9 +65,11 @@ export class MssqlEngine implements DatabaseEngine {
 	async getColumns(table: string): Promise<Column[]> {
 		if (!this.connection) return [];
 
-		type MssqlColumn = { "Field": string, "Type": string, "Null": "NO" | "YES", "Key": number }
+		type TableColumn = { "Field": string, "Type": string, "Null": "NO" | "YES", "Key": number }
 
-		const columns: MssqlColumn[] = await this.connection.raw(`SELECT COLUMN_NAME AS Field, DATA_TYPE AS Type, IS_NULLABLE AS [Null], COLUMNPROPERTY(object_id(TABLE_NAME), COLUMN_NAME, 'IsIdentity') AS [Key] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${table}';`) as any[];
+		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
+
+		const columns: TableColumn[] = await this.connection.raw(`SELECT COLUMN_NAME AS Field, DATA_TYPE AS Type, IS_NULLABLE AS [Null], COLUMNPROPERTY(object_id(TABLE_NAME), COLUMN_NAME, 'IsIdentity') AS [Key] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${table}';`) as any[];
 
 		const computedColumns: Column[] = []
 
@@ -80,7 +82,7 @@ export class MssqlEngine implements DatabaseEngine {
 				isPrimaryKey: column.Key === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isPlainTextType: this.getPlainStringTypes().includes(column.Type.toLowerCase()),
-				isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
+				isEditable: editableColumnTypeNamesLowercase.includes(column.Type.toLowerCase()),
 				isNullable: column.Null === 'YES',
 				foreignKey
 			})

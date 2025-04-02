@@ -76,9 +76,13 @@ export class PostgresEngine implements DatabaseEngine {
 			throw new Error('Not connected to the database');
 		}
 
-		const columns = await this.connection('information_schema.columns')
+		type TableColumn = { "type": string, name: string, ordinal_position: number }
+
+		const columns: TableColumn[] = await this.connection('information_schema.columns')
 			.whereRaw("LOWER(table_name) = LOWER(?)", [table])
 			.select(['column_name AS name', 'data_type AS type', 'ordinal_position']) as any[];
+
+		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
 		const computedColumns: Column[] = [];
 
@@ -93,7 +97,7 @@ export class PostgresEngine implements DatabaseEngine {
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
 					isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
-					isEditable: this.getEditableColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
+					isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()),
 					foreignKey
 				},
 				// add a temporary property for sorting via type assertion
