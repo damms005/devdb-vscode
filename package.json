@@ -234,7 +234,6 @@
 		"@testcontainers/mssqlserver": "^10.18.0",
 		"@testcontainers/mysql": "^10.18.0",
 		"@testcontainers/postgresql": "^10.18.0",
-		"@types/bun": "^1.2.8",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^18.19.80",
 		"@types/pluralize": "^0.0.33",
