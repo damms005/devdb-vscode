@@ -56,23 +56,23 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 ## Features
 
-- **Zero-config Automatic Database Integration:** Automatically load your database with no manual configuration required. Supports environments like DDEV, Adonis (Lucid ORM for MySQL and PostgreSQL), Laravel (default local SQLite, MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server), containerized setups (Laravel Sail), etc.
+- **Zero-config Automatic Database Integration:** Automatically load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
 
-- **Database affordances:** Because of a deep understanding of your database schema, DevDb is able to provide affordances that aid development and debugging, such as one-click generation of model factory files, etc.
+- **Database affordances for Local Development:** Because of a deep understanding of your database schema, DevDb is able to provide affordances that aid development and debugging, such as one-click generation of Eloquent Model factories, etc.
 
-- **Context Menu & CodeLens Integrations:** Access powerful directly from your editor, such as opening tables, generating Laravel factories from models, and invoking [SQL query explainers to optimize queries](https://mysqlexplain.com).
+- **Powerful IDE Integrations:** DevDb nicely integrates your database with your IDE to provide very useful IDE-powered features like Context Menu & CodeLens Integrations directly in your editor, providing features like opening tables from code, invoking [SQL query explainer](https://mysqlexplain.com) when working on query optimization tasks, etc.
 
-- **One-click Actions with Intuitive UX:** Dedicated view with one-click data browsing, inline editing, deletion, one-click reconnection, etc. Easily modify, set values to null, and preview complex JSON data, all within a responsive interface.
+- **Rich Database Client with Intuitive UX:** Dedicated database client view with one-click data browsing, inline editing, deletion, one-click reconnection, etc. Easily modify, set values to null, preview complex JSON data, all within a responsive interface.
 
-- **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements with a single click ― copied to the clipboard or saved to file.
+- **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements copied to your clipboard or saved to file.
 
-- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, and Microsoft SQL Server.
+- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, and Microsoft SQL Server; with more to come!
 
-- **Enhanced Developer Productivity:** Leverage a rich configuration system via the `.devdbrc` file to configure database connection in environments that does not yet support [Zero-config](#1-zero-config-automatic-database-loading), with quick snippets to easily configure your connections, JSON Schema validation IntelliSense.
+- **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
 
-- **Integrated Framework & Tool Support:** Tailored support for popular frameworks and tools including Laravel, DDEV, and Adonis ensures a seamless development experience, with specialized providers for each environment.
+- **Integrated Framework & Tool Support:** Tailored support for popular frameworks and tools including Laravel, DDEV, and Adonis ensures a seamless development experience. Need special feature(s) for your environment? [We're listening!](https://github.com/damms005/devdb-vscode/discussions/new?category=ideas).
 
-- **Cross-platform Compatibility:** Engineered to perform consistently on Linux, macOS, and Windows, ensuring maximum flexibility regardless of your development platform.
+- **Cross-platform Compatibility:** Engineered to perform consistently on Linux, macOS, and Windows, ensuring maximum flexibility as you can carry on your work across all these platforms.
 
 ## Screenshots
 
