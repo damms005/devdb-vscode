@@ -86,6 +86,7 @@ describe('MSSQL Tests', () => {
 
 		beforeEach(async function () {
 			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
 			await engine.connection?.raw(`
 				CREATE TABLE users (
 						id INT PRIMARY KEY IDENTITY(1,1),
@@ -168,6 +169,7 @@ describe('MSSQL Tests', () => {
 					isPlainTextType: true,
 					isNumeric: true,
 					isNullable: true,
+					isEditable: false,
 					isPrimaryKey: false
 				},
 				newValue: 31,
@@ -176,7 +178,7 @@ describe('MSSQL Tests', () => {
 				table: 'users'
 			};
 
-			await engine.commitChange(mutation);
+			await engine.commitChange(mutation, await engine.connection?.transaction()!);
 
 			const rows = await engine.getRows('users', [], 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);

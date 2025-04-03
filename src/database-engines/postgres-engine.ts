@@ -142,7 +142,7 @@ export class PostgresEngine implements DatabaseEngine {
 		return undefined
 	}
 
-	async commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void> {
+	async commitChange(serializedMutation: SerializedMutation, transaction: knexlib.Knex.Transaction): Promise<void> {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction, '"');
 	}
 

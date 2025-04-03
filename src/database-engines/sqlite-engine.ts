@@ -1,171 +1,637 @@
 import { stat } from 'fs/promises';
-import { Column, DatabaseEngine, ForeignKey, KnexClient, QueryResponse, SerializedMutation } from '../types';
+import { Database } from '@vscode/sqlite3';
 import { reportError } from '../services/initialization-error-service';
-import { SQLiteEngineProvider } from './sqlite-engine-provider';
+import { Column, CustomSqliteEngine, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
+import { buildWhereClause } from '../services/sql';
 
 export class SqliteEngine implements DatabaseEngine {
+  private db: Database | null = null;
+  public dbPath: string;
+  private inMemory: boolean;
 
-	private provider: SQLiteEngineProvider | null = null;
+  constructor(dbPath: string = ':memory:') {
+    this.dbPath = dbPath;
+    this.inMemory = dbPath === ':memory:';
+  }
 
-	constructor(sqliteFilePath?: string) {
-		try {
-			this.provider = new SQLiteEngineProvider(sqliteFilePath ?? ':memory:');
-		} catch (error) {
-			reportError(String(error));
-		}
-	}
+  getType(): KnexClient {
+    return 'sqlite';
+  }
 
-	getType(): KnexClient {
-		return 'sqlite';
-	}
+  getFilename(): string {
+    return this.dbPath;
+  }
 
-	getConnection(): SQLiteEngineProvider {
-		if (!this.provider) throw new Error('No SQLite database available. Ensure you are connected?')
+  getConnection(): CustomSqliteEngine | null {
+    if (this.db) {
+      return this.db as any as CustomSqliteEngine;
+    }
 
-		return this.provider;
-	}
+    try {
+      this.db = new Database(this.dbPath, (err) => {
+        if (err) {
+          throw new Error(String(err));
+        }
+      });
 
-	async isOkay(): Promise<boolean> {
-		if (!this.provider) return false;
+      return this.db as any as CustomSqliteEngine;
+    } catch (err) {
+      reportError(`SQLite connection error: ${err}`);
+      return null;
+    }
 
-		const file = this.provider.dbPath;
-		const isInMemory = file === ':memory:';
+  }
 
-		if (isInMemory) return true;
+  async isOkay(): Promise<boolean> {
+    try {
+      const db = this.getConnection();
 
-		const stats = await stat(file);
-		const fileSizeGB = Math.round((stats.size / (1024 * 1024 * 1024) + Number.EPSILON) * 100) / 100; // Convert to GB and round to 2 decimal places
-		const size = 5;
+      if (!db) {
+        return false
+      }
 
-		if (fileSizeGB > size) {
-			reportError(`Warning: SQLite database file size too big for database integrity check: ${fileSizeGB}GB. Maximum size is ${size}GB. Hence, database integrity not checked. File: ${file}`);
-			return true;
-		}
+      if (this.inMemory) {
+        return true
+      }
 
-		const result = await this.rawQuery('PRAGMA integrity_check;');
-		const parsedResult = result ? JSON.parse(result) : null;
-		return parsedResult && parsedResult[0] && parsedResult[0]['integrity_check'] === 'ok';
-	}
+      const stats = await stat(this.dbPath);
+      const fileSizeGB = Math.round((stats.size / (1024 * 1024 * 1024) + Number.EPSILON) * 100) / 100; // Convert to GB and round to 2 decimal places
+      const size = 5;
 
-	async disconnect() {
-		if (this.provider) await this.provider.disconnect();
-	}
+      if (fileSizeGB > size) {
+        reportError(`Warning: SQLite database file size too big for database integrity check: ${fileSizeGB}GB. Maximum size is ${size}GB. Hence, database integrity not checked. File: ${this.dbPath}`);
+        return true;
+      }
 
-	async getTableCreationSql(table: string): Promise<string> {
-		if (!this.provider) return '';
+      return new Promise<boolean>((resolve, reject) => {
+        db.get('PRAGMA integrity_check;', (err, result) => {
+          if (err) {
+            reportError(`SQLite integrity check error: ${err}`);
+            resolve(false);
+            return;
+          }
 
-		const creationSql = await this.rawQuery(`SELECT sql FROM sqlite_master WHERE name = '${table}'`);
-		const parsedCreationSql = creationSql ? JSON.parse(creationSql) : null;
+          resolve(result && result.integrity_check === 'ok');
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite isOkay check error: ${err}`);
+      return false;
+    }
+  }
 
-		if (!parsedCreationSql || !parsedCreationSql[0]) return '';
+  async disconnect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        resolve();
+        return;
+      }
 
-		const sql = parsedCreationSql[0].sql;
+      this.db.close((err) => {
+        if (err) {
+          reportError(`SQLite disconnect error: ${err}`);
+          reject(err);
+          return;
+        }
+        this.db = null;
+        resolve();
+      });
+    });
+  }
 
-		return (await import('sql-formatter')).format(sql, { language: 'sql' });
-	}
+  async getTableCreationSql(table: string): Promise<string> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
 
-	async getTables(): Promise<string[]> {
-		if (!this.provider) return [];
+      return new Promise<string>((resolve, reject) => {
+        const query = `SELECT sql FROM sqlite_master WHERE type='table' AND name=?`;
 
-		const tablesResult = await this.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
-		const tables = tablesResult ? JSON.parse(tablesResult) : null;
+        db.get(query, [table], (err, row: any) => {
+          if (err) {
+            reportError(`SQLite get table creation SQL error: ${err}`);
+            reject(err);
+            return;
+          }
 
-		if (!tables) return [];
+          if (!row || !row.sql) {
+            resolve('');
+            return;
+          }
 
-		return tables.map((table: any) => table.name).sort();
-	}
+          // Format the SQL for better readability
+          try {
+            // Dynamically import sql-formatter
+            import('sql-formatter').then(({ format }) => {
+              const formattedSql = format(row.sql, {
+                language: 'sqlite',
+                tabWidth: 2,
+                keywordCase: 'upper',
+              });
+              resolve(formattedSql);
+            }).catch(formatErr => {
+              reportError(`SQL formatting error: ${formatErr}`);
+              resolve(row.sql);
+            });
+          } catch (formatErr) {
+            // If formatting fails, return the original SQL
+            reportError(`SQL formatting error: ${formatErr}`);
+            resolve(row.sql);
+          }
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite get table creation SQL error: ${err}`);
+      return '';
+    }
+  }
 
-	async getColumns(table: string): Promise<Column[]> {
-		if (!this.provider) return [];
+  async getTables(): Promise<string[]> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
 
-		type TableColumn = { "type": string, name: string, notnull: number, pk: number }
+      return new Promise<string[]>((resolve, reject) => {
+        const query = `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`;
 
-		const columnsResult = await this.rawQuery(`PRAGMA table_info(${table})`);
-		const columns: TableColumn[] | null = columnsResult ? JSON.parse(columnsResult) : null;
+        db.all(query, (err, rows: any[]) => {
+          if (err) {
+            reportError(`SQLite get tables error: ${err}`);
+            reject(err);
+            return;
+          }
 
-		if (!columns) return [];
+          const tableNames = rows.map(row => row.name);
+          resolve(tableNames);
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite get tables error: ${err}`);
+      return [];
+    }
+  }
 
-		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
+  async getColumns(table: string): Promise<Column[]> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
 
-		const computedColumns: Column[] = [];
+      type TableColumn = { "type": string, name: string, notnull: number, pk: number }
 
-		for (const column of columns) {
-			const foreignKey = await this.getForeignKeyFor(table, column.name);
+      const columnsPromise = new Promise<TableColumn[]>((resolve, reject) => {
+        db.all(`PRAGMA table_info(${this.escapeIdentifier(table)})`, (err, rows) => {
+          if (err) {
+            reportError(`SQLite get columns error: ${err}`);
+            reject(err);
+            return;
+          }
+          resolve(rows);
+        });
+      });
 
-			computedColumns.push({
-				name: column.name,
-				type: column.type,
-				isPrimaryKey: column.pk === 1,
-				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
-				isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
-				isNullable: column.notnull === 0,
-				isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()),
-				foreignKey
-			});
-		}
+      // Get foreign key information
+      const foreignKeysPromise = new Promise<any[]>((resolve, reject) => {
+        db.all(`PRAGMA foreign_key_list(${this.escapeIdentifier(table)})`, (err, rows) => {
+          if (err) {
+            reportError(`SQLite get foreign keys error: ${err}`);
+            reject(err);
+            return;
+          }
+          resolve(rows);
+        });
+      });
 
-		return computedColumns;
-	}
+      const [columns, foreignKeys] = await Promise.all([columnsPromise, foreignKeysPromise]);
 
-	private async getForeignKeyFor(table: string, column: string): Promise<ForeignKey | undefined> {
-		if (!this.provider) return undefined;
+      const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
-		const foreignKeysResult = await this.rawQuery(`PRAGMA foreign_key_list(${table});`);
-		const foreignKeys = foreignKeysResult ? JSON.parse(foreignKeysResult) : null;
+      return columns.map((column): Column => {
+        const foreignKey = foreignKeys.find(fk => fk.from === column.name);
 
-		if (!foreignKeys || !foreignKeys.length) return undefined;
+        const col: Column = {
+          name: column.name,
+          type: column.type,
+          isNullable: column.notnull === 0,
+          isPrimaryKey: column.pk > 0,
+          isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
+          isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
+          isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()) || editableColumnTypeNamesLowercase.some(edtiableColumn => column.type.toLowerCase().startsWith(edtiableColumn)),
+          foreignKey: foreignKey ? {
+            table: foreignKey.table,
+            column: foreignKey.to
+          } : undefined
+        }
 
-		const foreignKey = foreignKeys.find((fk: any) => fk.from === column);
+        return col
+      });
+    } catch (err) {
+      reportError(`SQLite get columns error: ${err}`);
+      return [];
+    }
+  }
 
-		if (!foreignKey) return undefined;
+  getNumericColumnTypeNamesLowercase(): string[] {
+    return ['integer', 'real', 'numeric'];
+  }
 
-		return {
-			table: foreignKey.table,
-			column: foreignKey.to,
-		};
-	}
+  getEditableColumnTypeNamesLowercase(): string[] {
+    const numericTypes = this.getNumericColumnTypeNamesLowercase();
+    const stringTypes = this.getPlainStringTypes();
+    return [...numericTypes, ...stringTypes];
+  }
 
-	getNumericColumnTypeNamesLowercase(): string[] {
-		return ['integer', 'real', 'numeric'];
-	}
+  getPlainStringTypes(): string[] {
+    return ['text', 'varchar', 'character', 'json'];
+  }
 
-	getEditableColumnTypeNamesLowercase(): string[] {
-		const numericTypes = this.getNumericColumnTypeNamesLowercase();
-		const stringTypes = this.getPlainStringTypes();
-		return [...numericTypes, ...stringTypes];
-	}
+  async getTotalRows(
+    table: string,
+    columns: Column[],
+    whereClause?: Record<string, any>
+  ): Promise<number> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
 
-	getPlainStringTypes(): string[] {
-		return ['text', 'varchar', 'character', 'json'];
-	}
+      let query = `SELECT COUNT(*) as count FROM ${this.escapeIdentifier(table)}`;
+      const params: any[] = [];
 
-	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
-		if (!this.provider) return 0;
+      if (whereClause && Object.keys(whereClause).length > 0) {
+        const { whereString, whereParams } = this.buildWhereClause(whereClause, columns);
+        query += whereString.trim() ? ` WHERE ${whereString}` : '';
+        params.push(...whereParams);
+      }
 
-		return this.provider.getTotalRows(table, columns, whereClause);
-	}
+      return new Promise<number>((resolve, reject) => {
+        db.get(query, params, (err, row: any) => {
+          if (err) {
+            reportError(`SQLite get total rows error: ${err}`);
+            reject(err);
+            return;
+          }
 
-	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
-		if (!this.provider) return undefined;
+          resolve(row ? row.count : 0);
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite get total rows error: ${err}`);
+      return 0;
+    }
+  }
 
-		return this.provider.getRows(table, columns, limit, offset, whereClause);
-	}
+  async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
 
-	async getVersion(): Promise<string | undefined> {
-		return undefined;
-	}
+      const columnNames = columns.map(col => this.escapeIdentifier(col.name)).join(', ');
+      let query = `SELECT ${columnNames} FROM ${this.escapeIdentifier(table)}`;
+      const params: any[] = [];
 
-	async commitChange(serializedMutation: SerializedMutation, transaction?: any): Promise<void> {
-		if (!this.provider) return;
+      if (whereClause && Object.keys(whereClause).length > 0) {
+        const { whereString, whereParams } = this.buildWhereClause(whereClause, columns);
+        query += whereString.trim() ? ` WHERE ${whereString}` : '';
+        params.push(...whereParams);
+      }
 
-		await this.provider.commitChange(serializedMutation, transaction);
-	}
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
 
-	async rawQuery(code: string): Promise<string | undefined> {
-		if (!this.provider) throw new Error('Connection not initialized');
+      return new Promise<QueryResponse | undefined>((resolve, reject) => {
+        db.all(query, params, (err, rows: any[]) => {
+          if (err) {
+            reportError(`SQLite get rows error: ${err}`);
+            reject(err);
+            return;
+          }
 
-		const result = await this.provider.rawQuery(code);
+          resolve({ rows, sql: query });
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite get rows error: ${err}`);
+    }
+  }
 
-		return result ? JSON.stringify(result) : undefined;
-	}
+  async getVersion(): Promise<string> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
+
+      return new Promise<string>((resolve, reject) => {
+        db.get('SELECT sqlite_version() as version', (err, row: any) => {
+          if (err) {
+            reportError(`SQLite get version error: ${err}`);
+            reject(err);
+            return;
+          }
+
+          resolve(row ? row.version : 'unknown');
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite get version error: ${err}`);
+      return 'unknown';
+    }
+  }
+
+  async transaction(): Promise<SQLiteTransaction> {
+    const db = this.getConnection();
+    if (!db) {
+      return Promise.reject('Cannot connect to database')
+    }
+
+    return new Promise<SQLiteTransaction>((resolve, reject) => {
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) {
+          reportError(`SQLite begin transaction error: ${err}`);
+          reject(err);
+          return;
+        }
+        resolve(new SQLiteTransaction(db));
+      });
+    });
+  }
+
+  async commitChange(mutation: SerializedMutation, transaction: SQLiteTransaction): Promise<void> {
+    try {
+      let db: Database;
+
+      db = transaction.getConnection();
+
+      return new Promise<void>((resolve, reject) => {
+        const { type, table, primaryKeyColumn, primaryKey } = mutation;
+
+        if (type === 'cell-update') {
+          const setClauses: string[] = [];
+          const params: any[] = [];
+
+          setClauses.push(`${this.escapeIdentifier(mutation.column.name)} = ?`);
+          params.push(this.transformValueForSqlite(mutation.newValue));
+
+          // Add primary key value to params
+          params.push(this.transformValueForSqlite(primaryKey));
+
+          const query = `UPDATE ${this.escapeIdentifier(table)}
+                         SET ${setClauses.join(', ')}
+                         WHERE ${this.escapeIdentifier(primaryKeyColumn)} = ?`;
+
+          db.run(query, params, function (err) {
+            if (err) {
+              reportError(`SQLite update error: ${err}`);
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        } else if (type === 'row-delete') {
+          const query = `DELETE FROM ${this.escapeIdentifier(table)}
+                         WHERE ${this.escapeIdentifier(primaryKeyColumn)} = ?`;
+
+          db.run(query, [this.transformValueForSqlite(primaryKey)], function (err) {
+            if (err) {
+              reportError(`SQLite delete error: ${err}`);
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        } else {
+          reject(new Error(`Unsupported mutation type: ${type}`));
+        }
+      });
+    } catch (err) {
+      reportError(`SQLite commit change error: ${err}`);
+      throw err;
+    }
+  }
+
+  async raw(code: string): Promise<any> {
+    return this.rawQuery(code)
+  }
+
+  async rawQuery(code: string): Promise<any> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
+
+      return new Promise<any>((resolve, reject) => {
+        // Determine if the query is a SELECT or PRAGMA statement
+        const isSelect = /^\s*(SELECT|PRAGMA)\s+/i.test(code);
+
+        if (isSelect) {
+          db.all(code, (err, rows) => {
+            if (err) {
+              reportError(`SQLite run arbitrary query error: ${err}`);
+              reject(err);
+              return;
+            }
+            resolve(rows);
+          });
+        } else {
+          db.run(code, function (err) {
+            if (err) {
+              reportError(`SQLite run arbitrary query error: ${err}`);
+              reject(err);
+              return;
+            }
+
+            // For non-SELECT queries, return information about the operation
+            resolve({
+              changes: this.changes,
+              lastID: this.lastID
+            });
+          });
+        }
+      });
+    } catch (err) {
+      reportError(`SQLite run arbitrary query error: ${err}`);
+      throw err;
+    }
+  }
+
+  async beginTransaction(): Promise<Database> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
+
+      return new Promise<Database>((resolve, reject) => {
+        db.run('BEGIN TRANSACTION', (err) => {
+          if (err) {
+            reportError(`SQLite begin transaction error: ${err}`);
+            reject(err);
+            return;
+          }
+          resolve(db);
+        });
+      });
+    } catch (err) {
+      reportError(`SQLite begin transaction error: ${err}`);
+      throw err;
+    }
+  }
+
+  async commitTransaction(transaction: Database): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      transaction.run('COMMIT', (err) => {
+        if (err) {
+          reportError(`SQLite commit transaction error: ${err}`);
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  async rollbackTransaction(transaction: Database): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      transaction.run('ROLLBACK', (err) => {
+        if (err) {
+          reportError(`SQLite rollback transaction error: ${err}`);
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  private buildWhereClause(whereClause: Record<string, any>, columns: Column[]): { whereString: string; whereParams: any[] } {
+
+    const wheres: string[] = []
+    const whereParams: any[] = []
+
+    const clause = buildWhereClause(this, 'sqlite3', whereClause, columns)
+
+    for (const entry of clause) {
+      wheres.push(`${entry.column} ${entry.operator} ?`)
+      whereParams.push(entry.value)
+    }
+
+    return { whereString: wheres.join(' AND '), whereParams }
+  }
+
+  private transformValueForSqlite(value: any): any {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    return value;
+  }
+
+  async runQuery(sql: string, params: any[] = []): Promise<any> {
+    try {
+      const db = this.getConnection();
+      if (!db) {
+        return Promise.reject('Cannot connect to database')
+      }
+
+      return new Promise<any>((resolve, reject) => {
+        // Determine if the query is a SELECT or PRAGMA statement
+        const isSelect = /^\s*(SELECT|PRAGMA)\s+/i.test(sql);
+
+        if (isSelect) {
+          db.all(sql, params, (err, rows) => {
+            if (err) {
+              reportError(`SQLite run query error: ${err}`);
+              reject(err);
+              return;
+            }
+            resolve(rows);
+          });
+        } else {
+          db.run(sql, params, function (err) {
+            if (err) {
+              reportError(`SQLite run query error: ${err}`);
+              reject(err);
+              return;
+            }
+
+            // For non-SELECT queries, return information about the operation
+            resolve({
+              changes: this.changes,
+              lastID: this.lastID
+            });
+          });
+        }
+      });
+    } catch (err) {
+      reportError(`SQLite run query error: ${err}`);
+      throw err;
+    }
+  }
+
+  async close(): Promise<void> {
+    return this.disconnect();
+  }
+
+  private escapeIdentifier(identifier: string): string {
+    // SQLite identifiers can be escaped with double quotes
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
+
+  destroy() { }
+}
+
+export class SQLiteTransaction {
+  private db: Database;
+
+  constructor(db: Database) {
+    this.db = db;
+  }
+
+  getConnection(): Database {
+    return this.db;
+  }
+
+  async commit(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.db.run('COMMIT', (err) => {
+        if (err) {
+          reportError(`SQLite commit transaction error: ${err}`);
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  async rollback(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.db.run('ROLLBACK', (err) => {
+        if (err) {
+          reportError(`SQLite rollback transaction error: ${err}`);
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
 }

@@ -1,9 +1,10 @@
+import { Database } from '@vscode/sqlite3';
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 import knexlib from "knex";
 import { MssqlEngine } from "./database-engines/mssql-engine";
-import { SQLiteEngineProvider, SQLiteTransaction } from "./database-engines/sqlite-engine-provider";
 import { SqliteEngine } from "./database-engines/sqlite-engine";
+import { SQLiteTransaction } from './database-engines/sqlite-engine';
 
 export type ConnectionType = 'laravel-sail' | 'laravel-local-sqlite'
 
@@ -69,10 +70,14 @@ export type DatabaseEngineProvider = {
 	getDatabaseEngine(option?: EngineProviderOption): Promise<DatabaseEngine | undefined>
 }
 
+export interface CustomSqliteEngine extends Database {
+	transaction(): knexlib.Knex.Transaction
+}
+
 export interface DatabaseEngine {
 	getType(): KnexClient
 
-	getConnection(): knexlib.Knex | SQLiteEngineProvider | null
+	getConnection(): knexlib.Knex | CustomSqliteEngine | null
 
 	/**
 	 * Returns true if the connection is okay
@@ -97,7 +102,7 @@ export interface DatabaseEngine {
 
 	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
 
-	commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void>
+	commitChange(serializedMutation: SerializedMutation, transaction: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void>
 
 	getVersion(): Promise<string | undefined>
 

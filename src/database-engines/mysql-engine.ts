@@ -119,7 +119,7 @@ export class MysqlEngine implements DatabaseEngine {
 		return (version[0] as any)['VERSION()'];
 	}
 
-	async commitChange(serializedMutation: SerializedMutation, transaction?: knexlib.Knex.Transaction): Promise<void> {
+	async commitChange(serializedMutation: SerializedMutation, transaction: knexlib.Knex.Transaction): Promise<void> {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction);
 	}
 

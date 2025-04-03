@@ -167,6 +167,7 @@ describe('PostgreSQL Tests', () => {
 					name: 'age', type: 'integer', isPlainTextType: true,
 					isNumeric: true,
 					isNullable: true,
+					isEditable: false,
 					isPrimaryKey: false
 				},
 				newValue: 31,
@@ -175,7 +176,7 @@ describe('PostgreSQL Tests', () => {
 				table: 'users'
 			};
 
-			await engine.commitChange(mutation);
+			await engine.commitChange(mutation, await engine.connection?.transaction()!);
 
 			const rows = await engine.getRows('users', await engine.getColumns('users'), 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);
@@ -239,7 +240,9 @@ describe('PostgreSQL Tests', () => {
 					name: 'created_at', type: 'timestamp',
 					isPlainTextType: true,
 					isNumeric: true,
-					isPrimaryKey: false, isNullable: true
+					isEditable: false,
+					isPrimaryKey: false,
+					isNullable: true
 				}
 			], 10, 0, { created_at: '2024-10-14 10:00:00' });
 

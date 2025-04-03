@@ -122,7 +122,7 @@ describe('MySQL Tests', () => {
 
 			assert.deepStrictEqual(columns, [
 				{ name: 'id', type: 'int', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false },
-				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined, isEditable: false, isPlainTextType: false },
+				{ name: 'name', type: 'varchar(255)', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: false },
 				{ name: 'age', type: 'int', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: false }
 			]);
 		});
@@ -168,6 +168,7 @@ describe('MySQL Tests', () => {
 					name: 'age', type: 'int', isPlainTextType: true,
 					isNumeric: true,
 					isNullable: true,
+					isEditable: false,
 					isPrimaryKey: false
 				},
 				newValue: 31,
@@ -176,7 +177,7 @@ describe('MySQL Tests', () => {
 				table: 'users'
 			};
 
-			await engine.commitChange(mutation);
+			await engine.commitChange(mutation, await engine.connection?.transaction()!);
 
 			const rows = await engine.getRows('users', await engine.getColumns('users'), 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);

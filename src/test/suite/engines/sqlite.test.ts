@@ -4,19 +4,20 @@ import { SerializedMutation } from '../../../types';
 
 describe('Sqlite Tests', () => {
 	it('should return foreign key definitions', async () => {
+		let engine = new SqliteEngine
 		let connection = (new SqliteEngine()).getConnection()!;
 
-		await connection?.raw(`DROP TABLE IF EXISTS ChildTable`);
-		await connection?.raw(`DROP TABLE IF EXISTS ParentTable`);
+		await engine?.raw(`DROP TABLE IF EXISTS ChildTable`);
+		await engine?.raw(`DROP TABLE IF EXISTS ParentTable`);
 
 		// Create two tables with a foreign key relationship for testing
-		await connection.raw(`
+		await engine.raw(`
         CREATE TABLE ParentTable (
             id INTEGER PRIMARY KEY AUTOINCREMENT
         )
     `);
 
-		await connection.raw(`
+		await engine.raw(`
         CREATE TABLE ChildTable (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             parentId INTEGER,
@@ -24,13 +25,13 @@ describe('Sqlite Tests', () => {
         )
     `);
 
-		const columns = await connection.getColumns('ChildTable');
+		const columns = await engine.getColumns('ChildTable');
 
 		const foreignKeyColumn = columns.find((column: { name: string }) => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
 
-		await connection.destroy();
+		engine.destroy();
 	});
 
 	describe('SqliteEngine Tests', () => {
@@ -41,18 +42,18 @@ describe('Sqlite Tests', () => {
 		});
 
 		beforeEach(async () => {
-			await engine.getConnection()?.raw(`DROP TABLE IF EXISTS products`);
+			await engine?.raw(`DROP TABLE IF EXISTS products`);
 		});
 
 		afterEach(async () => {
 			const tables = await engine.getTables();
 			for (const table of tables) {
-				await engine.getConnection()?.raw(`DROP TABLE ${table}`);
+				await engine?.raw(`DROP TABLE ${table}`);
 			}
 		});
 
 		it('should return table names', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -60,7 +61,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE products (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -73,7 +74,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return column definitions', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY NOT NULL,
                 name TEXT,
@@ -91,7 +92,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return total rows', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -99,7 +100,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
@@ -111,7 +112,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return rows', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -119,7 +120,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             INSERT INTO users (name, age) VALUES
             ('John', 30),
             ('Jane', 25),
@@ -135,7 +136,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should save changes', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
 				CREATE TABLE users (
 					id INTEGER PRIMARY KEY,
 					name TEXT,
@@ -143,7 +144,7 @@ describe('Sqlite Tests', () => {
 				)
 			`);
 
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
 				INSERT INTO users (name, age) VALUES
 				('John', 30)
 			`);
@@ -157,6 +158,7 @@ describe('Sqlite Tests', () => {
 					isPlainTextType: true,
 					isNumeric: true,
 					isNullable: true,
+					isEditable: false,
 					isPrimaryKey: false
 				},
 				newValue: 31,
@@ -165,14 +167,14 @@ describe('Sqlite Tests', () => {
 				table: 'users'
 			};
 
-			await engine.commitChange(mutation);
+			await engine.commitChange(mutation, await engine.transaction());
 
 			const rows = await engine.getRows('users', await engine.getColumns('users'), 1, 0);
 			assert.strictEqual(rows?.rows[0].age, 31);
 		});
 
 		it('should return table creation SQL', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -190,7 +192,7 @@ describe('Sqlite Tests', () => {
 		});
 
 		it('should return rows with where clause', async () => {
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -198,7 +200,7 @@ describe('Sqlite Tests', () => {
             )
         `);
 
-			await engine.getConnection()?.raw(`
+			await engine?.raw(`
             INSERT INTO users (name, age) VALUES
             ('Jane', 25),
             ('John', 30),
@@ -225,11 +227,11 @@ describe('Sqlite Tests', () => {
 
 		it('should return version information', async () => {
 			const version = await engine.getVersion();
-			assert.strictEqual(version, undefined);
+			assert.strictEqual(Number(version.split('.').join('')) >= 10, true);
 		});
 
 		after(async function () {
-			await engine.getConnection()?.destroy();
+			engine?.destroy();
 		});
 	});
 });
