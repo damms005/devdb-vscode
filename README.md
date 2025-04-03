@@ -58,9 +58,11 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **Zero-config Automatic Database Integration:** Automatically load your database with no manual configuration required. Supports environments like DDEV, Adonis (Lucid ORM for MySQL and PostgreSQL), Laravel (default local SQLite, MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server), containerized setups (Laravel Sail), etc.
 
-- **One-click Actions with Intuitive UX:** Dedicated view with one-click data browsing, inline editing, deletion, one-click reconnection, etc. Easily modify, set values to null, and preview complex JSON data, all within a responsive interface.
+- **Database affordances:** Because of a deep understanding of your database schema, DevDb is able to provide affordances that aid development and debugging, such as one-click generation of model factory files, etc.
 
 - **Context Menu & CodeLens Integrations:** Access powerful directly from your editor, such as opening tables, generating Laravel factories from models, and invoking [SQL query explainers to optimize queries](https://mysqlexplain.com).
+
+- **One-click Actions with Intuitive UX:** Dedicated view with one-click data browsing, inline editing, deletion, one-click reconnection, etc. Easily modify, set values to null, and preview complex JSON data, all within a responsive interface.
 
 - **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements with a single click ― copied to the clipboard or saved to file.
 
