@@ -97,7 +97,7 @@ export class PostgresEngine implements DatabaseEngine {
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
 					isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
-					isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()),
+					isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()) || editableColumnTypeNamesLowercase.some(edtiableColumn => column.type.toLowerCase().startsWith(edtiableColumn)),
 					foreignKey
 				},
 				// add a temporary property for sorting via type assertion

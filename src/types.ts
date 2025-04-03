@@ -14,7 +14,7 @@ export interface Column {
 	isNumeric?: boolean,
 	isPlainTextType: boolean,
 	isNullable: boolean,
-	isEditable?: boolean,
+	isEditable: boolean,
 	foreignKey?: ForeignKey
 }
 

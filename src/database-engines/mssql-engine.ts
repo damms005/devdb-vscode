@@ -82,7 +82,7 @@ export class MssqlEngine implements DatabaseEngine {
 				isPrimaryKey: column.Key === 1,
 				isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.Type.toLowerCase()),
 				isPlainTextType: this.getPlainStringTypes().includes(column.Type.toLowerCase()),
-				isEditable: editableColumnTypeNamesLowercase.includes(column.Type.toLowerCase()),
+				isEditable: editableColumnTypeNamesLowercase.includes(column.Type.toLowerCase()) || editableColumnTypeNamesLowercase.some(edtiableColumn => column.Type.toLowerCase().startsWith(edtiableColumn)),
 				isNullable: column.Null === 'YES',
 				foreignKey
 			})
