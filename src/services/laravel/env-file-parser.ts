@@ -14,7 +14,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	const username = await getEnvFileValue('DB_USERNAME') || '';
 	const password = await getEnvFileValue('DB_PASSWORD') || '';
 	const database = await getEnvFileValue('DB_DATABASE');
-	log('Laravel env file parser', `Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database}`);
+	log('Laravel env file parser', `Laravel/${dialect} connection details: connection=${envConnection}, host=${host}, username=${username}, database=${database ? String(database[0]) + '*****' : '<not-provided>'}`);
 
 	if (!database) {
 		reportError('Laravel env file parser: missing database name in .env file')
@@ -36,7 +36,7 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 	let portOrConnection = await getSuccessfulConnectionOrPort(dialect, host, username, password, database);
 
 	if (!database || !portOrConnection) {
-		log('Laravel env file parser', `Missing database or port: database=${database}, port=${portOrConnection}`);
+		log('Laravel env file parser', `Missing database or port: database=${database ? String(database[0]) + '*****' : '<not-provided>'}, port=${portOrConnection}`);
 		return;
 	}
 

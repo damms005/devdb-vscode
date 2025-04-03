@@ -6,7 +6,7 @@ import { KnexClientType } from '../types';
 
 export async function getConnectionFor(description: string, dialect: KnexClientType, host: string, port: number, username: string, password: string, database: string | undefined = undefined, notifyOnError = true): Promise<knexlib.Knex | undefined> {
 
-	log(`Connector - ${description}`, `Attempting to connect to database: dialect=${dialect}, host=${host}, port=${port}, username=${username}, database=${database}`);
+	log(`Connector - ${description}`, `Attempting to connect to database: dialect=${dialect}, host=${host}, port=${port}, username=${username}, database=${database ? String(database[0]) + '*****' : '<not-provided>'}`);
 
 	try {
 		const knex = knexlib.knex({
