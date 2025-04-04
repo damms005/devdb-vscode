@@ -17,6 +17,7 @@ describe('PostgreSQL Tests', () => {
 
 	before(async function () {
 		container = await new PostgreSqlContainer(dockerImage)
+			.withName('devdb-test-container-postgres')
 			.withReuse()
 			.start();
 	})

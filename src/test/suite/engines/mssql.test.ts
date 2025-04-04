@@ -17,6 +17,7 @@ describe('MSSQL Tests', () => {
 
 	before(async function () {
 		container = await new MSSQLServerContainer(dockerImage)
+			.withName('devdb-test-container-mssql')
 			.acceptLicense()
 			.withPassword('yourStrong(!)Password')
 			.withReuse()

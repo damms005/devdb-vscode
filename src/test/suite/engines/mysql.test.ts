@@ -17,6 +17,7 @@ describe('MySQL Tests', () => {
 
 	before(async function () {
 		container = await new MySqlContainer(dockerImage)
+			.withName('devdb-test-container-mysql')
 			.withReuse()
 			.start();
 	})
