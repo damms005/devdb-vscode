@@ -27,7 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Improve cell actions on hover
+					✨ Display immutable cells
 					✨ (see details in the repo's README)
 			`, context);
 }
