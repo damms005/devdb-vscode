@@ -93,13 +93,20 @@ export class PostgresEngine implements DatabaseEngine {
 			throw new Error('Not connected to the database');
 		}
 
-		type TableColumn = { "type": string, name: string, ordinal_position: number }
+		type TableColumn = { "type": string, name: string, ordinal_position: number, is_nullable: string }
 
 		const columns: TableColumn[] = await this.connection('information_schema.columns')
 			.whereRaw("LOWER(table_name) = LOWER(?)", [table])
-			.select(['column_name AS name', 'data_type AS type', 'ordinal_position']) as any[];
+			.select(['column_name AS name', 'data_type AS type', 'ordinal_position', 'is_nullable']) as any[];
 
 		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
+
+		const primaryKeyResult = await this.connection('information_schema.table_constraints as tc')
+			.join('information_schema.key_column_usage as kcu', 'tc.constraint_name', 'kcu.constraint_name')
+			.where('tc.constraint_type', 'PRIMARY KEY')
+			.andWhereRaw('LOWER(tc.table_name) = LOWER(?)', [table])
+			.select('kcu.column_name');
+		const primaryKeySet = new Set(primaryKeyResult.map(row => row.column_name.toLowerCase()));
 
 		const computedColumns: Column[] = [];
 
@@ -110,10 +117,10 @@ export class PostgresEngine implements DatabaseEngine {
 				...{
 					name: column.name,
 					type: column.type,
-					isPrimaryKey: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
+					isPrimaryKey: primaryKeySet.has(column.name.toLowerCase()),
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
-					isNullable: false, // <- TODO: implement and update https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/README.md#L127
+					isNullable: column.is_nullable === 'YES',
 					isEditable: editableColumnTypeNamesLowercase.includes(column.type.toLowerCase()) || editableColumnTypeNamesLowercase.some(edtiableColumn => column.type.toLowerCase().startsWith(edtiableColumn)),
 					foreignKey
 				},

@@ -84,6 +84,7 @@ describe('PostgreSQL Tests', () => {
 		})
 
 		beforeEach(async function () {
+			await engine.connection?.raw(`DROP TABLE IF EXISTS users`);
 			await engine.connection?.raw(`DROP TABLE IF EXISTS parenttable`);
 			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
 			await engine.connection?.raw(`DROP TABLE IF EXISTS test_table`);
@@ -93,7 +94,8 @@ describe('PostgreSQL Tests', () => {
             CREATE TABLE users (
                 id SERIAL PRIMARY KEY,
                 name varchar(255),
-                age INT
+                age INT,
+                location varchar(255) NOT NULL DEFAULT 'somewhere'
             )
         `);
 		});
@@ -120,9 +122,10 @@ describe('PostgreSQL Tests', () => {
 			const columns = await engine.getColumns('users');
 
 			assert.deepStrictEqual(columns, [
-				{ name: 'id', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false },
-				{ name: 'name', type: 'character varying', isPrimaryKey: false, isNumeric: false, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: true },
-				{ name: 'age', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false }
+				{ name: 'id', type: 'integer', isPrimaryKey: true, isNumeric: true, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: false },
+				{ name: 'name', type: 'character varying', isPrimaryKey: false, isNumeric: false, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: true },
+				{ name: 'age', type: 'integer', isPrimaryKey: false, isNumeric: true, isNullable: true, foreignKey: undefined, isEditable: true, isPlainTextType: false },
+				{ name: 'location', type: 'character varying', isPrimaryKey: false, isNumeric: false, isNullable: false, foreignKey: undefined, isEditable: true, isPlainTextType: true },
 			]);
 		});
 
@@ -149,8 +152,8 @@ describe('PostgreSQL Tests', () => {
 			const rows = await engine.getRows('users', await engine.getColumns('users'), 2, 0);
 
 			assert.deepStrictEqual(rows?.rows, [
-				{ id: 1, name: 'John', age: 30 },
-				{ id: 2, name: 'Jane', age: 25 }
+				{ id: 1, name: 'John', age: 30, location: 'somewhere' },
+				{ id: 2, name: 'Jane', age: 25, location: 'somewhere' }
 			]);
 		});
 
@@ -190,7 +193,7 @@ describe('PostgreSQL Tests', () => {
 				.replace(/\s+/g, ' ')
 				.trim();
 
-			assert.strictEqual(creationSql, 'CREATE TABLE users (id integer, name character varying(255), age integer);');
+			assert.strictEqual(creationSql, 'CREATE TABLE users ( id integer, name CHARACTER varying (255), age integer, location CHARACTER varying (255) );');
 		});
 
 		it('should filter values in uuid and integer column types', async () => {
