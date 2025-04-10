@@ -123,13 +123,8 @@ Currently supported databases:
 - SQLite
 - MySQL
 - MariaDB
-- PostgreSQL\*
+- PostgreSQL
 - Microsoft SQL Server
-
-<!-- TODO: Remove this when supported at https://github.com/damms005/devdb-vscode/blob/5f0ead1b0e466c613af7d9d39a9d4ef4470e9ebf/src/database-engines/postgres-engine.ts#L90 -->
-<small>
-* PostgreSQL support for table column status (primary/optional column indicator) and table creation SQL display is in development
-</small>
 
 ## Loading Databases
 
