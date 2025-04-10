@@ -27,7 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Display immutable cells
+					✨ Format Postgres table creation schema
 					✨ (see details in the repo's README)
 			`, context);
 }

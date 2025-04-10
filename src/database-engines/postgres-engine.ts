@@ -1,6 +1,7 @@
 import knexlib from "knex";
 import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
+import { reportError } from "../services/initialization-error-service";
 
 export class PostgresEngine implements DatabaseEngine {
 	public connection: knexlib.Knex | null = null;
@@ -56,7 +57,23 @@ export class PostgresEngine implements DatabaseEngine {
             table_name
     `) as any;
 
-		return tableCreationSql.rows[0]?.create_sql || '';
+		const sql = tableCreationSql.rows[0]?.create_sql || '';
+
+		try {
+			const { format } = await import('sql-formatter')
+
+			const formattedSql = format(sql, {
+				language: 'sqlite',
+				tabWidth: 2,
+				keywordCase: 'upper',
+			});
+
+			return formattedSql
+		} catch (formatErr) {
+			reportError(`PostgreSQL formatting error: ${formatErr}`);
+
+			return sql
+		}
 	}
 
 	async getTables(): Promise<string[]> {
