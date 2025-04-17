@@ -1,4 +1,4 @@
-import assert = require("assert");
+import * as assert from 'assert';
 import { getPaginationFor } from "../../../services/pagination";
 
 describe('Pagination Tests', () => {
