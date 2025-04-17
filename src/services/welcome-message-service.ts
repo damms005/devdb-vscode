@@ -27,8 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Format Postgres table creation schema
-					✨ Compute Postgres table primary key and column nullity
+					✨ Fix transaction issue with SQLite
 					✨ (see details in the repo's README)
 			`, context);
 }
