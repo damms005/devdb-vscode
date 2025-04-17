@@ -86,9 +86,17 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 ## OS/Platform Support
 
-- Linux (Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
+- Linux \*(Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
 - macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
 - Windows (Win32-x64)
+
+---
+
+<small>
+Ubuntu 20.04 (including equivalent distors) and below are not supported because they have reached EOL and no longer supported runners in GitHub Actions. See https://github.com/actions/runner-images/issues/11101
+</small>
+
+---
 
 ## Quick Start
 

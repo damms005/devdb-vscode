@@ -27,6 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
+					✨ End support for Ubuntu 20.04 (EOL)
 					✨ Fix transaction issue with SQLite
 					✨ (see details in the repo's README)
 			`, context);
