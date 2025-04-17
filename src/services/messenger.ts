@@ -14,6 +14,7 @@ import { exportTableData } from './export-table-data';
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
+import { SqliteEngine } from '../database-engines/sqlite-engine';
 
 const workspaceTables: string[] = [];
 
@@ -276,7 +277,9 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 		return response
 	}
 
-	const transaction = await (database.getConnection())?.transaction();
+	const transaction = (database.getType()) === 'sqlite'
+		? await (database as SqliteEngine).transaction()
+		: await (database.getConnection())?.transaction();
 
 	if (!transaction) {
 		response.outcome = 'error';
