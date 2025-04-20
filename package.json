@@ -51,6 +51,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "devdb.goto-table",
+				"title": "Go to Table"
+			},
+			{
 				"command": "devdb.context-menu.open-table-at-cursor",
 				"title": "Open table at cursor"
 			},
@@ -119,6 +123,12 @@
 				"key": "CTRL+K CTRL+D",
 				"mac": "CMD+K CMD+D",
 				"title": "Toggle DevDb Panel"
+			},
+			{
+				"command": "devdb.goto-table",
+				"key": "CTRL+K CTRL+G",
+				"mac": "CMD+K CMD+G",
+				"title": "Go to Table"
 			}
 		],
 		"menus": {

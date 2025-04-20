@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { plural } from 'pluralize';
 import Case from 'case';
 import { getWebviewHtml } from './services/html';
-import { handleIncomingMessage, isTablesLoaded, sendMessageToWebview, tableExists } from './services/messenger';
+import { handleIncomingMessage, isTablesLoaded, reply, sendMessageToWebview, tableExists } from './services/messenger';
 import { getWordUnderCursor } from './services/document-service';
 import { showEmptyTablesNotification } from './services/error-notification-service';
 import { logToOutput } from './services/output-service';
@@ -64,6 +64,12 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 
 		sendMessageToWebview(this._view.webview, { type: 'ide-action:show-table-data', value: table })
 		this._view.show()
+	}
+
+	public async sendUnsolicitedResponse(command: string, response: unknown) {
+		if (!this._view) return logToOutput(`Message received but the webview not available`)
+
+		await reply(this._view.webview, command, response)
 	}
 
 	/**

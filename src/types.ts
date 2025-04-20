@@ -52,6 +52,7 @@ export type DatabaseEngineProvider = {
 	description: string
 	engine?: DatabaseEngine
 	cache?: EngineProviderCache[]
+	isDefault?: boolean
 
 	boot?: () => Promise<void>
 
@@ -68,6 +69,16 @@ export type DatabaseEngineProvider = {
 	 * The handler provided by this provider
 	 */
 	getDatabaseEngine(option?: EngineProviderOption): Promise<DatabaseEngine | undefined>
+}
+
+export interface FilteredDatabaseEngineProvider extends Pick<DatabaseEngineProvider, 'name' | 'type' | 'id' | 'description'> {
+	isDefault: boolean
+	options: Array<{
+		id: string
+		type: KnexClient
+		description: string
+		details?: string
+	}> | null
 }
 
 export interface CustomSqliteEngine extends Database {

@@ -9,6 +9,7 @@ export const FilePickerSqliteProvider: DatabaseEngineProvider = {
 	id: 'file-picker-sqlite',
 	description: 'SQLite database file from your computer',
 	engine: undefined,
+	isDefault: true,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
 		return true;
