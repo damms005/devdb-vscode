@@ -44,6 +44,7 @@ Built with 💖 for developers.
 
 ## Latest Features
 
+1. Quick table access: Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table
 1. New zero-config support: applications running in DDEV
 1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
 1. One-click reconnection

@@ -15,6 +15,7 @@ import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
+import { DevDbViewProvider } from '../devdb-view-provider';
 
 const workspaceTables: string[] = [];
 
@@ -39,19 +40,12 @@ export async function getConnectedDatabase(): Promise<DatabaseEngine | null> {
 }
 
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
-
-	if (data.type === 'request:select-provider') {
-		selectedProvider = data
-	}
-
-	const command = data.type.substring(data.type.indexOf(':') + 1);
-
 	const actions: Record<string, () => unknown> = {
 		'request:get-user-preferences': async () => vscode.workspace.getConfiguration('Devdb'),
 		'request:get-available-providers': async () => await getAvailableProviders(),
-		'request:select-provider': async () => await selectProvider(data.value),
+		'request:select-provider': async () => await selectProvider(data.value, data),
 		'request:select-provider-option': async () => await selectProviderOption(data.value),
-		'request:get-tables': async () => getTables(),
+		'request:get-tables': async () => await getTables(),
 		'request:get-fresh-table-data': async () => await getFreshTableData(data.value),
 		'request:get-refreshed-table-data': async () => await getFreshTableData(data.value),
 		'request:load-table-into-current-tab': async () => await getFreshTableData(data.value),
@@ -66,21 +60,29 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 	const action = actions[data.type]
 	if (!action) return
 
+	const command = getResponseTagFor(data.type);
+
 	const response = await action()
-	if (response) reply(webviewView.webview, `response:${command}`, response)
-	else acknowledge(webviewView.webview, `response:${command}`)
+	if (response) reply(webviewView.webview, command, response)
+	else acknowledge(webviewView.webview, command)
 }
 
-function reply(webview: vscode.Webview, command: string, response: unknown) {
-	webview.postMessage({ type: command, value: response })
+function getResponseTagFor(request: string): string {
+	const command = request.substring(request.indexOf(':') + 1);
+
+	return `response:${command}`
 }
 
-export function sendMessageToWebview(webview: vscode.Webview, payload: { type: string, value: any }) {
-	webview.postMessage(payload)
+export async function reply(webview: vscode.Webview, command: string, response: unknown) {
+	await webview.postMessage({ type: command, value: response })
 }
 
-function acknowledge(webview: vscode.Webview, command: string) {
-	webview.postMessage({ type: command })
+export async function sendMessageToWebview(webview: vscode.Webview, payload: { type: string, value: any }) {
+	await webview.postMessage(payload)
+}
+
+export async function acknowledge(webview: vscode.Webview, command: string) {
+	await webview.postMessage({ type: command })
 }
 
 /**
@@ -124,9 +126,30 @@ export async function getAvailableProviders(): Promise<FilteredDatabaseEnginePro
 		}))
 }
 
-async function autoConnectProvider() { }
+export async function autoConnectProvider(devDbViewProvider: DevDbViewProvider, provider: FilteredDatabaseEngineProvider): Promise<DatabaseEngine | null> {
 
-async function selectProvider(providerId: string): Promise<boolean> {
+	vscode.commands.executeCommand('devdb.focus');
+
+	const availableProvidersCommand = getResponseTagFor('request:get-available-providers');
+	await devDbViewProvider.sendUnsolicitedResponse(availableProvidersCommand, await getAvailableProviders())
+
+	const selectProviderCommand = getResponseTagFor('request:select-provider')
+	if (!await selectProvider(provider.id, { type: 'request:select-provider', value: provider.id })) {
+		logToOutput('Failed to select provider', 'Auto Connect')
+		return null
+	}
+	await devDbViewProvider.sendUnsolicitedResponse(selectProviderCommand, provider.id)
+
+	const listTablesCommand = getResponseTagFor('request:get-tables')
+	await devDbViewProvider.sendUnsolicitedResponse(listTablesCommand, await getTables())
+
+	return database
+}
+
+async function selectProvider(providerId: string, data: any): Promise<boolean> {
+
+	selectedProvider = data
+
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === providerId))
 
 	if (!provider) {

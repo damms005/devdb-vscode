@@ -7,7 +7,7 @@ let outputChannel: vscode.OutputChannel | undefined;
  */
 export function logToOutput(message: string, description = ''): void {
     const channel = getOutputChannel();
-    const formattedMessage = `[${description}] ${message}`;
+    const formattedMessage = `${description ? `[${description}]` : ''} ${message}`;
     channel.appendLine(formattedMessage);
 }
 
