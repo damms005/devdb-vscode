@@ -57,7 +57,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 ## Features
 
-- **Zero-config Automatic Database Integration:** Automatically load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
+- **Zero-config Database Auto-discovery:** Automatically discover and load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
 
 - **Database affordances for Local Development:** Because of a deep understanding of your database schema, DevDb is able to provide affordances that aid development and debugging, such as one-click generation of Eloquent Model factories, etc.
 
@@ -102,7 +102,7 @@ Ubuntu 20.04 (including equivalent distors) and below are not supported because 
 ## Quick Start
 
 - In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly configured and accessible from your application code.
-- For [zero-config environments](#1-zero-config-automatic-database-loading), DevDb [auto-loads your database](#loading-databases). View your database by opening the DevDb view like in the screenshot shown, or by [using the shortcut](#keybinding).
+- For [zero-config environments](#1-zero-config-automatic-database-loading), DevDb automatically discovers and [auto-loads your database](#loading-databases). View your database by opening the DevDb view like in the screenshot shown, or by [using the shortcut](#keybinding).
 
 > [!NOTE]
 > DevDb also provides several [Language and Framework Integrations](#language-and-framework-integrations)
@@ -110,6 +110,7 @@ Ubuntu 20.04 (including equivalent distors) and below are not supported because 
 ### UI Actions and Key Map
 
 - `Cmd + K + D` to toggle the view panel
+- `Cmd + K + G` to go to a table
 - `Cmd + Click` table name in the sidebar to open the table in the current tab
 - `Cmd + Click` on a database value to edit it
 - Click any value to preview it in the pane (useful for viewing prettified JSON string values)
@@ -137,9 +138,9 @@ Currently supported databases:
 
 ## Loading Databases
 
-DevDb can automatically load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When zero-config support isn't available, a [configuration file](#2-config-based-database-loading) option is provided.
+DevDb can automatically discover and load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When this zero-config auto-discovery isn't available, a [configuration file](#2-config-based-database-loading) option is provided.
 
-### 1. Zero-config (Automatic Database Loading)
+### 1. Zero-config (Automatic Database Discovery)
 
 No [configuration file](#2-config-based-database-loading) is needed when the workspace root contains any of the following:
 
