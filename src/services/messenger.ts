@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -33,6 +33,10 @@ const providers: DatabaseEngineProvider[] = [
 ]
 
 export let database: DatabaseEngine | null = null;
+
+export async function getConnectedDatabase(): Promise<DatabaseEngine | null> {
+	return database;
+}
 
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
 
@@ -82,7 +86,7 @@ function acknowledge(webview: vscode.Webview, command: string) {
 /**
  * Returns a list of all providers that can be used in the current workspace.
  */
-async function getAvailableProviders() {
+export async function getAvailableProviders(): Promise<FilteredDatabaseEngineProvider[]> {
 	log('Init', 'Getting available providers...');
 
 	const availableProviders = await Promise.all(providers.map(async (provider) => {
@@ -108,6 +112,7 @@ async function getAvailableProviders() {
 			type: provider.type,
 			id: provider.id,
 			description: provider.description,
+			isDefault: Boolean(provider.isDefault),
 			options: provider.cache
 				? provider.cache.map((cache: EngineProviderCache) => ({
 					id: cache.id,
@@ -118,6 +123,8 @@ async function getAvailableProviders() {
 				: null,
 		}))
 }
+
+async function autoConnectProvider() { }
 
 async function selectProvider(providerId: string): Promise<boolean> {
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === providerId))
