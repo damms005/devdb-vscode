@@ -226,6 +226,64 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 > [!NOTE]
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
 
+## URI Handler
+
+DevDb provides a custom URI handler that allows you to open specific database tables directly from external applications or links. This is useful for integrating DevDb with other tools or creating shortcuts to frequently accessed tables.
+
+### URI Format
+
+The URI format follows this pattern:
+
+```
+devdb://open/table?connectionId=123&databaseId=main&tableId=users&workspace=...&authority=...
+```
+
+Parameters:
+
+- `connectionId`: The ID of the database connection
+- `databaseId`: The database identifier
+- `tableId`: The table name to open
+- `workspace`: (Optional) The workspace path
+- `authority`: (Optional) The authority for the URI
+
+### Using the URI Handler
+
+You can generate a properly formatted external URI using VS Code's API:
+
+```typescript
+// Example code to generate and open a DevDb URI
+import * as vscode from 'vscode'
+
+async function openTableWithUri() {
+	// Create the URI
+	const uri = vscode.Uri.parse('devdb://open/table?connectionId=123&databaseId=main&tableId=users')
+
+	// Convert to external URI format
+	const externalUri = await vscode.env.asExternalUri(uri)
+
+	// Open the URI (or share it with other applications)
+	vscode.env.openExternal(externalUri)
+}
+```
+
+### Testing the URI Handler
+
+To test the URI handler:
+
+1. Generate a URI as shown above
+2. Open it in a browser or use `vscode.env.openExternal()`
+3. VS Code will launch (if not already open) and navigate to the specified table in DevDb
+
+You can also use the `devdb.openTable` command directly from within VS Code:
+
+```typescript
+vscode.commands.executeCommand('devdb.openTable', {
+	connectionId: '123',
+	databaseId: 'main',
+	tableId: 'users',
+})
+```
+
 ## Support
 
 You can support the development of DevDb by [contributing](#contribution) or by [sponsoring the development](https://github.com/sponsors/damms005). We appreciate your DevDb sponsorships with perks. Check the [sponsorship page](https://github.com/sponsors/damms005) for available sponsorship options.

@@ -7,6 +7,9 @@ import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
 import { database } from './services/messenger';
 import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
+import { DevDbUriHandler } from './uri-handler';
+import { goToTable } from './services/go-to-table';
+import { startHttpServer } from './services/mcp/http-server';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
@@ -36,6 +39,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	);
+
+	startHttpServer();
 
 	context.subscriptions.push(provider);
 
@@ -89,9 +94,23 @@ export async function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
+	/**
+	 * Register URI handler for devdb:// protocol
+	 *
+	 * @see https://code.visualstudio.com/api/references/activation-events#onUri
+	 */
+	context.subscriptions.push(
+		vscode.window.registerUriHandler(new DevDbUriHandler())
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.goto-table', () => goToTable(devDbViewProvider))
+	);
+
 	vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
 		if (event.affectsConfiguration('Devdb')) {
 			devDbViewProvider?.notifyConfigChange(event);
 		}
 	});
+
 }

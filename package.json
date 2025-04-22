@@ -46,7 +46,10 @@
 	"icon": "resources/devdb-128x128.png",
 	"activationEvents": [
 		"workspaceContains:**/.devdbrc",
-		"onLanguage:php"
+		"onLanguage:php",
+		"onLanguage:javascript",
+		"onLanguage:typescript",
+		"onUri"
 	],
 	"contributes": {
 		"commands": [
@@ -244,6 +247,7 @@
 		"@testcontainers/mssqlserver": "^10.18.0",
 		"@testcontainers/mysql": "^10.18.0",
 		"@testcontainers/postgresql": "^10.18.0",
+		"@types/express": "^5.0.1",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^18.19.80",
 		"@types/pluralize": "^0.0.33",
@@ -253,7 +257,9 @@
 		"@vscode/test-electron": "^2.4.1",
 		"chokidar-cli": "^3.0.0",
 		"eslint": "^8.57.1",
+		"from": "^0.1.7",
 		"glob": "^11.0.1",
+		"import": "^0.0.6",
 		"mocha": "^11.1.0",
 		"prettier": "^3.5.3",
 		"prettier-plugin-tailwindcss": "^0.5.14",
@@ -264,6 +270,7 @@
 	"dependencies": {
 		"@azure/app-configuration": "^1.8.0",
 		"@azure/keyvault-secrets": "^4.9.0",
+		"@modelcontextprotocol/sdk": "^1.10.1",
 		"@vscode/sqlite3": "^5.1.8-vscode",
 		"better-sqlite3": "^11.9.1",
 		"case": "^1.6.3",
@@ -271,6 +278,7 @@
 		"csv-parse": "^5.6.0",
 		"dotenv": "^16.4.7",
 		"esbuild": "^0.25.1",
+		"express": "^5.1.0",
 		"knex": "^3.1.0",
 		"lru-cache": "^11.0.2",
 		"mysql": "^2.18.1",
