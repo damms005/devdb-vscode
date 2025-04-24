@@ -44,3 +44,5 @@ AIDER-CONVENTIONS.md
 
 .DS_Store
 .env
+
+ltex*
