@@ -75,9 +75,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.ref_name }} --generate-notes
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
+          gh release create $LATEST_TAG --generate-notes
           for file in **/*.vsix; do
-            gh release upload ${{ github.ref_name }} "$file"
+            gh release upload $LATEST_TAG "$file"
           done
       - run: npx vsce publish --pre-release --packagePath $(find . -iname *.vsix)
         env:
