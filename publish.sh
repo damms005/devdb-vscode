@@ -150,7 +150,7 @@ if [ "$PRE_RELEASE" = true ]; then
 else
   # Bold, green text for standard release notification with a distinctive border
   echo -e "\n\x1b[1;32m┌────────────────────────────────────────────────────────────────┐"
-  echo -e "│             🚀 STANDARD RELEASE PUBLISH COMPLETE                │"
+  echo -e "│             🚀 STANDARD RELEASE PUBLISH COMPLETE               │"
   echo -e "│                                                                │"
   echo -e "│  CD pipeline will now handle publishing to:                    │"
   echo -e "│  • VS Code Marketplace                                         │"
