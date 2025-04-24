@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  check:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         # Ensure we can get latest tag futher below by including tags
@@ -26,7 +27,8 @@ jobs:
               echo "Tag is not on dev branch, aborting"
               exit 1
             fi
-
+  build:
+    needs: check
     strategy:
       matrix:
         include:

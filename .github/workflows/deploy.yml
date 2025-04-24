@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,9 @@ jobs:
               echo "Tag is not on main branch, aborting"
               exit 1
             fi
-
+  test:
+    needs: check
+    runs-on: ubuntu-latest
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
