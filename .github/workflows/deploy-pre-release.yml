@@ -27,7 +27,6 @@ jobs:
           else
               echo "Tag is not on dev branch, aborting"
               echo "proceed=false" >> $GITHUB_OUTPUT
-              exit 1
           fi
 
   test:
