@@ -70,6 +70,8 @@ jobs:
     if: success()
     steps:
       - uses: actions/checkout@v4
+        # Ensure we can get latest tag futher below by including tags
+        # More details at https://github.com/actions/checkout/issues/1471#issuecomment-1755639487
         with:
           fetch-depth: 0
           filter: tree:0
