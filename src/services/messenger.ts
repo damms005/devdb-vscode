@@ -16,6 +16,7 @@ import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
+import { getMcpConfig } from './mcp/server';
 
 const workspaceTables: string[] = [];
 
@@ -55,6 +56,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:export-table-data': async () => await exportTableData(data.value, database),
 		'request:write-mutations': async () => await writeMutations(data.value),
 		'request:reconnect': async () => await reconnect(webviewView),
+		'request:get-mcp-config': async () => getMcpConfig(),
 	}
 
 	const action = actions[data.type]

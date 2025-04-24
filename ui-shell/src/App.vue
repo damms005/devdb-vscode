@@ -16,7 +16,7 @@ const displayedTabs = ref([])
 const activeTabIndex = ref()
 const userPreferences = ref({})
 const editSession = ref([])
-
+const mcpServerConfig = ref({})
 const itemsPerPage = ref(10)
 
 onMounted(() => {
@@ -24,6 +24,7 @@ onMounted(() => {
 	setupEventHandlers()
 	vscode.value.postMessage({ type: 'request:get-user-preferences' })
 	vscode.value.postMessage({ type: 'request:get-available-providers' })
+	vscode.value.postMessage({ type: 'request:get-mcp-config' })
 })
 
 onUnmounted(() => {
@@ -35,6 +36,10 @@ function setupEventHandlers() {
 		const payload = event.data
 
 		switch (payload.type) {
+			case 'response:get-mcp-config':
+				mcpServerConfig.value = payload.value
+				break
+
 			case 'response:get-user-preferences':
 				userPreferences.value = payload.value
 				break
@@ -335,6 +340,7 @@ function notify(title) {
 			:tabs="displayedTabs"
 			:userPreferences
 			:message
+			:mcpServerConfig
 			@cell-value-changed="handleCellChanged"
 			@commit-mutations="commitToDatabase"
 			@destroy-ui="destroyUi"
