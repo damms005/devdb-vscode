@@ -70,6 +70,8 @@ jobs:
     if: success()
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
       - uses: actions/download-artifact@v4
       - name: Create GitHub Release
         env:
