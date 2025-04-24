@@ -44,10 +44,10 @@ Built with 💖 for developers.
 
 ## Latest Features
 
+1. MCP Server for connecting to Cursor, Windsurf, etc.
 1. Quick table access: Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table
 1. New zero-config support: applications running in DDEV
 1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
-1. One-click reconnection
 
 ## Sponsors
 
@@ -56,6 +56,10 @@ We are genuinely grateful to the following sponsors of DevDb:
 - [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
 
 ## Features
+
+- **MCP Server:** Provide your database information to AI-powered IDEs and MCP clients like Cursor, Windsurf, etc.
+
+- **Quick table open command:** Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table.
 
 - **Zero-config Database Auto-discovery:** Automatically discover and load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
 
@@ -226,6 +230,8 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 > [!NOTE]
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
 
+<!-- TODO: update when completed -->
+
 ## URI Handler
 
 DevDb provides a custom URI handler that allows you to open specific database tables directly from external applications or links. This is useful for integrating DevDb with other tools or creating shortcuts to frequently accessed tables.
@@ -245,44 +251,6 @@ Parameters:
 - `tableId`: The table name to open
 - `workspace`: (Optional) The workspace path
 - `authority`: (Optional) The authority for the URI
-
-### Using the URI Handler
-
-You can generate a properly formatted external URI using VS Code's API:
-
-```typescript
-// Example code to generate and open a DevDb URI
-import * as vscode from 'vscode'
-
-async function openTableWithUri() {
-	// Create the URI
-	const uri = vscode.Uri.parse('devdb://open/table?connectionId=123&databaseId=main&tableId=users')
-
-	// Convert to external URI format
-	const externalUri = await vscode.env.asExternalUri(uri)
-
-	// Open the URI (or share it with other applications)
-	vscode.env.openExternal(externalUri)
-}
-```
-
-### Testing the URI Handler
-
-To test the URI handler:
-
-1. Generate a URI as shown above
-2. Open it in a browser or use `vscode.env.openExternal()`
-3. VS Code will launch (if not already open) and navigate to the specified table in DevDb
-
-You can also use the `devdb.openTable` command directly from within VS Code:
-
-```typescript
-vscode.commands.executeCommand('devdb.openTable', {
-	connectionId: '123',
-	databaseId: 'main',
-	tableId: 'users',
-})
-```
 
 ## Support
 
