@@ -12,6 +12,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.verify-tag.outputs.proceed }}
     steps:
       - uses: actions/checkout@v4
         # Ensure we can get latest tag futher below by including tags
@@ -20,6 +22,7 @@ jobs:
           fetch-depth: 0
           filter: tree:0
       - name: Verify tag is on main branch
+        id: verify-tag
         run: |
           if git merge-base --is-ancestor $(git rev-parse HEAD) origin/main; then
             echo "Tag is on main branch, proceeding with deployment"
@@ -31,6 +34,7 @@ jobs:
 
   test:
     needs: check
+    if: needs.check.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

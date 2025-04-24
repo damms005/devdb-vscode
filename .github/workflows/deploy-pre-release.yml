@@ -12,6 +12,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.verify-tag.outputs.proceed }}
     steps:
       - uses: actions/checkout@v4
         # Ensure we can get latest tag futher below by including tags
@@ -20,6 +22,7 @@ jobs:
           fetch-depth: 0
           filter: tree:0
       - name: Verify tag is on dev branch
+        id: verify-tag
         run: |
           if git merge-base --is-ancestor $(git rev-parse HEAD) origin/dev; then
             echo "Tag is on dev branch, proceeding with deployment"
