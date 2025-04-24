@@ -1,4 +1,4 @@
-name: Deploy
+name: Main release - for tags with commit in `main` branch
 on:
   push:
     tags:
@@ -12,7 +12,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
         # Ensure we can get latest tag futher below by including tags

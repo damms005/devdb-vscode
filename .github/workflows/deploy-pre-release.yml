@@ -1,8 +1,8 @@
-name: Pre-release
+name: Pre-release - for tags with commit in dev branch
 on:
   push:
-    branches:
-      - dev
+    tags:
+      - '*'
   workflow_dispatch:
 
 concurrency:
@@ -11,6 +11,22 @@ concurrency:
 
 jobs:
   build:
+    steps:
+      - uses: actions/checkout@v4
+        # Ensure we can get latest tag futher below by including tags
+        # More details at https://github.com/actions/checkout/issues/1471#issuecomment-1755639487
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - name: Verify tag is on dev branch
+        run: |
+          if git merge-base --is-ancestor $(git rev-parse HEAD) origin/dev; then
+            echo "Tag is on dev branch, proceeding with deployment"
+          else
+              echo "Tag is not on dev branch, aborting"
+              exit 1
+            fi
+
     strategy:
       matrix:
         include:
@@ -43,7 +59,6 @@ jobs:
             arch: arm64
             npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && github.ref_name == 'dev')
     steps:
       - name: Install macOS dependencies
         if: contains(matrix.os, 'macos')
