@@ -1,4 +1,4 @@
-name: Main release - for tags with commit in `main` branch
+name: Major release - for tags with commit in `main` branch
 on:
   push:
     tags:
@@ -23,10 +23,13 @@ jobs:
         run: |
           if git merge-base --is-ancestor $(git rev-parse HEAD) origin/main; then
             echo "Tag is on main branch, proceeding with deployment"
+            echo "proceed=true" >> $GITHUB_OUTPUT
           else
               echo "Tag is not on main branch, aborting"
+              echo "proceed=false" >> $GITHUB_OUTPUT
               exit 1
           fi
+
   test:
     needs: check
     runs-on: ubuntu-latest
@@ -45,6 +48,7 @@ jobs:
 
   build:
     needs: test
+    if: needs.check.outputs.proceed == 'true'
     strategy:
       matrix:
         include:
@@ -100,7 +104,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: build
-    if: success()
+    if: needs.build.success()
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
