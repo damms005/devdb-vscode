@@ -40,7 +40,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
-	startHttpServer();
+	const settings = vscode.workspace.getConfiguration('Devdb');
+	if (settings.get<boolean>('enableMcpServer', true)) {
+		startHttpServer();
+	}
 
 	context.subscriptions.push(provider);
 

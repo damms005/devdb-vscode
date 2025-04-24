@@ -56,7 +56,13 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:export-table-data': async () => await exportTableData(data.value, database),
 		'request:write-mutations': async () => await writeMutations(data.value),
 		'request:reconnect': async () => await reconnect(webviewView),
-		'request:get-mcp-config': async () => getMcpConfig(),
+		'request:get-mcp-config': async () => {
+			const cfg = vscode.workspace.getConfiguration('Devdb')
+			if (!cfg.get<boolean>('enableMcpServer', true)) {
+				return { error: "DevDb's MCP server is disabled" }
+			}
+			return getMcpConfig()
+		},
 	}
 
 	const action = actions[data.type]

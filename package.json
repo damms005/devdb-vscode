@@ -209,11 +209,6 @@
 					"default": true,
 					"description": "Enable Code Lens for text selection."
 				},
-				"Devdb.dontShowNewVersionMessage": {
-					"type": "boolean",
-					"default": false,
-					"deprecationMessage": "Deprecated in favor of 'Show fewer update notification actions'."
-				},
 				"Devdb.showFewerUpdateNotificationActions": {
 					"type": "boolean",
 					"default": false,
@@ -224,6 +219,11 @@
 					"default": "",
 					"title": "Custom path for zero config",
 					"markdownDescription": "Custom path to use for zero config instead of defaulting to current workspace path."
+				},
+				"Devdb.enableMcpServer": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable DevDb's local MCP server."
 				}
 			}
 		}
