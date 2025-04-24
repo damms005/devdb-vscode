@@ -90,6 +90,7 @@ else
   npm version "$1" || exit 1
 fi
 
+# Comply with VS Code recommended versioning at https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions
 # If this is a pre-release, check if we need to bump the minor version
 if [ "$PRE_RELEASE" = true ]; then
   # Extract current version from package.json
