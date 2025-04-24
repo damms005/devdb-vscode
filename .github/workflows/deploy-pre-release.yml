@@ -31,6 +31,7 @@ jobs:
   test:
     needs: check
     runs-on: ubuntu-latest
+    steps:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
