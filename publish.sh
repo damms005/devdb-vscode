@@ -107,6 +107,23 @@ if [ "$PRE_RELEASE" = true ]; then
   fi
 fi
 
+# Enforce even minor version for standard releases
+if [ "$PRE_RELEASE" = false ]; then
+  # Extract current version and minor
+  current_version=$(grep '"version":' package.json | head -1 | awk -F'"' '{print $4}')
+  minor_version=$(echo "$current_version" | cut -d. -f2)
+  # Auto-bump to even minor for standard releases if odd is detected
+  if [ $((minor_version % 2)) -ne 0 ]; then
+    echo -e "\x1b[33mDetected odd minor $minor_version; bumping to next even...\x1b[0m"
+    npm version minor --no-git-tag-version || exit 1
+    git add package.json && git commit --amend --no-edit || exit 1
+    # Re-read the updated version for downstream steps
+    current_version=$(grep '"version":' package.json | head -1 | awk -F'"' '{print $4}')
+    minor_version=$(echo "$current_version" | cut -d. -f2)
+    echo -e "\x1b[32mVersion updated to $current_version (minor: $minor_version)\x1b[0m"
+  fi
+fi
+
 # Push the tags and to dev branch if pre-release
 if [ "$PRE_RELEASE" = true ]; then
   if ! git push origin HEAD:refs/heads/dev; then
