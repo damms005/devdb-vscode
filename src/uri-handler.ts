@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 /**
  * URI Handler for DevDb extension
- * Handles URIs in the format: devdb://open/table?connectionId=x&databaseId=y&tableId=z&workspace=path&authority=remote
+ * Handles URIs in the format: devdb://open/table?connectionId=x&database=y&table=z&workspace=path&authority=remote
  */
 export class DevDbUriHandler implements vscode.UriHandler {
     /**
@@ -18,22 +18,22 @@ export class DevDbUriHandler implements vscode.UriHandler {
         // Parse query parameters
         const queryParams = new URLSearchParams(uri.query);
         const connectionId = queryParams.get('connectionId');
-        const databaseId = queryParams.get('databaseId');
-        const tableId = queryParams.get('tableId');
+        const database = queryParams.get('database');
+        const table = queryParams.get('table');
         const workspace = queryParams.get('workspace');
         const authority = queryParams.get('authority');
 
         // Validate required parameters
-        if (!tableId) {
-            vscode.window.showErrorMessage('DevDb: Missing required parameter "tableId" in URI');
+        if (!table) {
+            vscode.window.showErrorMessage('DevDb: Missing required parameter "table" in URI');
             return;
         }
 
         // Check if this is the correct workspace
         if (workspace) {
             const currentWorkspaceFolders = vscode.workspace.workspaceFolders;
-            if (!currentWorkspaceFolders || !currentWorkspaceFolders.some(folder => 
-                folder.uri.fsPath === workspace || 
+            if (!currentWorkspaceFolders || !currentWorkspaceFolders.some(folder =>
+                folder.uri.fsPath === workspace ||
                 folder.uri.path === workspace)) {
                 // This URI is meant for a different workspace, ignore it
                 return;
@@ -50,15 +50,15 @@ export class DevDbUriHandler implements vscode.UriHandler {
         }
 
         // Execute the command to open the table
-        const params: any = { tableId };
-        
+        const params: any = { table: table };
+
         // Add optional parameters if they exist
         if (connectionId) {
             params.connectionId = connectionId;
         }
-        
-        if (databaseId) {
-            params.databaseId = databaseId;
+
+        if (database) {
+            params.database = database;
         }
 
         // Execute the command to open the specified table
