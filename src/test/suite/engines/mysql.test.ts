@@ -93,6 +93,8 @@ describe('MySQL Tests', () => {
                 age INT
             )
         `);
+
+			await engine.connection?.raw(`DELETE FROM users`);
 		});
 
 		afterEach(async function () {
