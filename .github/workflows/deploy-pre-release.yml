@@ -43,6 +43,7 @@ jobs:
             arch: arm64
             npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && github.ref_name == 'dev')
     steps:
       - name: Install macOS dependencies
         if: contains(matrix.os, 'macos')
