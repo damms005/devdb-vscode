@@ -110,7 +110,6 @@ server.tool('list-tables', 'List all tables in the current database', (async () 
 }) as any);
 
 server.tool('get-table-schema', 'Get schema for specified table', { tableName: z.string() }, (async (r: any) => {
-	console.log(r)
 	const tableName = r.tableName;
 	try {
 		const schema = await fetchTableSchema(tableName);
