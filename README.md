@@ -59,17 +59,6 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **MCP Server:** Provide your database information to AI-powered IDEs and MCP clients like Cursor, Windsurf, etc.
 
-  **MCP Configuration:**
-
-  ![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
-
-  1. As shown in screenshot above, click the hammer icon to copy the MCP settings.
-  1. In your IDE's MCP settings file (e.g. `.vscode/mcp.json`, `windsurf/mcp_config.json`, etc.), paste the copied JSON as one of the available MCP servers.
-
-Your IDE/AI-tool should now be able to use your database details:
-
-![Image](resources/screenshots/new/mcp-usage.png)
-
 - **Quick table open command:** Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table.
 
 - **Zero-config Database Auto-discovery:** Automatically discover and load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
@@ -242,6 +231,16 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 > VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
 
 <!-- TODO: update when completed -->
+
+### MCP Configuration
+
+1. As shown in screenshot, click the hammer icon to copy the MCP settings.
+1. In your IDE's MCP settings file (e.g. `.vscode/mcp.json`, `windsurf/mcp_config.json`, etc.), paste the copied JSON as one of the available MCP servers.
+
+Your IDE/AI-tool should now be able to use your database details.
+
+![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
+![MCP Usage](resources/screenshots/new/mcp-usage.png)
 
 ## URI Handler
 
