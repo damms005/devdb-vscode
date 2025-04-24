@@ -91,7 +91,12 @@ fi
 
 # Push the tags and to dev branch if pre-release
 if [ "$PRE_RELEASE" = true ]; then
-  git push origin HEAD:dev || exit 1
+  if ! git push origin HEAD:refs/heads/dev; then
+    echo -e "\x1b[31mError: Failed to push to dev branch. The name 'dev' might be ambiguous."
+    echo -e "Try running: git show-ref | grep dev"
+    echo -e "To see all references containing 'dev' and resolve the ambiguity.\x1b[0m"
+    exit 1
+  fi
 fi
 
 # Push the tags with git push --follow-tags
