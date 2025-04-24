@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Define allowed branches
+allowed_branches=( main dev heads/dev heads/main )
+
+# Helper function to check if current branch is allowed
+is_allowed_branch() {
+  local branch="$1"
+  for allowed in "${allowed_branches[@]}"; do
+    if [ "$branch" = "$allowed" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # Initialize pre-release flag
 PRE_RELEASE=false
 
@@ -14,13 +28,16 @@ done
 # Check if version argument is provided
 if [ -z "$1" ]; then
   echo -e "\x1b[31mUsage: $0 <version> [closes-<issue number> | no-closures] [--pre-release]"
+  echo -e "Allowed branches: ${allowed_branches[*]}."
   exit 1
 fi
 
-# Check if the current branch is 'main' or 'heads/main'
+# Check if the current branch is allowed
 current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current_branch" != "main" ] && [ "$current_branch" != "heads/main" ]; then
-  echo -e "\x1b[31mThe publish script can only be run from the main branch."
+current_branch=${current_branch#refs/heads/}
+
+if ! is_allowed_branch "$current_branch"; then
+  echo -e "\x1b[31mError: This script must run on one of: ${allowed_branches[*]}. You are on '$current_branch'."
   exit 1
 fi
 
