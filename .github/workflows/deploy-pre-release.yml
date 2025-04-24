@@ -75,7 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
+          LATEST_TAG=$(git describe --tags --abbrev=0) || { echo "No existing tags found. Please create a tag first."; exit 1; }
           gh release create $LATEST_TAG --generate-notes
           for file in **/*.vsix; do
             gh release upload $LATEST_TAG "$file"
