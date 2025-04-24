@@ -1,8 +1,6 @@
 name: Deploy
 on:
   push:
-    branches:
-      - main
     tags:
       - '*'
   workflow_dispatch:
@@ -14,9 +12,22 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: (startsWith(github.ref, 'refs/tags/') && github.ref_name == 'main')
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
+        # Ensure we can get latest tag futher below by including tags
+        # More details at https://github.com/actions/checkout/issues/1471#issuecomment-1755639487
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - name: Verify tag is on main branch
+        run: |
+          if git merge-base --is-ancestor $(git rev-parse HEAD) origin/main; then
+            echo "Tag is on main branch, proceeding with deployment"
+          else
+              echo "Tag is not on main branch, aborting"
+              exit 1
+            fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
