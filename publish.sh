@@ -141,19 +141,19 @@ git push --follow-tags
 if [ "$PRE_RELEASE" = true ]; then
   # Bold, cyan text for pre-release notification with a distinctive border
   echo -e "\n\x1b[1;36m┌────────────────────────────────────────────────────────────────┐"
-  echo -e "│                  🚀 PRE-RELEASE PUBLISH COMPLETE                │"
-  echo -e "│                                                                  │"
-  echo -e "│  CD pipeline will now handle publishing to:                      │"
-  echo -e "│  • VS Code Marketplace                                           │"
-  echo -e "│  • Open VSX Registry                                             │"
-  echo -e "└────────────────────────────────────────────────────────────────┘\x1b[0m\n"
-else
-  # Bold, green text for standard release notification with a distinctive border
-  echo -e "\n\x1b[1;32m┌────────────────────────────────────────────────────────────────┐"
-  echo -e "│              🚀 STANDARD RELEASE PUBLISH COMPLETE         │"
+  echo -e "│                 🚀 PRE-RELEASE PUBLISH COMPLETE                │"
   echo -e "│                                                                │"
   echo -e "│  CD pipeline will now handle publishing to:                    │"
   echo -e "│  • VS Code Marketplace                                         │"
   echo -e "│  • Open VSX Registry                                           │"
+  echo -e "└────────────────────────────────────────────────────────────────┘\x1b[0m\n"
+else
+  # Bold, green text for standard release notification with a distinctive border
+  echo -e "\n\x1b[1;32m┌────────────────────────────────────────────────────────────────┐"
+  echo -e "│             🚀 STANDARD RELEASE PUBLISH COMPLETE         │"
+  echo -e "│                                                              │"
+  echo -e "│  CD pipeline will now handle publishing to:                  │"
+  echo -e "│  • VS Code Marketplace                                       │"
+  echo -e "│  • Open VSX Registry                                         │"
   echo -e "└────────────────────────────────────────────────────────────────┘\x1b[0m\n"
 fi
