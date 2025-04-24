@@ -26,9 +26,24 @@ jobs:
           else
               echo "Tag is not on dev branch, aborting"
               exit 1
-            fi
-  build:
+          fi
+
+  test:
     needs: check
+    runs-on: ubuntu-latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run service tests
+        run: bun run test-services
+
+  build:
+    needs: test
     strategy:
       matrix:
         include:
