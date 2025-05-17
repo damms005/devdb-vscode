@@ -12,7 +12,7 @@ export function startHttpServer() {
 
 	logToOutput('Starting MCP HTTP server', 'MCP Server');
 
-	const PORT = 50001;
+	const DEVDB_MCP_PORT = 50001;
 	const app = express();
 	app.use(express.json());
 
@@ -41,10 +41,10 @@ export function startHttpServer() {
 		res.json({ schema: sql });
 	});
 
-	app.listen(PORT, () => {
-		logToOutput(`MCP HTTP server listening on port ${PORT}`, 'MCP Server');
+	app.listen(DEVDB_MCP_PORT, () => {
+		logToOutput(`MCP HTTP server listening on port ${DEVDB_MCP_PORT}`, 'MCP Server');
 	});
 
-	port = PORT;
+	port = DEVDB_MCP_PORT;
 	logToOutput('MCP HTTP server started', 'MCP Server');
 }

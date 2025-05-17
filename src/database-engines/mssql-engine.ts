@@ -24,7 +24,6 @@ export class MssqlEngine implements DatabaseEngine {
 	async isOkay(): Promise<boolean> {
 		if (!this.connection) return false;
 
-
 		try {
 			await this.connection.raw('SELECT @@VERSION');
 			return true;
