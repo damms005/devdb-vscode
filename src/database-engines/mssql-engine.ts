@@ -1,6 +1,7 @@
 import knexlib from "knex";
 import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
 import { SqlService } from '../services/sql';
+import { reportError } from "../services/initialization-error-service";
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
 
@@ -28,6 +29,7 @@ export class MssqlEngine implements DatabaseEngine {
 			await this.connection.raw('SELECT @@VERSION');
 			return true;
 		} catch (error) {
+			reportError(`MSSQL OK-check error: ${error}`);
 			return false;
 		}
 	}

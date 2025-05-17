@@ -75,7 +75,7 @@ export class SqliteEngine implements DatabaseEngine {
         });
       });
     } catch (err) {
-      reportError(`SQLite isOkay check error: ${err}`);
+      reportError(`SQLite OK-check error: ${err}`);
       return false;
     }
   }

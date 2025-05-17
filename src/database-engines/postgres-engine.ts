@@ -25,6 +25,7 @@ export class PostgresEngine implements DatabaseEngine {
 			await this.connection.raw('SELECT VERSION()');
 			return true;
 		} catch (error) {
+			reportError(`PostgreSQL OK-check error: ${error}`);
 			return false;
 		}
 	}
