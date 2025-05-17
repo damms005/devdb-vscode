@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/damms005-devdb-vscode-badge.png)](https://mseep.ai/app/damms005-devdb-vscode)
+
 # DevDb
 
 <p align="center">
