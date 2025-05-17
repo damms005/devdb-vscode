@@ -20,6 +20,7 @@ describe('SqliteService Tests', () => {
 
 	before(async function () {
 		container = await new MySqlContainer(dockerImage)
+			.withName('devdb-test-container-for-general-sql-tests')
 			.withReuse()
 			.start();
 	})

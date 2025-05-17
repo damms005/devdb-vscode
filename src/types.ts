@@ -182,6 +182,7 @@ export interface PostgresConfig extends SqlConfig {
 
 export interface MssqlConfig extends SqlConfig {
 	type: 'mssql'
+	options?: Record<string, unknown>
 }
 
 export type LaravelConnection = 'pgsql' | 'mysql'

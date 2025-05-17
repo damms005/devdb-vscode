@@ -188,6 +188,18 @@ The configuration file should contain a single array of database connection obje
 	{
 		"type": "sqlite",
 		"path": "/path/to/database.sqlite"
+	},
+	{
+		"name": "My MSSQL database",
+		"type": "mssql",
+		"host": "localhost",
+		"port": "1433",
+		"username": "sa",
+		"password": "YourPassword123",
+		"database": "master",
+		"options": {
+			"trustServerCertificate": true
+		}
 	}
 ]
 ```

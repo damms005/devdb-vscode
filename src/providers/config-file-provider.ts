@@ -116,7 +116,7 @@ async function reportNameError(config: MysqlConfig | PostgresConfig | MssqlConfi
 }
 
 async function mssqlConfigResolver(mssqlConfig: MssqlConfig): Promise<EngineProviderCache | undefined> {
-	const connection = await getConnectionFor('Config file provider', 'mssql', mssqlConfig.host, mssqlConfig.port, mssqlConfig.username, mssqlConfig.password, mssqlConfig.database, false)
+	const connection = await getConnectionFor('Config file provider', 'mssql', mssqlConfig.host, mssqlConfig.port, mssqlConfig.username, mssqlConfig.password, mssqlConfig.database, false, mssqlConfig.options)
 	if (!connection) return
 
 	const engine: MssqlEngine = new MssqlEngine(connection)

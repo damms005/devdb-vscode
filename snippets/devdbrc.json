@@ -64,7 +64,10 @@
       "\t\"port\": ${3:1433},",
       "\t\"username\": \"${4:sa}\",",
       "\t\"password\": \"${5:password}\",",
-      "\t\"database\": \"${6:database_name}\"",
+      "\t\"database\": \"${6:database_name}\",",
+      "\t\"options\": {",
+      "\t\t\"trustServerCertificate\": ${7:true}",
+      "\t}",
       "}"
     ],
     "description": "Add a new Microsoft SQL Server database configuration"

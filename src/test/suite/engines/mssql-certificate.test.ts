@@ -19,6 +19,7 @@ describe('MSSQL Certificate Connection Tests', () => {
       .withName('devdb-test-container-mssql-cert')
       .acceptLicense()
       .withPassword('yourStrong(!)Password')
+      .withReuse()
       .start();
   });
 

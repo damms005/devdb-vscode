@@ -8,11 +8,16 @@
     "oneOf": [
       {
         "title": "SQLite Configuration",
-        "required": ["type", "path"],
+        "required": [
+          "type",
+          "path"
+        ],
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["sqlite"],
+            "enum": [
+              "sqlite"
+            ],
             "description": "Database type - SQLite"
           },
           "path": {
@@ -23,7 +28,12 @@
       },
       {
         "title": "MySQL/MariaDB Configuration",
-        "required": ["type", "username", "password", "database"],
+        "required": [
+          "type",
+          "username",
+          "password",
+          "database"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -31,7 +41,10 @@
           },
           "type": {
             "type": "string",
-            "enum": ["mysql", "mariadb"],
+            "enum": [
+              "mysql",
+              "mariadb"
+            ],
             "description": "Database type - MySQL or MariaDB"
           },
           "host": {
@@ -55,12 +68,22 @@
           "database": {
             "type": "string",
             "description": "Database name"
+          },
+          "options": {
+            "type": "object",
+            "description": "Driver-specific options for MSSQL, e.g. trustServerCertificate",
+            "additionalProperties": true
           }
         }
       },
       {
         "title": "PostgreSQL Configuration",
-        "required": ["type", "username", "password", "database"],
+        "required": [
+          "type",
+          "username",
+          "password",
+          "database"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -68,7 +91,9 @@
           },
           "type": {
             "type": "string",
-            "enum": ["postgres"],
+            "enum": [
+              "postgres"
+            ],
             "description": "Database type - PostgreSQL"
           },
           "host": {
@@ -97,7 +122,12 @@
       },
       {
         "title": "Microsoft SQL Server Configuration",
-        "required": ["type", "username", "password", "database"],
+        "required": [
+          "type",
+          "username",
+          "password",
+          "database"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -105,7 +135,9 @@
           },
           "type": {
             "type": "string",
-            "enum": ["mssql"],
+            "enum": [
+              "mssql"
+            ],
             "description": "Database type - Microsoft SQL Server"
           },
           "host": {
