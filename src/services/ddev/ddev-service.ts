@@ -71,6 +71,10 @@ export async function getDatabaseConnection(dialect: KnexClientType): Promise<kn
 
     const { dbinfo, database_type } = config.raw;
 
+    if (!dbinfo) {
+      return undefined;
+    }
+
     // Check if the requested dialect matches the DDEV database type
     if (dialect === 'mysql2' && (database_type === 'mysql' || database_type === 'mariadb')) {
       return getConnectionFor(
