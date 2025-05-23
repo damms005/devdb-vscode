@@ -58,8 +58,6 @@ export const SqlService = {
 
 		const result = await query.count('* as count');
 
-		const sql = query.count('* as count').toSQL();
-
 		return (result[0])?.count as number;
 	},
 

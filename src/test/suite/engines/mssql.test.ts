@@ -134,7 +134,7 @@ describe('MSSQL Tests', () => {
             ('Bob', 40)
         `);
 
-			const totalRows = await engine.getTotalRows('users');
+			const totalRows = await engine.getTotalRows('users', []);
 			assert.strictEqual(totalRows, 3);
 		})
 			;

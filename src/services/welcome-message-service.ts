@@ -27,9 +27,9 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ MCP Server support
-					✨ Quick table open command with Ctrl K + G
-					✨ (see details in the repo's README)
+					// ✨ MCP Server support
+					✨ Fixed issue with MSSQL
+					✨ (details in repo's README)
 			`, context);
 }
 

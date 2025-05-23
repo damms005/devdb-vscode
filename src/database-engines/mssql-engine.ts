@@ -106,12 +106,9 @@ export class MssqlEngine implements DatabaseEngine {
 		return ['char', 'varchar', 'text', 'nchar', 'nvarchar', 'ntext'];
 	}
 
-	async getTotalRows(table: string, whereClause?: Record<string, any>): Promise<number> {
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
 		if (!this.connection) return 0;
-
-		const result = await this.connection(table).where(whereClause ?? {}).count('* as count');
-
-		return (result[0])?.count as number;
+		return SqlService.getTotalRows(this, 'mssql', this.connection, table, columns, whereClause);
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
