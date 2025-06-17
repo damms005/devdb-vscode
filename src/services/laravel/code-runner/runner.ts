@@ -105,9 +105,6 @@ export class Runner {
         throw new Error(`Failed to parse output: ${result}`);
     }
 
-    /**
-     * Run simple PHP code
-     */
     private static async runPhp(code: string): Promise<string> {
         code = code.replace(/\"/g, "\\\"");
         // code = code.replace(/(?:\r\n|\r|\n)/g, ' ');
