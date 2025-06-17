@@ -73,7 +73,7 @@ export async function getVueAssets(context: vscode.ExtensionContext): Promise<Vu
 /**
  * Generates a random nonce for webview Content Security Policy
  */
-export function getNonce() {
+function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	for (let i = 0; i < 32; i++) {
