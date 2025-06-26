@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Pull the latest PostgreSQL image
-docker pull postgres:latest
+# Use same as in test https://github.com/damms005/devdb-vscode/blob/eec97b76b630a2fc26b6bfaba17585a2c4dd1fd2/src/test/suite/engines/postgres.test.ts#L13
+docker pull postgres:13.3-alpine
 
 # Check if container exists
 if [ "$(docker ps -a --filter 'name=^/postgres-devdb-triage$' --format '{{.Names}}')" == "postgres-devdb-triage" ]; then
@@ -9,7 +10,7 @@ if [ "$(docker ps -a --filter 'name=^/postgres-devdb-triage$' --format '{{.Names
     docker start postgres-devdb-triage
 else
     echo "Container does not exist. Creating a new postgres-devdb-triage container..."
-    docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 3333:5432 -d postgres
+    docker run --name postgres-devdb-triage -e POSTGRES_PASSWORD=mysecretpassword -p 3333:5432 -d postgres:13.3-alpine
 fi
 
 # Wait for the database to start

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Pull the latest MySQL image
-docker pull mysql:latest
+# Use same as in test https://github.com/damms005/devdb-vscode/blob/84d2bd86595db2ecb21c6ffbe8b27b1459bebd92/src/test/suite/engines/mysql.test.ts#L13
+docker pull mysql:8.0.31
 
 # Check if container already exists
 if [ "$(docker ps -a --filter 'name=^/mysql-devdb-triage$' --format '{{.Names}}')" == "mysql-devdb-triage" ]; then
@@ -9,7 +10,7 @@ if [ "$(docker ps -a --filter 'name=^/mysql-devdb-triage$' --format '{{.Names}}'
     docker start mysql-devdb-triage
 else
     echo "Container does not exist. Creating a new mysql-devdb-triage container..."
-    docker run --name mysql-devdb-triage -e MYSQL_ROOT_PASSWORD=mysecretpassword -p 2222:3306 -d mysql
+    docker run --name mysql-devdb-triage -e MYSQL_ROOT_PASSWORD=mysecretpassword -p 2222:3306 -d mysql:8.0.31
 fi
 
 # Wait for the database to start

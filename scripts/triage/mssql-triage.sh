@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Pull the latest MSSQL image
+# Use same as in test https://github.com/damms005/devdb-vscode/blob/5f3b507836d93b90fb1624a1008b6415ff66704b/src/test/suite/engines/mssql.test.ts#L13
 docker pull mcr.microsoft.com/mssql/server:2019-latest
 
 # Check if container exists and start it, or create a new one
