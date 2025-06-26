@@ -39,9 +39,11 @@ export class PostgresEngine implements DatabaseEngine {
 			throw new Error('Not connected to the database');
 		}
 
+		const { schemaName, tableName } = getTableSchema(table);
+
 		const tableCreationSql = await this.connection.raw(`
         SELECT
-            'CREATE TABLE ' || quote_ident(table_name) || ' (' ||
+            'CREATE TABLE ' || quote_ident(table_schema) || '.' || quote_ident(table_name) || ' (' ||
             string_agg(column_name || ' ' ||
                        CASE
                            WHEN data_type = 'character varying' THEN
@@ -53,9 +55,9 @@ export class PostgresEngine implements DatabaseEngine {
         FROM
             information_schema.columns
         WHERE
-            table_name = '${table}'
+            table_name = '${tableName}' AND table_schema = '${schemaName}'
         GROUP BY
-            table_name
+            table_name, table_schema
     `) as any;
 
 		const sql = tableCreationSql.rows[0]?.create_sql || '';
@@ -84,9 +86,9 @@ export class PostgresEngine implements DatabaseEngine {
 
 		const tables = await this.connection('pg_catalog.pg_tables')
 			.whereNotIn('schemaname', ['pg_catalog', 'information_schema'])
-			.select(`tablename`);
+			.select([`tablename`, `schemaname`]);
 
-		return tables.map((table: any) => table.tablename);
+		return tables.map(getTableName);
 	}
 
 	async getColumns(table: string): Promise<Column[]> {
@@ -94,10 +96,13 @@ export class PostgresEngine implements DatabaseEngine {
 			throw new Error('Not connected to the database');
 		}
 
+		const { schemaName, tableName } = getTableSchema(table);
+
 		type TableColumn = { "type": string, name: string, ordinal_position: number, is_nullable: string }
 
 		const columns: TableColumn[] = await this.connection('information_schema.columns')
-			.whereRaw("LOWER(table_name) = LOWER(?)", [table])
+			.whereRaw("LOWER(table_name) = LOWER(?)", [tableName])
+			.whereRaw("LOWER(table_schema) = LOWER(?)", [schemaName])
 			.select(['column_name AS name', 'data_type AS type', 'ordinal_position', 'is_nullable']) as any[];
 
 		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
@@ -105,7 +110,8 @@ export class PostgresEngine implements DatabaseEngine {
 		const primaryKeyResult = await this.connection('information_schema.table_constraints as tc')
 			.join('information_schema.key_column_usage as kcu', 'tc.constraint_name', 'kcu.constraint_name')
 			.where('tc.constraint_type', 'PRIMARY KEY')
-			.andWhereRaw('LOWER(tc.table_name) = LOWER(?)', [table])
+			.andWhereRaw('LOWER(tc.table_name) = LOWER(?)', [tableName])
+			.andWhereRaw('LOWER(tc.table_schema) = LOWER(?)', [schemaName])
 			.select('kcu.column_name');
 		const primaryKeySet = new Set(primaryKeyResult.map(row => row.column_name.toLowerCase()));
 
@@ -178,26 +184,50 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 }
 
+function getTableName(table: { schemaname: string, tablename: string }) {
+	return table.schemaname === 'public' 
+			? table.tablename 
+			: `${table.schemaname}.${table.tablename}`;
+}
+
+function getTableSchema(table: string): { schemaName: string, tableName: string } {
+	let schemaName = 'public';
+	let tableName = table;
+
+	if (tableName.includes('.')) {
+		const parts = tableName.split('.');
+		schemaName = parts[0];
+		tableName = parts[1];
+	}
+
+	return { schemaName, tableName };
+}
+
 async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<{ table: string, column: string } | undefined> {
+	const { schemaName, tableName } = getTableSchema(table);
 
 	type Fk = {
 		referenced_table: string,
 		referenced_column: string,
+		referenced_schema: string,
 	}
 
 	const result = await connection.raw(`
 			SELECT
 					ccu.table_name AS referenced_table,
-				ccu.column_name AS referenced_column
+					ccu.column_name AS referenced_column,
+					ccu.table_schema AS referenced_schema
 			FROM
 					information_schema.table_constraints tc
 			JOIN information_schema.key_column_usage kcu
 					ON tc.constraint_name = kcu.constraint_name
+					AND tc.table_schema = kcu.table_schema
 			JOIN information_schema.constraint_column_usage ccu
 					ON ccu.constraint_name = tc.constraint_name
 			WHERE
 					tc.constraint_type = 'FOREIGN KEY'
-					AND kcu.table_name = LOWER('${table}')
+					AND kcu.table_name = LOWER('${tableName}')
+					AND kcu.table_schema = LOWER('${schemaName}')
 					AND kcu.column_name = LOWER('${column}')
 				`);
 
@@ -205,7 +235,7 @@ async function getForeignKeyFor(table: string, column: string, connection: knexl
 	if (foreignKeys.length === 0) return undefined;
 
 	return {
-		table: foreignKeys[0].referenced_table as string,
+		table: getTableName({ schemaname: foreignKeys[0].referenced_schema, tablename: foreignKeys[0].referenced_table }),
 		column: foreignKeys[0].referenced_column as string
 	};
 }
