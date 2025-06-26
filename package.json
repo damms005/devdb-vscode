@@ -217,8 +217,8 @@
 				"Devdb.customBasePath": {
 					"type": "string",
 					"default": "",
-					"title": "Custom path for zero config",
-					"markdownDescription": "Custom path to use for zero config instead of defaulting to current workspace path."
+					"title": "Custom absolute path for zero config",
+					"markdownDescription": "Custom absolute path to use for zero config instead of defaulting to current workspace path."
 				},
 				"Devdb.enableMcpServer": {
 					"type": "boolean",
