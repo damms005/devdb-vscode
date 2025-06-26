@@ -27,8 +27,6 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					// ✨ MCP Server support
-					✨ Fixed issue with MSSQL
 					✨ (details in repo's README)
 			`, context);
 }
