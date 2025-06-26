@@ -263,7 +263,7 @@ DevDb provides a custom URI handler that allows you to open specific database ta
 The URI format follows this pattern:
 
 ```
-devdb://open/table?connectionId=123&database=main&table=users&workspace=...&authority=...
+vscode://devdb/open/table?connectionId=123&database=main&table=users&workspace=...
 ```
 
 Parameters:
@@ -272,7 +272,6 @@ Parameters:
 - `database`: The database name
 - `table`: The table name to open
 - `workspace`: (Optional) The workspace path
-- `authority`: (Optional) The authority for the URI
 
 ## Support
 
