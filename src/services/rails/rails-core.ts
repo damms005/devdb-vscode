@@ -1,9 +1,10 @@
-import * as vscode from 'vscode';
-import { parse as parseYaml } from 'yaml';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { getPathToWorkspaceFile, getWorkspaceFileContent, getBasePath } from '../workspace';
 import { log } from '../logging-service';
-import knexlib from 'knex';
 import * as path from 'path';
+
+const execAsync = promisify(exec);
 
 export interface RailsDatabaseConfig {
 	adapter: string;
@@ -14,6 +15,22 @@ export interface RailsDatabaseConfig {
 	password?: string;
 	pool?: number;
 	timeout?: number;
+}
+
+export interface RubyEnvConfig {
+	env_name: string;
+	name: string;
+	adapter_class: string | null;
+	configuration_hash: {
+		adapter: string;
+		database: string;
+		host: string;
+		port: number;
+		username: string;
+		password: string;
+		pool: number;
+		timeout: number;
+	}
 }
 
 export function isRailsProject(): boolean {
@@ -61,44 +78,66 @@ export function getRailsEnv(): string {
 	return process.env.RAILS_ENV || 'development';
 }
 
-export function parseDatabaseYml(environment: string): RailsDatabaseConfig | null {
+export async function parseDatabaseYml(environment: string): Promise<RailsDatabaseConfig | null> {
 	try {
-		log('Rails Core', `Parsing database.yml for environment: ${environment}`);
+		log('Rails Core', `Getting database configuration for environment: ${environment} using Rails runner`);
 
-		const databaseYmlContent = getWorkspaceFileContent('config', 'database.yml');
-		if (!databaseYmlContent) {
-			log('Rails Core', 'Could not read config/database.yml');
+		const workspaceRoot = getBasePath();
+		if (!workspaceRoot) {
+			log('Rails Core', 'No workspace root found');
 			return null;
 		}
 
-		let yamlContent = databaseYmlContent.toString();
+		const command = `bin/rails runner -w 'require "json"; puts JSON.pretty_generate(ActiveRecord::Base.configurations.as_json)'`;
+		const fallbackCommand = `bundle exec rails runner -w 'require "json"; puts JSON.pretty_generate(ActiveRecord::Base.configurations.as_json)'`;
 
-		// Apply basic ERB substitution for environment variables
-		// Pattern: <%= ENV['VAR_NAME'] %> or <%= ENV["VAR_NAME"] %>
-		const erbPattern = /<%=\s*ENV\[['"](\w+)['"]\]\s*%>/g;
-		yamlContent = yamlContent.replace(erbPattern, (match, envVar) => {
-			const envValue = process.env[envVar];
-			if (envValue !== undefined) {
-				log('Rails Core', `Substituting ERB variable ${envVar} with value from environment`);
-				return envValue;
+		let stdout: string;
+		try {
+			const result = await execAsync(command, { cwd: workspaceRoot });
+			stdout = result.stdout;
+		} catch (error) {
+			log('Rails Core', `Primary Rails runner command failed, trying fallback: ${fallbackCommand}`);
+			try {
+				const result = await execAsync(fallbackCommand, { cwd: workspaceRoot });
+				stdout = result.stdout;
+			} catch (fallbackError) {
+				log('Rails Core', `Both Rails runner commands failed. Primary error: ${String(error)}, Fallback error: ${String(fallbackError)}`);
+				return null;
 			}
-			log('Rails Core', `ERB variable ${envVar} not found in environment, keeping original`);
-			return match;
-		});
+		}
 
-		const parsedYaml = parseYaml(yamlContent);
-		if (!parsedYaml || typeof parsedYaml !== 'object') {
-			log('Rails Core', 'Invalid YAML structure in database.yml');
+		if (!stdout || stdout.trim() === '') {
+			log('Rails Core', 'Rails runner command returned empty output');
 			return null;
 		}
 
-		const envConfig = (parsedYaml as any)[environment];
+		log('Rails Core', 'Rails runner command executed successfully');
+
+		let configurations: RubyEnvConfig[];
+		try {
+			configurations = JSON.parse(stdout)?.configurations;
+		} catch (parseError) {
+			log('Rails Core', `Failed to parse JSON output from Rails runner: ${String(parseError)}`);
+			return null;
+		}
+
+		if (!configurations || typeof configurations !== 'object') {
+			log('Rails Core', 'Invalid configuration structure returned from Rails runner');
+			return null;
+		}
+
+		const envConfig = configurations.find(config => config.env_name === environment);
 		if (!envConfig || typeof envConfig !== 'object') {
 			log('Rails Core', `No configuration found for environment: ${environment}`);
 			return null;
 		}
 
-		const adapter = envConfig.adapter;
+		const adapter = envConfig.configuration_hash?.adapter;
+		if (!adapter) {
+			log('Rails Core', `No adapter specified for environment: ${environment}`);
+			return null;
+		}
+
 		let mappedAdapter: string;
 		switch (adapter) {
 			case 'postgresql':
@@ -117,13 +156,13 @@ export function parseDatabaseYml(environment: string): RailsDatabaseConfig | nul
 
 		const config: RailsDatabaseConfig = {
 			adapter: mappedAdapter,
-			database: envConfig.database,
-			host: envConfig.host,
-			port: envConfig.port,
-			username: envConfig.username,
-			password: envConfig.password,
-			pool: envConfig.pool,
-			timeout: envConfig.timeout
+			database: envConfig.configuration_hash?.database,
+			host: envConfig.configuration_hash?.host,
+			port: envConfig.configuration_hash?.port,
+			username: envConfig.configuration_hash?.username,
+			password: envConfig.configuration_hash?.password,
+			pool: envConfig.configuration_hash?.pool,
+			timeout: envConfig.configuration_hash?.timeout
 		};
 
 		if (mappedAdapter === 'postgres') {
@@ -135,71 +174,17 @@ export function parseDatabaseYml(environment: string): RailsDatabaseConfig | nul
 		}
 
 		if (mappedAdapter === 'sqlite' && config.database) {
-			const workspaceRoot = getBasePath();
-			if (workspaceRoot && !path.isAbsolute(config.database)) {
+			if (!path.isAbsolute(config.database)) {
 				config.database = path.resolve(workspaceRoot, config.database);
 				log('Rails Core', `Resolved SQLite database path to: ${config.database}`);
 			}
 		}
 
-		log('Rails Core', `Successfully parsed database configuration for ${environment}`);
+		log('Rails Core', `Successfully parsed database configuration for ${environment} using Rails runner`);
 		return config;
 	} catch (error) {
-		log('Rails Core', `Error parsing database.yml: ${String(error)}`);
+		log('Rails Core', `Error getting database configuration using Rails runner: ${String(error)}`);
 		return null;
 	}
 }
 
-export function createKnexConnection(config: RailsDatabaseConfig): knexlib.Knex | null {
-	try {
-		log('Rails Core', `Creating Knex connection for adapter: ${config.adapter}`);
-
-		if (config.adapter === 'sqlite') {
-			return knexlib({
-				client: 'sqlite3',
-				connection: {
-					filename: config.database
-				},
-				useNullAsDefault: true
-			});
-		} else if (config.adapter === 'postgres') {
-			return knexlib({
-				client: 'pg',
-				connection: {
-					host: config.host,
-					port: config.port,
-					user: config.username,
-					password: config.password,
-					database: config.database
-				},
-				pool: {
-					min: 0,
-					max: config.pool || 10
-				},
-				acquireConnectionTimeout: config.timeout || 60000
-			});
-		} else if (config.adapter === 'mysql2') {
-			return knexlib({
-				client: 'mysql2',
-				connection: {
-					host: config.host,
-					port: config.port,
-					user: config.username,
-					password: config.password,
-					database: config.database
-				},
-				pool: {
-					min: 0,
-					max: config.pool || 10
-				},
-				acquireConnectionTimeout: config.timeout || 60000
-			});
-		}
-
-		log('Rails Core', `Unsupported adapter for Knex connection: ${config.adapter}`);
-		return null;
-	} catch (error) {
-		log('Rails Core', `Error creating Knex connection: ${String(error)}`);
-		return null;
-	}
-}
