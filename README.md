@@ -47,6 +47,7 @@ Built with 💖 for developers.
 1. MCP Server for providing database connections to Cursor, Windsurf, etc.
 1. Quick table access: Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table
 1. New zero-config support: applications running in DDEV
+1. New zero-config support: Ruby on Rails - SQLite, MySQL, and PostgreSQL
 1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
 
 ## Sponsors
@@ -150,6 +151,7 @@ No [configuration file](#2-config-based-database-loading) is needed when the wor
 
 1. Applications managed by [DDEV](https://ddev.com)
 1. [Adonis](https://adonisjs.com) using default .env config for MySQL and PostgreSQL (with Lucid ORM)
+1. [Ruby on Rails](https://rubyonrails.org) with config/database.yml for SQLite, MySQL, and PostgreSQL
 1. [Laravel](https://laravel.com) with default local SQLite database
 1. Laravel with default .env config for MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server
 1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)

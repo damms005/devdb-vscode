@@ -6,6 +6,9 @@ import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
 import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-provider';
+import { RailsPostgresProvider } from '../providers/postgres/rails-postgres-provider';
+import { RailsMysqlProvider } from '../providers/mysql/rails-mysql-provider';
+import { RailsSqliteProvider } from '../providers/sqlite/rails-sqlite-provider';
 import { DdevMysqlProvider } from '../providers/mysql/ddev-mysql-provider';
 import { DdevPostgresProvider } from '../providers/postgres/ddev-postgres-provider';
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
@@ -25,9 +28,12 @@ let selectedProvider: string | null = null
 const providers: DatabaseEngineProvider[] = [
 	LaravelLocalSqliteProvider,
 	FilePickerSqliteProvider,
-	ConfigFileProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
+	RailsSqliteProvider,
+	RailsMysqlProvider,
+	RailsPostgresProvider,
+	ConfigFileProvider,
 	DdevMysqlProvider,
 	DdevPostgresProvider,
 	AdonisMysqlProvider,

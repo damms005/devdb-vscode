@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "2.6.4",
+	"version": "2.7.0",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
@@ -20,6 +20,8 @@
 		"sqlite",
 		"postgresql",
 		"postgres",
+		"rails",
+		"ruby on rails",
 		"sql",
 		"database",
 		"database management",
