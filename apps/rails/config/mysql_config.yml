@@ -1,0 +1,27 @@
+# MySQL configuration for future use
+# To use this configuration, install the mysql2 gem and update database.yml
+---
+development:
+  :adapter: mysql2
+  :encoding: utf8mb4
+  :host: localhost
+  :port: 2222
+  :username: root
+  :password: mysecretpassword
+  :database: sample_db
+test:
+  :adapter: mysql2
+  :encoding: utf8mb4
+  :host: localhost
+  :port: 2222
+  :username: root
+  :password: mysecretpassword
+  :database: sample_db_test
+production:
+  :adapter: mysql2
+  :encoding: utf8mb4
+  :host: localhost
+  :port: 2222
+  :username: root
+  :password: mysecretpassword
+  :database: sample_db_production

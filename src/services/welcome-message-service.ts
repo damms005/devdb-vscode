@@ -27,7 +27,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ (details in repo's README)
+					✨ Add Rails zero-config support
 			`, context);
 }
 
