@@ -92,6 +92,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
       - run: npm ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -115,6 +117,11 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
       - uses: actions/download-artifact@v4
       - name: Create GitHub Release
         env:

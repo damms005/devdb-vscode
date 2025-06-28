@@ -65,6 +65,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
       - run: npm ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,6 +85,11 @@ jobs:
     if: success()
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
       - uses: actions/download-artifact@v4
       - uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
