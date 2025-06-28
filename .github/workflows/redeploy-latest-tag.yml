@@ -65,7 +65,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-      - run: npm install
+      - run: npm ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
