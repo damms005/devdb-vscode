@@ -301,6 +301,10 @@
 		"tedious": "^18.6.1",
 		"yaml": "^2.7.0"
 	},
+	"overrides": {
+		"css-select": "5.2.0",
+		"else-release-fails": "https://github.com/damms005/devdb-vscode/actions/runs/15945597878/job/44979269916 due to https://github.com/fb55/css-select/issues/1592"
+	},
 	"prettier": {
 		"plugins": [
 			"prettier-plugin-tailwindcss"
