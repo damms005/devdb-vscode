@@ -89,18 +89,19 @@ jobs:
         if: contains(matrix.os, 'macos')
         run: brew install python-setuptools
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20.x
+          bun-version: latest
       - name: Install vsce
-        run: npm install -g @vscode/vsce
-      - run: npm ci
+        run: bun install -g @vscode/vsce
+      - run: bun install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
       - shell: pwsh
         run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
-      - run: npm run compile && npx vsce package --pre-release --target ${{ env.target }}
+      - run: bun run compile && vsce package --pre-release --target ${{ env.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.target }}
@@ -117,11 +118,12 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20.x
+          bun-version: latest
       - name: Install vsce
-        run: npm install -g @vscode/vsce
+        run: bun install -g @vscode/vsce
       - uses: actions/download-artifact@v4
       - name: Create GitHub Release
         env:
@@ -132,11 +134,13 @@ jobs:
           for file in **/*.vsix; do
             gh release upload $LATEST_TAG "$file"
           done
-      - run: npx vsce publish --pre-release --packagePath $(find . -iname *.vsix)
+      - run: bunx vsce publish --pre-release --packagePath $(find . -iname *.vsix)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Install ovsx
+        run: bun install -g ovsx
       - name: Publish to OpenVSX Registry
         run: |
           for file in **/*.vsix; do
-            npx ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
+            bunx ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
           done
