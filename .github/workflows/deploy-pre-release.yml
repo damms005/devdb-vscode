@@ -134,7 +134,7 @@ jobs:
           for file in **/*.vsix; do
             gh release upload $LATEST_TAG "$file"
           done
-      - run: bunx vsce publish --pre-release --packagePath $(find . -iname *.vsix)
+      - run: bun x vsce publish --pre-release --packagePath $(find . -iname *.vsix)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Install ovsx
@@ -142,5 +142,5 @@ jobs:
       - name: Publish to OpenVSX Registry
         run: |
           for file in **/*.vsix; do
-            bunx ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
+            bun x ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
           done

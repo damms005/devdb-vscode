@@ -74,7 +74,7 @@ jobs:
           npm_config_arch: ${{ matrix.npm_config_arch }}
       - shell: pwsh
         run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
-      - run: bun run compile && bunx vsce package --target ${{ env.target }}
+      - run: bun run compile && bun x vsce package --target ${{ env.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.target }}
@@ -106,7 +106,7 @@ jobs:
           for file in **/*.vsix; do
             gh release upload ${{ steps.get-latest-tag.outputs.tag }} "$file"
           done
-      - run: bunx vsce publish --packagePath $(find . -iname *.vsix)
+      - run: bun x vsce publish --packagePath $(find . -iname *.vsix)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Install ovsx
@@ -114,5 +114,5 @@ jobs:
       - name: Publish to OpenVSX Registry
         run: |
           for file in **/*.vsix; do
-            bunx ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
+            bun x ovsx publish "$file" -p ${{ secrets.OPEN_VSX_DEVDB_TOKEN }}
           done
