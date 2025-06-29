@@ -9,6 +9,9 @@ import { LaravelPostgresProvider } from '../providers/postgres/laravel-postgres-
 import { RailsPostgresProvider } from '../providers/postgres/rails-postgres-provider';
 import { RailsMysqlProvider } from '../providers/mysql/rails-mysql-provider';
 import { RailsSqliteProvider } from '../providers/sqlite/rails-sqlite-provider';
+import { DjangoPostgresProvider } from '../providers/postgres/django-postgres-provider';
+import { DjangoMysqlProvider } from '../providers/mysql/django-mysql-provider';
+import { DjangoSqliteProvider } from '../providers/sqlite/django-sqlite-provider';
 import { DdevMysqlProvider } from '../providers/mysql/ddev-mysql-provider';
 import { DdevPostgresProvider } from '../providers/postgres/ddev-postgres-provider';
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
@@ -33,6 +36,9 @@ const providers: DatabaseEngineProvider[] = [
 	RailsSqliteProvider,
 	RailsMysqlProvider,
 	RailsPostgresProvider,
+	DjangoSqliteProvider,
+	DjangoMysqlProvider,
+	DjangoPostgresProvider,
 	ConfigFileProvider,
 	DdevMysqlProvider,
 	DdevPostgresProvider,
