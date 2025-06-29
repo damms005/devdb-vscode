@@ -2,6 +2,20 @@
 
 set -e
 
+# Cleanup function to run on exit
+cleanup() {
+    if [[ -d "$TODO_APP_DIR" ]]; then
+        print_info "Cleaning up ephemeral Rails application..."
+        cd "$TODO_APP_DIR"
+        # Remove everything except .gitignore
+        find . -mindepth 1 -not -name '.gitignore' -exec rm -rf {} + 2>/dev/null || true
+        print_success "Cleanup completed. Only .gitignore remains."
+    fi
+}
+
+# Set trap to run cleanup on script exit
+trap cleanup EXIT
+
 # Default database type
 DB_TYPE="${1:-sqlite}"
 
