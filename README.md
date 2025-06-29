@@ -76,7 +76,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
 
-- **Integrated Framework & Tool Support:** Tailored support for popular frameworks and tools including Laravel, DDEV, and Adonis ensures a seamless development experience. Need special feature(s) for your environment? [We're listening!](https://github.com/damms005/devdb-vscode/discussions/new?category=ideas).
+- **Integrated Framework & Tool Support:** Tailored support for popular frameworks and tools including Laravel, DDEV, Ruby on Rails, and Adonis ensures a seamless development experience. Need special feature(s) for your environment? [We're listening!](https://github.com/damms005/devdb-vscode/discussions/new?category=ideas).
 
 - **Cross-platform Compatibility:** Engineered to perform consistently on Linux, macOS, and Windows, ensuring maximum flexibility as you can carry on your work across all these platforms.
 
