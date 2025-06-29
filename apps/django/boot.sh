@@ -61,19 +61,19 @@ if [[ "$DB_TYPE" != "sqlite" ]]; then
     case "$DB_TYPE" in
         "mysql")
             if ! docker ps --format "table {{.Names}}" | grep -q "mysql-devdb-triage"; then
-                print_error "MySQL database container 'mysql-devdb-triage' is not running!"
-                print_info "Please start the MySQL database container first:"
-                print_info "  docker run -d --name mysql-devdb-triage -p 2222:3306 -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql:8.0"
-                exit 1
+                print_info "MySQL database container 'mysql-devdb-triage' is not running. Starting it now..."
+                docker run -d --name mysql-devdb-triage -p 2222:3306 -e MYSQL_ROOT_PASSWORD=mysecretpassword -e MYSQL_DATABASE=sample_db mysql:8.0
+                # Wait for MySQL to start up
+                sleep 10
             fi
             print_success "MySQL database container is running"
             ;;
         "postgres")
             if ! docker ps --format "table {{.Names}}" | grep -q "postgres-devdb-triage"; then
-                print_error "PostgreSQL database container 'postgres-devdb-triage' is not running!"
-                print_info "Please start the PostgreSQL database container first:"
-                print_info "  docker run -d --name postgres-devdb-triage -p 3333:5432 -e POSTGRES_PASSWORD=mysecretpassword postgres:16"
-                exit 1
+                print_info "PostgreSQL database container 'postgres-devdb-triage' is not running. Starting it now..."
+                docker run -d --name postgres-devdb-triage -p 3333:5432 -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=sample_db postgres:16
+                # Wait for PostgreSQL to start up
+                sleep 5
             fi
             print_success "PostgreSQL database container is running"
             ;;
@@ -123,7 +123,7 @@ source venv/bin/activate
 
 # Install Django and required database packages
 print_info "Installing required packages..."
-pip install django
+pip install django==4.2.10
 case "$DB_TYPE" in
     "mysql")
         # Use PyMySQL instead of mysqlclient (pure Python implementation)
@@ -720,6 +720,13 @@ EOF
 
 # Setup database and sample data
 print_info "Setting up database and sample data..."
+
+# For MySQL and PostgreSQL, wait a bit longer to ensure the database is fully ready
+if [[ "$DB_TYPE" != "sqlite" ]]; then
+    print_info "Waiting for database to be fully ready..."
+    sleep 5
+fi
+
 python3 setup_database.py
 
 # Find an available port
