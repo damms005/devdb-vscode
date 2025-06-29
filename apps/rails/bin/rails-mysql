@@ -1,9 +1,0 @@
-#!/bin/bash
-# This script runs Rails commands with the custom MySQL adapter
-
-# Get the directory of this script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$DIR/.." && pwd )"
-
-# Run the command with RUBYLIB set to include our custom adapter
-RUBYLIB="$PROJECT_ROOT/lib" bundle exec --gemfile="$PROJECT_ROOT/Gemfile" rails "$@"

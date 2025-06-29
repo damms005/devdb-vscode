@@ -1,0 +1,4 @@
+# Ignore everything in this ephemeral Rails application directory
+*
+# But don't ignore this .gitignore file itself
+!.gitignore
