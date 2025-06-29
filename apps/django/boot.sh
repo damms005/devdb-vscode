@@ -126,7 +126,8 @@ print_info "Installing required packages..."
 pip install django
 case "$DB_TYPE" in
     "mysql")
-        pip install mysqlclient
+        # Use PyMySQL instead of mysqlclient (pure Python implementation)
+        pip install pymysql
         ;;
     "postgres")
         pip install psycopg2-binary
@@ -147,6 +148,10 @@ case "$DB_TYPE" in
         cat > todoapp/settings.py << 'EOF'
 import os
 from pathlib import Path
+
+# Initialize PyMySQL to be used as MySQLdb
+import pymysql
+pymysql.install_as_MySQLdb()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
