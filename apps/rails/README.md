@@ -88,69 +88,55 @@ A fully functional todo application is available at `/todos` that demonstrates d
 - **Delete todos**: Remove todo items permanently
 - **List todos**: View all todos with their current status
 
-The todo app is designed to be ephemeral - all data is lost when the container is stopped, making it perfect for testing database functionality without persistence concerns.
+The todo app is designed to be ephemeral - all data is lost when the application is stopped, making it perfect for testing database functionality without persistence concerns.
 
 ## Generated Files
 
-### Dockerfile
-A database-specific Dockerfile is generated in the same directory and contains:
-- Ruby 3.2 base image
-- Database-specific client tools
-- Rails 8.0 application setup
-- Database configuration
-- Sample data initialization scripts
-- Web interface setup
+### Rails Application Structure
+The generated Rails application includes:
+- Rails 8.0 project structure
+- Controllers for home and todos functionality
+- Views with responsive design
+- Routes configuration
+- Database setup scripts
+- Sample data initialization
 
-**Note**: The generated Dockerfile is ignored by Git (see `.gitignore`) since it's created dynamically.
-
-### Container Names
-Containers are named using the pattern: `devdb-rails-{database_type}`
-- `devdb-rails-sqlite`
-- `devdb-rails-mysql`
-- `devdb-rails-postgres`
+**Note**: The entire generated application is ignored by Git (see `.gitignore`) since it's created dynamically and is ephemeral.
 
 ## Management Commands
 
 ### View Application Logs
-```bash
-docker logs devdb-rails-{database_type}
-```
+The Rails development server logs are displayed in the terminal where the script is running.
 
 ### Stop Application
 ```bash
-docker stop devdb-rails-{database_type}
+# Press Ctrl+C in the terminal running the script
 ```
 
-### Remove Application
+### Manual Cleanup
+The script automatically cleans up on exit, but you can also manually clean up:
 ```bash
-docker rm devdb-rails-{database_type}
-```
-
-### Remove Everything (Container + Image)
-```bash
-docker stop devdb-rails-{database_type}
-docker rm devdb-rails-{database_type}
-docker rmi devdb-rails-{database_type}
+# The cleanup happens automatically when the script exits
 ```
 
 ## Database Connection Details
 
 ### MySQL
-- **Host**: host.docker.internal (from container)
+- **Host**: 127.0.0.1
 - **Port**: 2222
 - **Username**: root
 - **Password**: mysecretpassword
 - **Database**: sample_db
 
 ### PostgreSQL
-- **Host**: host.docker.internal (from container)
+- **Host**: 127.0.0.1
 - **Port**: 3333
 - **Username**: postgres
 - **Password**: mysecretpassword
 - **Database**: sample_db
 
 ### SQLite
-- **File**: storage/development.sqlite3 (inside container)
+- **File**: storage/development.sqlite3 (inside todo-app directory)
 
 ## Troubleshooting
 
@@ -158,21 +144,25 @@ docker rmi devdb-rails-{database_type}
 If you see an error about database containers not running, start them using the docker commands shown in the examples above.
 
 ### Port Conflicts
-The script automatically finds available ports, but if you need to use a specific port, you can modify the generated container after it's created.
+The script automatically finds available ports starting from 3000. If port 3000 is in use, it will try 3001, 3002, etc.
 
-### Checking Logs
-If the application doesn't start properly, check the container logs:
+### Rails Not Found
+If you get a "Rails not found" error, install it using:
 ```bash
-docker logs devdb-rails-{database_type}
+gem install rails
 ```
+
+### Checking Application Status
+If the application doesn't start properly, check the output in the terminal where you ran the script for detailed error messages.
 
 ## Development
 
 The `boot.sh` script is self-contained and modifiable. Key sections:
 - Database validation and dependency checking
-- Dockerfile generation (one per database type)
-- Port detection and container management
+- Rails application generation
+- Database configuration for each type
 - Sample data setup scripts
+- Port detection and server management
 
 ## Architecture
 
@@ -182,3 +172,24 @@ This system replaces the traditional approach of maintaining separate Rails appl
 - Simplifies maintenance and updates
 - Provides identical sample data across all database types
 - Maintains database-specific optimizations and configurations
+
+## Requirements
+
+- Ruby 3.0+
+- Rails 8.0+
+- Bundler
+- Docker (for MySQL/PostgreSQL containers)
+- lsof (for port detection)
+
+## Cleanup Behavior
+
+When the script exits (either normally with Ctrl+C or when killed), it automatically:
+- Removes all generated files and directories
+- Preserves only the `.gitignore` file
+- Ensures no leftover files clutter the repository
+
+This ephemeral approach ensures that:
+- The repository stays clean
+- No generated code gets committed
+- Each run starts with a fresh application
+- Database switching is seamless and reliable
