@@ -1,0 +1,4 @@
+# Ignore everything in this ephemeral Django application directory
+*
+# But don't ignore this .gitignore file itself
+!.gitignore
