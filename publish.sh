@@ -124,7 +124,7 @@ if [ "$PRE_RELEASE" = false ]; then
   fi
 fi
 
-# Push the tags and to dev branch if pre-release
+# For pre-release, push to dev branch first, then push tags
 if [ "$PRE_RELEASE" = true ]; then
   if ! git push origin HEAD:refs/heads/dev; then
     echo -e "\x1b[31mError: Failed to push to dev branch. The name 'dev' might be ambiguous."
@@ -132,10 +132,13 @@ if [ "$PRE_RELEASE" = true ]; then
     echo -e "To see all references containing 'dev' and resolve the ambiguity.\x1b[0m"
     exit 1
   fi
+  # For pre-release, explicitly push the tag to ensure it's associated with dev branch
+  LATEST_TAG=$(git describe --tags --abbrev=0)
+  git push origin "$LATEST_TAG"
+else
+  # For regular releases, just push with follow-tags
+  git push --follow-tags
 fi
-
-# Push the tags with git push --follow-tags
-git push --follow-tags
 
 # Display a visually distinctive completion message with release type information
 if [ "$PRE_RELEASE" = true ]; then
