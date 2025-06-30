@@ -47,27 +47,22 @@ export async function getDatabaseConfig(alias: string): Promise<DjangoDatabaseCo
 			return null;
 		}
 
-		const shellCommand = `"import json; from django.conf import settings; print(json.dumps(settings.DATABASES))"`;
-		const commands = [
-			`python manage.py shell -c ${shellCommand}`,
-			`python3 manage.py shell -c ${shellCommand}`,
-			`poetry run python manage.py shell -c ${shellCommand}`,
-			`pipenv run python manage.py shell -c ${shellCommand}`
-		];
+		const pythonPath = process.platform === 'win32'
+			? path.join(workspaceRoot, 'venv', 'Scripts', 'python.exe')
+			: path.join(workspaceRoot, 'venv', 'bin', 'python');
 
+		const shellCommand = `"import json; from django.conf import settings; print(json.dumps(settings.DATABASES))"`;
+		const command = `${pythonPath} manage.py shell -c ${shellCommand}`;
 		let stdout: string | null = null;
 		let lastError: any = null;
 
-		for (const command of commands) {
-			try {
-				log('Django Core', `Trying command: ${command}`);
-				const result = await execAsync(command, { cwd: workspaceRoot });
-				stdout = result.stdout;
-				break;
-			} catch (error) {
-				lastError = error;
-				log('Django Core', `Command failed: ${command}, error: ${String(error)}`);
-			}
+		try {
+			log('Django Core', `Trying command: ${command}`);
+			const result = await execAsync(command, { cwd: workspaceRoot });
+			stdout = result.stdout;
+		} catch (error) {
+			lastError = error;
+			log('Django Core', `Command failed: ${command}, error: ${String(error)}`);
 		}
 
 		if (!stdout || stdout.trim() === '') {
