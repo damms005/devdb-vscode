@@ -51,7 +51,7 @@ export async function getDatabaseConfig(alias: string): Promise<DjangoDatabaseCo
 			? path.join(workspaceRoot, 'venv', 'Scripts', 'python.exe')
 			: path.join(workspaceRoot, 'venv', 'bin', 'python');
 
-		const shellCommand = `"import json; from django.conf import settings; print(json.dumps(settings.DATABASES))"`;
+		const shellCommand = `"import json; from django.conf import settings; from pathlib import Path; db = settings.DATABASES; db['default']['NAME'] = str(db['default']['NAME']); print(json.dumps(db))"`;
 		const command = `${pythonPath} manage.py shell -c ${shellCommand}`;
 		let stdout: string | null = null;
 		let lastError: any = null;
