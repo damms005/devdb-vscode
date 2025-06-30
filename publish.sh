@@ -25,9 +25,12 @@ for arg in "$@"; do
   fi
 done
 
+# Define usage message for consistency
+USAGE_MSG="Usage: $0 <version> [closes-<issue number> | no-closures] [--pre-release]"
+
 # Check if version argument is provided
 if [ -z "$1" ]; then
-  echo -e "\x1b[31mUsage: $0 <version> [closes-<issue number> | no-closures] [--pre-release]"
+  echo -e "\x1b[31m$USAGE_MSG"
   echo -e "Allowed branches: ${allowed_branches[*]}."
   exit 1
 fi
@@ -76,7 +79,7 @@ elif [[ "$2" =~ ^closes-[0-9]+$ ]]; then
   issue_number="${2#closes-}"
   commit_body="Closes #$issue_number"  # GitHub auto-close format
 else
-  echo -e "\x1b[31mInvalid argument for closures. Usage: $0 <version> [closes-<issue number> | no-closures]"
+  echo -e "\x1b[31mInvalid argument for closures. $USAGE_MSG"
   exit 1
 fi
 
