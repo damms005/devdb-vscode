@@ -12,8 +12,6 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
 
-	showDevWorkspaceProNoticeForDdevWorkspaces(context, 'abcdefghi');
-
 	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
 
 	if (!previousVersion) {
