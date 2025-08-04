@@ -10,6 +10,7 @@ import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from '.
 import { DevDbUriHandler } from './uri-handler';
 import { goToTable } from './services/go-to-table';
 import { startHttpServer } from './services/mcp/http-server';
+import { initializeDevWorkspaceProRecommendations } from './services/devworkspacepro-recommendation-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
@@ -115,5 +116,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			devDbViewProvider?.notifyConfigChange(event);
 		}
 	});
+
+	initializeDevWorkspaceProRecommendations(context);
 
 }

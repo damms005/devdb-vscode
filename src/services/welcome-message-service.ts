@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
+import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-notification-service';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
@@ -11,9 +12,15 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
 
+	showDevWorkspaceProNoticeForDdevWorkspaces(context, 'abcdefghi');
+
 	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
 
 	if (!previousVersion) {
+		if (currentVersion) {
+			showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion, true);
+		}
+
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
 		return
 	}
@@ -23,6 +30,10 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	if (currentVersion === previousVersion || !isUpdate(previousVersionArray, currentVersionArray)) {
 		return;
+	}
+
+	if (currentVersion) {
+		showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion);
 	}
 
 	showMessageAndButtons(`
@@ -112,7 +123,6 @@ function getPreviousVersion(context: vscode.ExtensionContext): string | undefine
 
 function getVersionAsArray(version: string): number[] {
 	try {
-		// Validate version string format
 		if (!/^\d+(\.\d+)*$/.test(version)) {
 			console.warn(`Invalid version format: ${version}`);
 			return [0, 0, 0];
@@ -128,7 +138,6 @@ function getVersionAsArray(version: string): number[] {
 }
 
 function isUpdate(previousVersion: number[], currentVersion: number[]): boolean {
-	// Ensure arrays have same length
 	const maxLength = Math.max(previousVersion.length, currentVersion.length);
 	const normalizedPrev = [...previousVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
 	const normalizedCurr = [...currentVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
