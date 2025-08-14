@@ -121,6 +121,20 @@ export async function getTableModelMapForCurrentWorkspace(): Promise<ModelMap> {
 	return modelTableMap
 }
 
+
+/**
+ * Determines the name of the database table associated with a given Laravel model file.
+ *
+ * It first attempts to extract the table name from an explicitly defined `$table` property in the model file.
+ * If the `$table` property is not present, it falls back to Laravel's naming convention by
+ * converting the model name to snake_case and pluralizing it.
+ *
+ * This function assumes the file content represents a Laravel Eloquent model.
+ *
+ * @param fsPath - Absolute file system path to the PHP model file.
+ * @param modelName - The name of the model class, used for fallback inference.
+ * @returns The database table name associated with the model.
+ */
 export async function getTable(fsPath: string, modelName: string): Promise<string> {
 	const fileContent = (await vscode.workspace.fs.readFile(vscode.Uri.file(fsPath))).toString()
 	const tablePropertyDefinition = /protected\s+\$table\s*=\s*['"](.+?)['"]/
