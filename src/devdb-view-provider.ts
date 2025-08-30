@@ -9,6 +9,7 @@ import { logToOutput } from './services/output-service';
 
 export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'devdb';
+	private static readonly webViewNotAvailableMsg = `Message received but the webview not available`;
 
 	private _view?: vscode.WebviewView;
 	private _extensionUri: vscode.Uri;
@@ -42,7 +43,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.html = getWebviewHtml(webviewView.webview, this.jsFile, this.cssFile, this._extensionUri);
 
 		webviewView.webview.onDidReceiveMessage(async (data) => {
-			if (!this._view) return logToOutput(`Message received but the webview not available`)
+			if (!this._view) return logToOutput(DevDbViewProvider.webViewNotAvailableMsg)
 
 			await handleIncomingMessage(data, this._view)
 		});
@@ -54,7 +55,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public setActiveTable(table: string) {
-		if (!this._view) return logToOutput(`Message received but the webview not available`)
+		if (!this._view) return logToOutput(DevDbViewProvider.webViewNotAvailableMsg)
 
 		if (!isTablesLoaded()) {
 			return showEmptyTablesNotification()
@@ -67,7 +68,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public async sendUnsolicitedResponse(command: string, response: unknown) {
-		if (!this._view) return logToOutput(`Message received but the webview not available`)
+		if (!this._view) return logToOutput(DevDbViewProvider.webViewNotAvailableMsg)
 
 		await reply(this._view.webview, command, response)
 	}
