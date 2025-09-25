@@ -55,7 +55,7 @@ Built with 💖 for developers.
 
 We are genuinely grateful to the following sponsors of DevDb:
 
-- [DevWorkspace Pro](https://devworkspacepro.com) - The Ultimate GUI for DDEV, also tuned to supercharge your productivity
+- [DevWorkspace Pro](https://devworkspacepro.com) - The Ultimate GUI for DDEV, with conveniences that supercharge your productivity
 - [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
 
 ## Features
