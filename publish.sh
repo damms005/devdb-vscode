@@ -69,7 +69,7 @@ echo "Ok."
 cleanup_test_containers
 
 echo "Ensure tests are passing..."
-# bun run test-services || exit 1
+bun run test-services || exit 1
 echo "Ok."
 
 echo "Building UI..."
