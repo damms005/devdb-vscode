@@ -9,8 +9,9 @@ import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codel
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
 import { DevDbUriHandler } from './uri-handler';
 import { goToTable } from './services/go-to-table';
-import { startHttpServer } from './services/mcp/http-server';
+import { startHttpServer, stopHttpServer } from './services/mcp/http-server';
 import { initializeDevWorkspaceProRecommendations } from './services/devworkspacepro-recommendation-service';
+import { logToOutput } from './services/output-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 
@@ -43,7 +44,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const settings = vscode.workspace.getConfiguration('Devdb');
 	if (settings.get<boolean>('enableMcpServer', true)) {
-		startHttpServer();
+		try {
+			await startHttpServer();
+			logToOutput('MCP HTTP server started', 'MCP Server');
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to start MCP server: ${error}`);
+		}
 	}
 
 	context.subscriptions.push(provider);
@@ -119,4 +125,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	initializeDevWorkspaceProRecommendations(context);
 
+}
+
+export function deactivate() {
+	stopHttpServer();
 }
