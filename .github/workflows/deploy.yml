@@ -101,7 +101,7 @@ jobs:
         run: bun install -g @vscode/vsce
       - name: Install dependencies (Windows)
         if: contains(matrix.os, 'windows')
-        run: npm i
+        run: npm i --ignore-scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
