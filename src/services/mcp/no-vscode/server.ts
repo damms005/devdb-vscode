@@ -29,7 +29,7 @@ server.registerTool('run-query', { title: 'Run a query', description: 'Run a que
 		return {
 			content: [{
 				type: 'text',
-				text: `Error in 'run-query': ${(String(error))}`
+				text: String(error)
 			}],
 			isError: true
 		};
@@ -38,7 +38,7 @@ server.registerTool('run-query', { title: 'Run a query', description: 'Run a que
 
 server.registerResource(
 	"tables",
-	new ResourceTemplate("db://tables", { list: undefined }),
+	"db://tables",
 	{ title: 'Get tables', description: 'Get list of tables in current database' },
 	async (uri) => {
 		try {
@@ -53,8 +53,9 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error in 'tables' resource: ${(error as Error).message}`
-				}]
+					text: `Error in 'tables' resource: ${String(error)}`
+				}],
+				isError: true
 			};
 		}
 	},
@@ -70,7 +71,8 @@ server.registerResource(
 				contents: [{
 					uri: uri.href,
 					text: "Error in 'schema' resource: Invalid table name"
-				}]
+				}],
+				isError: true
 			};
 		}
 
@@ -86,8 +88,9 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error in 'schema' resource: ${(error as Error).message}`
-				}]
+					text: `Error in 'schema' resource: ${String(error)}`
+				}],
+				isError: true
 			};
 		}
 	},
@@ -95,10 +98,11 @@ server.registerResource(
 
 async function main() {
 	const transport = new StdioServerTransport();
-	server.connect(transport)
+	await server.connect(transport);
 }
 
 main().catch((error) => {
+	console.error('Failed to start MCP server:', error);
 	process.exit(1);
 });
 
@@ -140,8 +144,8 @@ async function executeQuery(query: string): Promise<any> {
 		body: JSON.stringify({ query })
 	});
 	if (!resp.ok) {
-		const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
-		throw new Error(String(errorData) || 'Could not execute query');
+		const errorData = await resp.json().catch(() => ({ message: 'Unknown DevDb MCP error' }));
+		throw new Error((errorData as { message: string }).message);
 	}
 	const { result } = await resp.json() as { result: any };
 	return result;
