@@ -257,6 +257,7 @@
 		"@types/node": "^18.19.80",
 		"@types/pluralize": "^0.0.33",
 		"@types/vscode": "~1.83.3",
+		"@types/winston": "^2.4.4",
 		"@typescript-eslint/eslint-plugin": "^6.21.0",
 		"@typescript-eslint/parser": "^6.21.0",
 		"@vscode/test-electron": "^2.4.1",
@@ -270,7 +271,8 @@
 		"prettier-plugin-tailwindcss": "^0.5.14",
 		"testcontainers": "^10.18.0",
 		"ts-node": "^10.9.2",
-		"typescript": "^5.8.2"
+		"typescript": "^5.8.2",
+		"winston": "^3.18.3"
 	},
 	"dependencies": {
 		"@azure/app-configuration": "^1.8.0",

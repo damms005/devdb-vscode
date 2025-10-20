@@ -370,7 +370,7 @@ function getMcpConfig() {
 	 *
 	 * @see https://github.com/damms005/devdb-vscode/blob/f0f6e12616c860027e882eed9c602066e998aa1f/esbuild.js#L8
 	 */
-	const scriptPath = join(__dirname, 'services/mcp/server.js')
+	const scriptPath = join(__dirname, 'services/mcp/no-vscode/server.js')
 
 	return {
 		'devdb-mcp-server': {

@@ -9,7 +9,7 @@ import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codel
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
 import { DevDbUriHandler } from './uri-handler';
 import { goToTable } from './services/go-to-table';
-import { startHttpServer } from './services/mcp/http-server';
+import { startHttpServer, stopHttpServer } from './services/mcp/http-server';
 import { initializeDevWorkspaceProRecommendations } from './services/devworkspacepro-recommendation-service';
 import { logToOutput } from './services/output-service';
 
@@ -128,6 +128,5 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	const { stopHttpServer } = require('./services/mcp/http-server');
 	stopHttpServer();
 }
