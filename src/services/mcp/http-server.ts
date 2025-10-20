@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { logToOutput } from "../output-service";
 import { getConnectedDatabase } from "../messenger";
-import { savePort, clearPort } from "./port-manager";
+import { savePort, clearPort } from "./no-vscode/port-manager";
 
 let port: number | null = null;
 
@@ -81,6 +81,19 @@ export async function startHttpServer() {
 			if (!db) return res.status(500).json({ error: 'No DB connected' });
 			const sql = await db.getTableCreationSql(tableName);
 			res.json({ schema: sql });
+		});
+
+		app.post('/query', async function (req: any, res: any) {
+			const { query } = req.body;
+			if (!query) return res.status(400).json({ error: 'Query is required' });
+			try {
+				const db = await getConnectedDatabase();
+				if (!db) return res.status(500).json({ error: 'No DB connected' });
+				const result = await db.rawQuery(query);
+				res.json({ result });
+			} catch (error) {
+				res.status(500).json({ error: `Error running query: ${(error as Error).message}` });
+			}
 		});
 
 		const server = app.listen(availablePort, () => {

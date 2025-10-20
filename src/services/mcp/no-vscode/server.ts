@@ -1,10 +1,7 @@
-import path from 'path'
 import { z } from 'zod';
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { getPort } from "./port-manager";
-import { getConnectedDatabase } from "../messenger";
-import { getWorkspaceId } from './http-server';
 
 const server = new McpServer({
 	name: "DevDB",
@@ -14,14 +11,7 @@ const server = new McpServer({
 server.registerTool('run-query', { title: 'Run a query', description: 'Run a query', inputSchema: { query: z.string() } }, (async (r: any) => {
 	const query = r.query;
 	try {
-		const db = await getConnectedDatabase();
-		if (!db) return {
-			content: [{
-				type: 'text',
-				text: 'No DB connected'
-			}]
-		};
-		const result = await db.rawQuery(query);
+		const result = await executeQuery(query);
 		return {
 			content: [{
 				type: 'text',
@@ -32,8 +22,9 @@ server.registerTool('run-query', { title: 'Run a query', description: 'Run a que
 		return {
 			content: [{
 				type: 'text',
-				text: `Error running query: ${(error as Error).message}`
-			}]
+				text: `Error: ${(error as Error).message}`
+			}],
+			isError: true
 		};
 	}
 }) as any);
@@ -55,7 +46,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error fetching tables: ${(error as Error).message}`
+					text: `Error: ${(error as Error).message}`
 				}]
 			};
 		}
@@ -71,7 +62,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: 'Invalid table name'
+					text: 'Error: Invalid table name'
 				}]
 			};
 		}
@@ -88,7 +79,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error fetching schema: ${(error as Error).message}`
+					text: `Error: ${(error as Error).message}`
 				}]
 			};
 		}
@@ -105,26 +96,6 @@ main().catch((error) => {
 	console.error("Fatal error in main():", error);
 	process.exit(1);
 });
-
-
-export function getMcpConfig() {
-	/**
-	 * Get actual path even after building
-	 *
-	 * @see https://github.com/damms005/devdb-vscode/blob/f0f6e12616c860027e882eed9c602066e998aa1f/esbuild.js#L8
-	 */
-	const scriptPath = path.join(__dirname, 'services/mcp/server.js')
-
-	return {
-		'devdb-mcp-server': {
-			command: 'node',
-			args: [scriptPath],
-			env: {
-				'WORKSPACE_ID': getWorkspaceId()
-			}
-		}
-	}
-}
 
 function getServerUrl(): string {
 	const port = getPort();
@@ -152,4 +123,21 @@ async function fetchTableSchema(name: string): Promise<string> {
 	}
 	const { schema } = await resp.json() as { schema: string };
 	return schema;
+}
+
+async function executeQuery(query: string): Promise<any> {
+	const baseUrl = getServerUrl();
+	const resp = await fetch(`${baseUrl}/query`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ query })
+	});
+	if (!resp.ok) {
+		const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
+		throw new Error(String(errorData) || 'Could not execute query');
+	}
+	const { result } = await resp.json() as { result: any };
+	return result;
 }
