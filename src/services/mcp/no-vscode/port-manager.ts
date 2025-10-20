@@ -1,26 +1,6 @@
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import * as winston from 'winston';
-
-const MCP_CONFIG_DIR = path.join(os.homedir(), '.devdb');
-const MCP_CONFIG_FILE = path.join(MCP_CONFIG_DIR, 'mcp.json');
-
-const logger = winston.createLogger({
-	level: 'info',
-	format: winston.format.json(),
-	defaultMeta: { service: 'devdb-mcp-port-manager' },
-	transports: [
-		new winston.transports.File({ filename: path.join(MCP_CONFIG_DIR, 'error.log'), level: 'error' }),
-		new winston.transports.File({ filename: path.join(MCP_CONFIG_DIR, 'combined.log') }),
-	],
-});
-
-if (process.env.DEBUG_MODE === 'true') {
-	logger.add(new winston.transports.Console({
-		format: winston.format.simple(),
-	}));
-}
+import logger from "./logger"
+import { MCP_CONFIG_DIR, MCP_CONFIG_FILE } from './config';
 
 interface McpConfig {
 	[workspaceId: string]: number;
@@ -59,7 +39,6 @@ export function savePort(port: number, workspaceId: string): void {
 		const config = readMcpConfig();
 		config[workspaceId] = port;
 		writeMcpConfig(config);
-		logger.info(`DevDB: Saved port ${port} for workspace ${workspaceId} to ${MCP_CONFIG_FILE}`);
 	} catch (error) {
 		logger.error('Failed to save port to config:', error);
 		throw error;
@@ -89,13 +68,6 @@ export function getPort(): number | null {
 	}
 }
 
-export function clearPort(workspaceId: string): void {
-	try {
-		const config = readMcpConfig();
-		delete config[workspaceId];
-		writeMcpConfig(config);
-		logger.info(`DevDB: Cleared port for workspace ${workspaceId} from ${MCP_CONFIG_FILE}`);
-	} catch (error) {
-		logger.error('Failed to clear port from config:', error);
-	}
+export function getConfigDir() {
+	return MCP_CONFIG_DIR;
 }
