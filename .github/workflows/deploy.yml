@@ -59,44 +59,45 @@ jobs:
             platform: win32
             arch: x64
             npm_config_arch: x64
-          - os: ubuntu-22.04
-            platform: linux
-            arch: x64
-            npm_config_arch: x64
-          - os: ubuntu-22.04
-            platform: linux
-            arch: arm64
-            npm_config_arch: arm64
-          - os: ubuntu-22.04
-            platform: linux
-            arch: armhf
-            npm_config_arch: arm
-          - os: ubuntu-22.04
-            platform: alpine
-            arch: x64
-            npm_config_arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: x64
-            npm_config_arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
-            npm_config_arch: arm64
+          # - os: ubuntu-22.04
+          #   platform: linux
+          #   arch: x64
+          #   npm_config_arch: x64
+          # - os: ubuntu-22.04
+          #   platform: linux
+          #   arch: arm64
+          #   npm_config_arch: arm64
+          # - os: ubuntu-22.04
+          #   platform: linux
+          #   arch: armhf
+          #   npm_config_arch: arm
+          # - os: ubuntu-22.04
+          #   platform: alpine
+          #   arch: x64
+          #   npm_config_arch: x64
+          # - os: macos-latest
+          #   platform: darwin
+          #   arch: x64
+          #   npm_config_arch: x64
+          # - os: macos-latest
+          #   platform: darwin
+          #   arch: arm64
+          #   npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup Windows Build Environment
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Setup Windows SDK
         if: contains(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v2
-      - name: Install Windows SDK
-        if: contains(matrix.os, 'windows')
-        shell: pwsh
-        run: |
-          choco install windows-sdk-10-version-2004-all -y
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v2
+        with:
+          sdk-version: 20348
       - name: Install macOS dependencies
         if: contains(matrix.os, 'macos')
         run: brew install python-setuptools
-      - uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
