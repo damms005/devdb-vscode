@@ -110,7 +110,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: build
-    if: success() && needs.check.outputs.proceed == 'true'
+    if: needs.build.result == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
