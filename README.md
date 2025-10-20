@@ -44,12 +44,9 @@ Built with 💖 for developers.
 
 ## Latest Features
 
-1. MCP Server for providing database connections to Cursor, Windsurf, etc.
-1. Quick table access: Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table
+1. Allow IDEs (VS Code, Cursor, Windsurf, etc.) to run SQL queries against your application database
 1. New zero-config support: applications running in DDEV
-1. New zero-config support: Django - SQLite, MySQL, and PostgreSQL
-1. New zero-config support: Ruby on Rails - SQLite, MySQL, and PostgreSQL
-1. New zero-config support: Adonis (Lucid ORM) - MySQL and PostgreSQL
+1. New zero-config support: Django, Ruby on Rails, and Adonis (Lucid ORM)
 
 ## Sponsors
 
@@ -254,7 +251,7 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 1. As shown in screenshot, click the hammer icon to copy the MCP settings.
 1. In your IDE's MCP settings file (e.g. `.vscode/mcp.json`, `windsurf/mcp_config.json`, etc.), paste the copied JSON as one of the available MCP servers.
 
-Your IDE/AI-tool should now be able to use your database details.
+Your IDE/AI-tool should now be able to work with your application's database.
 
 ![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
 ![MCP Usage](resources/screenshots/new/mcp-usage.png)
