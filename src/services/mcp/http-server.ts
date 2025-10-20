@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { logToOutput } from "../output-service";
 import { getConnectedDatabase } from "../messenger";
-import { savePort, clearPort } from "./no-vscode/port-manager";
+import { savePort } from "./no-vscode/port-manager";
 
 let port: number | null = null;
 
@@ -85,10 +85,11 @@ export async function startHttpServer() {
 
 		app.post('/query', async function (req: any, res: any) {
 			const { query } = req.body;
+
 			if (!query) return res.status(400).json({ error: 'Query is required' });
 			try {
 				const db = await getConnectedDatabase();
-				if (!db) return res.status(500).json({ error: 'No DB connected' });
+				if (!db) return res.status(500).json({ message: 'No DB connected' });
 				const result = await db.rawQuery(query);
 				res.json({ result });
 			} catch (error) {
@@ -121,8 +122,6 @@ export function getCurrentPort(): number | null {
 
 export function stopHttpServer(): void {
 	if (port) {
-		const workspaceId = getWorkspaceId();
-		clearPort(workspaceId);
 		port = null;
 		logToOutput('MCP HTTP server stopped', 'MCP Server');
 	}
