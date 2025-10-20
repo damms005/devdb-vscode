@@ -6,6 +6,13 @@ import { getPort } from "./port-manager";
 const server = new McpServer({
 	name: "DevDB",
 	version: "1.0.2"
+}, {
+	capabilities: {
+		"resources": {
+			"subscribe": false,
+			"listChanged": false,
+		}
+	}
 });
 
 server.registerTool('run-query', { title: 'Run a query', description: 'Run a query', inputSchema: { query: z.string() } }, (async (r: any) => {
@@ -22,7 +29,7 @@ server.registerTool('run-query', { title: 'Run a query', description: 'Run a que
 		return {
 			content: [{
 				type: 'text',
-				text: `Error: ${(error as Error).message}`
+				text: `Error in 'run-query': ${(String(error))}`
 			}],
 			isError: true
 		};
@@ -46,7 +53,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error: ${(error as Error).message}`
+					text: `Error in 'tables' resource: ${(error as Error).message}`
 				}]
 			};
 		}
@@ -62,7 +69,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: 'Error: Invalid table name'
+					text: "Error in 'schema' resource: Invalid table name"
 				}]
 			};
 		}
@@ -79,7 +86,7 @@ server.registerResource(
 			return {
 				contents: [{
 					uri: uri.href,
-					text: `Error: ${(error as Error).message}`
+					text: `Error in 'schema' resource: ${(error as Error).message}`
 				}]
 			};
 		}
@@ -89,11 +96,9 @@ server.registerResource(
 async function main() {
 	const transport = new StdioServerTransport();
 	server.connect(transport)
-	console.info('DevDB MCP Server ready');
 }
 
 main().catch((error) => {
-	console.error("Fatal error in main():", error);
 	process.exit(1);
 });
 
