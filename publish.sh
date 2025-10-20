@@ -50,9 +50,23 @@ cd "$SCRIPT_DIR" || exit 1
 echo "Current working directory:"
 pwd
 
+cleanup_test_containers() {
+  echo "Cleaning up any orphaned test containers..."
+  docker rm -f \
+    devdb-test-container-mssql \
+    devdb-test-container-mssql-cert \
+    devdb-test-container-mysql \
+    devdb-test-container-postgres \
+    devdb-test-container-for-general-sql-tests \
+    2>/dev/null || true
+  echo "Cleanup complete."
+}
+
 echo "Ensure OK..."
 bun run pretest || exit 1
 echo "Ok."
+
+cleanup_test_containers
 
 echo "Ensure tests are passing..."
 bun run test-services || exit 1
