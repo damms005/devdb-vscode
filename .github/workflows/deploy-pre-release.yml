@@ -109,8 +109,8 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: build
-    if: success() && needs.check.outputs.proceed == 'true'
+    needs: [check, build]
+    if: needs.check.outputs.proceed == 'true' && needs.build.result == 'success'
     steps:
       - uses: actions/checkout@v4
         # Ensure we can get latest tag futher below by including tags
