@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "2.12.14",
+	"version": "2.12.15",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
