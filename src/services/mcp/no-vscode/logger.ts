@@ -4,18 +4,16 @@ import { MCP_CONFIG_DIR } from './config';
 
 const logger = winston.createLogger({
 	level: 'info',
-	format: winston.format.json(),
-	defaultMeta: { service: 'devdb-mcp-port-manager' },
+	format: winston.format.combine(
+		winston.format.timestamp(),
+		winston.format.errors({ stack: true }),
+		winston.format.json()
+	),
+	defaultMeta: { service: 'devdb-mcp-server' },
 	transports: [
-		new winston.transports.File({ filename: path.join(MCP_CONFIG_DIR, 'error.log'), level: 'error' }),
-		new winston.transports.File({ filename: path.join(MCP_CONFIG_DIR, 'combined.log') }),
+		new winston.transports.File({ filename: path.join(MCP_CONFIG_DIR, 'mcp-log.txt') }),
 	],
 });
 
-if (process.env.DEBUG_MODE === 'true') {
-	logger.add(new winston.transports.Console({
-		format: winston.format.simple(),
-	}));
-}
 
 export default logger
