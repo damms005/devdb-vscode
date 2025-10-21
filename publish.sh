@@ -16,6 +16,7 @@ is_allowed_branch() {
 
 # Initialize pre-release flag
 PRE_RELEASE=false
+AUTO_PRE_RELEASE_FROM_DEV=false
 
 # Parse arguments
 for arg in "$@"; do
@@ -42,6 +43,12 @@ current_branch=${current_branch#refs/heads/}
 if ! is_allowed_branch "$current_branch"; then
   echo -e "\x1b[31mError: This script must run on one of: ${allowed_branches[*]}. You are on '$current_branch'."
   exit 1
+fi
+
+# Automatically enable pre-release if on dev branch
+if [ "$current_branch" = "dev" ] && [ "$PRE_RELEASE" = false ]; then
+  PRE_RELEASE=true
+  AUTO_PRE_RELEASE_FROM_DEV=true
 fi
 
 # cd to the dir where this script is located
@@ -166,6 +173,12 @@ if [ "$PRE_RELEASE" = true ]; then
   echo -e "│  CD pipeline will now handle publishing to:                    │"
   echo -e "│  • VS Code Marketplace                                         │"
   echo -e "│  • Open VSX Registry                                           │"
+
+  if [ "$AUTO_PRE_RELEASE_FROM_DEV" = true ]; then
+    echo -e "│                                                                │"
+    echo -e "│  ⚠️  AUTO PRE-RELEASE: Publishing from dev branch              │"
+  fi
+
   echo -e "└────────────────────────────────────────────────────────────────┘\x1b[0m\n"
 else
   # Bold, green text for standard release notification with a distinctive border
