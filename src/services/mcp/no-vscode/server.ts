@@ -107,6 +107,34 @@ server.registerResource(
 	},
 );
 
+server.registerResource(
+	"database-type",
+	"db://database-type",
+	{ title: 'Get database type', description: 'Get the database type (e.g. mysql2, postgres, mssql, etc.) to determine SQL syntax to use for raw queries' },
+	async (uri) => {
+		logger.info('Fetching database type resource', { uri: uri.href });
+		try {
+			const databaseType = await fetchDatabaseType();
+			logger.info('Database type fetched successfully', { uri: uri.href, databaseType });
+			return {
+				contents: [{
+					uri: uri.href,
+					text: JSON.stringify({ type: databaseType })
+				}]
+			};
+		} catch (error) {
+			logger.error('Database type fetch failed', { uri: uri.href, error: String(error) });
+			return {
+				contents: [{
+					uri: uri.href,
+					text: `Error in 'database-type' resource: ${String(error)}`
+				}],
+				isError: true
+			};
+		}
+	},
+);
+
 async function main() {
 	logger.info('Starting MCP server');
 	const transport = new StdioServerTransport();
@@ -116,7 +144,6 @@ async function main() {
 
 main().catch((error) => {
 	logger.error('Failed to start MCP server', { error: String(error) });
-	console.error('Failed to start MCP server:', error);
 	process.exit(1);
 });
 
@@ -174,4 +201,17 @@ async function executeQuery(query: string): Promise<any> {
 	const { result } = await resp.json() as { result: any };
 	logger.debug('Query executed successfully via HTTP server', { baseUrl, query, resultLength: JSON.stringify(result).length });
 	return result;
+}
+
+async function fetchDatabaseType(): Promise<string> {
+	const baseUrl = getServerUrl();
+	logger.debug('Fetching database type from HTTP server', { baseUrl });
+	const resp = await fetch(`${baseUrl}/database-type`);
+	if (!resp.ok) {
+		logger.error('Failed to fetch database type from HTTP server', { baseUrl, status: resp.status, statusText: resp.statusText });
+		throw new Error('Could not establish database connection');
+	}
+	const { type } = await resp.json() as { type: string };
+	logger.debug('Database type fetched successfully', { baseUrl, type });
+	return type;
 }

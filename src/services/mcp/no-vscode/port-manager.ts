@@ -37,6 +37,14 @@ function writeMcpConfig(config: McpConfig): void {
 export function savePort(port: number, workspaceId: string): void {
 	try {
 		const config = readMcpConfig();
+
+		for (const existingWorkspaceId in config) {
+			if (config[existingWorkspaceId] === port) {
+				delete config[existingWorkspaceId];
+				logger.info(`DevDB: Removed port ${port} from workspace ${existingWorkspaceId}`);
+			}
+		}
+
 		config[workspaceId] = port;
 		writeMcpConfig(config);
 	} catch (error) {
@@ -65,6 +73,19 @@ export function getPort(): number | null {
 	} catch (error) {
 		logger.error('Failed to read port from config:', error);
 		return null;
+	}
+}
+
+export function clearPort(workspaceId: string): void {
+	try {
+		const config = readMcpConfig();
+		if (config[workspaceId]) {
+			delete config[workspaceId];
+			writeMcpConfig(config);
+			logger.info(`DevDB: Cleared port for workspace ${workspaceId}`);
+		}
+	} catch (error) {
+		logger.error('Failed to clear port from config:', error);
 	}
 }
 

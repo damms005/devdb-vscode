@@ -2,10 +2,18 @@ import express, { Request, Response, NextFunction } from "express";
 import { createServer } from "net";
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { logToOutput } from "../output-service";
 import { getConnectedDatabase } from "../messenger";
-import { savePort } from "./no-vscode/port-manager";
+import { savePort, clearPort } from "./no-vscode/port-manager";
 import logger from './no-vscode/logger';
+
+function writeMcpLog(message: string, level: 'info' | 'error' | 'warn' | 'debug' = 'info', metadata?: any) {
+	logger[level](message, metadata);
+	logToOutput(message, 'MCP Server');
+}
 
 let port: number | null = null;
 
@@ -46,15 +54,43 @@ async function findAvailablePort(startPort: number = 50001): Promise<number> {
 	return currentPort;
 }
 
+async function checkAndTruncateLogFile() {
+	const logFilePath = path.join(os.homedir(), '.devdb', 'mcp-log.txt');
+	
+	try {
+		const stats = await fs.promises.stat(logFilePath);
+		if (stats.size > 5 * 1024) {
+			const data = await fs.promises.readFile(logFilePath, 'utf8');
+			const lines = data.split('\n');
+			let truncatedData = '';
+			
+			for (let i = lines.length - 1; i >= 0; i--) {
+				const testData = lines[i] + '\n' + truncatedData;
+				if (Buffer.byteLength(testData, 'utf8') > 1024) {
+					break;
+				}
+				truncatedData = testData;
+			}
+			
+			await fs.promises.writeFile(logFilePath, truncatedData);
+			logger.info('Log file truncated', { originalSize: stats.size, newSize: Buffer.byteLength(truncatedData, 'utf8') });
+		}
+	} catch (error) {
+		if ((error as any).code !== 'ENOENT') {
+			logger.error('Failed to check/truncate log file', { error: (error as Error).message });
+		}
+	}
+}
+
 export async function startHttpServer() {
+	await checkAndTruncateLogFile();
+	
 	if (port) {
-		logger.info('MCP HTTP server is already running', { port });
-		logToOutput('MCP HTTP server is already running', 'MCP Server');
+		writeMcpLog('MCP HTTP server is already running', 'info', { port });
 		return port;
 	}
 
-	logger.info('Starting HTTP server for MCP');
-	logToOutput('Starting HTTP server for MCP', 'MCP Server');
+	writeMcpLog('Starting HTTP server for MCP');
 
 	try {
 		const availablePort = await findAvailablePort(50001);
@@ -121,15 +157,25 @@ export async function startHttpServer() {
 			}
 		});
 
+		app.get('/database-type', async function (_req: any, res: any) {
+			logger.debug('HTTP request: GET /database-type');
+			const db = await getConnectedDatabase();
+			if (!db) {
+				logger.error('No database connected for /database-type request');
+				return res.status(500).json({ error: 'No DB connected' });
+			}
+			const type = db.getType();
+			logger.debug('Successfully fetched database type', { type });
+			res.json({ type });
+		});
+
 		const server = app.listen(availablePort, () => {
 			const workspaceId = getWorkspaceId();
-			logger.info('MCP HTTP server started successfully', { port: availablePort, workspaceId });
-			logToOutput(`MCP HTTP server listening on port ${availablePort} for workspace ${workspaceId}`, 'MCP Server');
+			writeMcpLog(`MCP HTTP server listening on port ${availablePort} for workspace ${workspaceId}`, 'info', { port: availablePort, workspaceId });
 		});
 
 		server.on('error', (error: any) => {
-			logger.error('MCP HTTP server error', { error: error.message, port: availablePort });
-			logToOutput(`MCP HTTP server error: ${error.message}`, 'MCP Server');
+			writeMcpLog(`MCP HTTP server error: ${error.message}`, 'error', { error: error.message, port: availablePort });
 			throw error;
 		});
 
@@ -139,8 +185,7 @@ export async function startHttpServer() {
 		savePort(availablePort, workspaceId);
 		return availablePort;
 	} catch (error: any) {
-		logger.error('Failed to start MCP HTTP server', { error: error.message });
-		logToOutput(`Failed to start MCP HTTP server: ${error.message}`, 'MCP Server');
+		writeMcpLog(`Failed to start MCP HTTP server: ${error.message}`, 'error', { error: error.message });
 		throw error;
 	}
 }
@@ -152,6 +197,12 @@ export function getCurrentPort(): number | null {
 export function stopHttpServer(): void {
 	if (port) {
 		logger.info('Stopping MCP HTTP server', { port });
+		try {
+			const workspaceId = getWorkspaceId();
+			clearPort(workspaceId);
+		} catch (error: any) {
+			logger.error('Failed to clear port entry', { error: error.message });
+		}
 		port = null;
 		logToOutput('MCP HTTP server stopped', 'MCP Server');
 	}
