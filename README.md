@@ -52,7 +52,7 @@ Built with 💖 for developers.
 
 We are genuinely grateful to the following sponsors of DevDb:
 
-- [DevWorkspace Pro](https://devworkspacepro.com) - Desktop app for easily building Docker-powered web apps, with conveniences that supercharge your productivity
+- [DevWorkspace Pro](https://devworkspacepro.com) - Easily build Docker-powered web apps, with conveniences that supercharge your productivity
 - [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
 
 ## Features
