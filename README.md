@@ -52,7 +52,7 @@ Built with 💖 for developers.
 
 We are genuinely grateful to the following sponsors of DevDb:
 
-- [DevWorkspace Pro](https://devworkspacepro.com) - Easily build Docker-powered web apps, with conveniences that supercharge your productivity
+- [DevWorkspace Pro](https://devworkspacepro.com) - Easily build and manage web apps, with conveniences that supercharge your productivity
 - [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
 
 ## Features
@@ -277,12 +277,14 @@ Parameters:
 
 ## Support
 
-You can support the development of DevDb by [contributing](#contribution) or by [sponsoring the development](https://github.com/sponsors/damms005). We appreciate your DevDb sponsorships with perks. Check the [sponsorship page](https://github.com/sponsors/damms005) for available sponsorship options.
+You can support the development of DevDb by [contributing](#contribution) features and submitting PRs, or by [sponsoring the development](https://github.com/sponsors/damms005). We appreciate your DevDb sponsorships with perks and you can check the [sponsorship page](https://github.com/sponsors/damms005) for available sponsorship options.
 
-We also appreciate your support by saying 'thank you' to our existing sponsors by patronizing or subscribing to the amazing services they offer:
+You can also support this project by using the services offered by our sponsors:
 
 - [Traycer AI](https://traycer.ai/#pricing1)
 - [DevWorkspace Pro](https://devworkspacepro.com)
+
+Please do check out [other projects](https://damms005.dev/projects) by Damilola Olowookere for other sponsorship options.
 
 ## Contribution
 
