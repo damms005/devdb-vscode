@@ -10,6 +10,8 @@
 	"description": "A zero-config extension that displays your database records right inside VS Code and provides tools and affordances to aid development and debugging.",
 	"categories": [
 		"Programming Languages",
+		"Visualization",
+		"Data Science",
 		"Other"
 	],
 	"keywords": [
