@@ -158,7 +158,7 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 
 	getPlainStringTypes(): string[] {
-		return ['character', 'character varying', 'text', 'json', 'jsonb'];
+		return ['character', 'character varying', 'varchar', 'char', 'text', 'json', 'jsonb'];
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
