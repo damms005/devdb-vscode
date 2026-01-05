@@ -246,14 +246,34 @@ The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.
 
 <!-- TODO: update when completed -->
 
-### MCP Configuration
+### MCP Integration
 
-1. As shown in screenshot, click the hammer icon to copy the MCP settings.
-1. In your IDE's MCP settings file (e.g. `.vscode/mcp.json`, `windsurf/mcp_config.json`, etc.), paste the copied JSON as one of the available MCP servers.
+DevDb exposes your database to AI-powered IDEs and MCP clients. You only need to configure once, and then you can query your database naturally through AI.
 
-Your IDE/AI-tool should now be able to work with your application's database.
+#### For Claude Code
 
-![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
+1. Open your project in VS Code with DevDb active
+2. Click the hammer icon in DevDb view to copy the server script path
+   ![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
+3. Add the MCP server using CLI (substitute the path you copied in step 2):
+
+```bash
+claude mcp add --transport stdio devdb-mcp-server node "<paste-script-path-here>"
+```
+
+4. Claude Code can now query your database using tools like `get-tables`, `get-schema`, `get-database-type`, and `run-query`
+
+#### For VS Code-based IDEs (Cursor, Windsurf, Cline, etc.)
+
+1. Click the hammer icon in DevDb view to copy the MCP configuration JSON
+2. Open your IDE's MCP config file:
+   - **Cursor/Cline**: `.vscode/mcp.json`
+   - **Windsurf**: `windsurf/mcp_config.json`
+3. Paste the copied JSON under the `mcpServers` key
+4. Reload your IDE
+
+Your AI assistant can now access your database schema and run queries.
+
 ![MCP Usage](resources/screenshots/new/mcp-usage.png)
 
 ## URI Handler

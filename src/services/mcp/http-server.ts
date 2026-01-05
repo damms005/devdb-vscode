@@ -1,7 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import { createServer } from "net";
 import * as vscode from 'vscode';
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -17,7 +16,7 @@ function writeMcpLog(message: string, level: 'info' | 'error' | 'warn' | 'debug'
 
 let port: number | null = null;
 
-export function getWorkspaceId(): string {
+export function getProjectRoot(): string {
 	const workspaceFolders = vscode.workspace.workspaceFolders;
 	const workspacePath = workspaceFolders?.[0]?.uri.fsPath;
 
@@ -25,7 +24,7 @@ export function getWorkspaceId(): string {
 		throw new Error('No workspace found');
 	}
 
-	return crypto.createHash('md5').update(workspacePath).digest('hex').substring(0, 12);
+	return workspacePath;
 }
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -170,8 +169,8 @@ export async function startHttpServer() {
 		});
 
 		const server = app.listen(availablePort, () => {
-			const workspaceId = getWorkspaceId();
-			writeMcpLog(`MCP HTTP server listening on port ${availablePort} for workspace ${workspaceId}`, 'info', { port: availablePort, workspaceId });
+			const projectRoot = getProjectRoot();
+			writeMcpLog(`MCP HTTP server listening on port ${availablePort} for project ${projectRoot}`, 'info', { port: availablePort, projectRoot });
 		});
 
 		server.on('error', (error: any) => {
@@ -180,9 +179,9 @@ export async function startHttpServer() {
 		});
 
 		port = availablePort;
-		const workspaceId = getWorkspaceId();
-		logger.info('Saving port for workspace', { port: availablePort, workspaceId });
-		savePort(availablePort, workspaceId);
+		const projectRoot = getProjectRoot();
+		logger.info('Saving port for project', { port: availablePort, projectRoot });
+		savePort(availablePort, projectRoot);
 		return availablePort;
 	} catch (error: any) {
 		writeMcpLog(`Failed to start MCP HTTP server: ${error.message}`, 'error', { error: error.message });
@@ -198,8 +197,8 @@ export function stopHttpServer(): void {
 	if (port) {
 		logger.info('Stopping MCP HTTP server', { port });
 		try {
-			const workspaceId = getWorkspaceId();
-			clearPort(workspaceId);
+			const projectRoot = getProjectRoot();
+			clearPort(projectRoot);
 		} catch (error: any) {
 			logger.error('Failed to clear port entry', { error: error.message });
 		}

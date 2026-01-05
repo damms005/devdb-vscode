@@ -53,3 +53,5 @@ apps/rails/todo-app/*
 !apps/rails/todo-app/.gitkeep
 
 ltex*
+
+SPEC.md

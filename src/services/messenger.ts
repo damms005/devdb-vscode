@@ -22,7 +22,6 @@ import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
-import { getWorkspaceId } from './mcp/http-server';
 import { join } from 'path';
 
 const workspaceTables: string[] = [];
@@ -365,20 +364,12 @@ async function reconnect(webviewView: vscode.WebviewView) {
 
 
 function getMcpConfig() {
-	/**
-	 * Get actual path even after building
-	 *
-	 * @see https://github.com/damms005/devdb-vscode/blob/f0f6e12616c860027e882eed9c602066e998aa1f/esbuild.js#L8
-	 */
 	const scriptPath = join(__dirname, 'services/mcp/no-vscode/server.js')
 
 	return {
 		'devdb-mcp-server': {
 			command: 'node',
-			args: [scriptPath],
-			env: {
-				'WORKSPACE_ID': getWorkspaceId()
-			}
+			args: [scriptPath]
 		}
 	}
 }

@@ -3,7 +3,7 @@ import logger from "./logger"
 import { MCP_CONFIG_DIR, MCP_CONFIG_FILE } from './config';
 
 interface McpConfig {
-	[workspaceId: string]: number;
+	[projectRoot: string]: number;
 }
 
 function ensureConfigDir(): void {
@@ -34,18 +34,18 @@ function writeMcpConfig(config: McpConfig): void {
 	}
 }
 
-export function savePort(port: number, workspaceId: string): void {
+export function savePort(port: number, projectRoot: string): void {
 	try {
 		const config = readMcpConfig();
 
-		for (const existingWorkspaceId in config) {
-			if (config[existingWorkspaceId] === port) {
-				delete config[existingWorkspaceId];
-				logger.info(`DevDB: Removed port ${port} from workspace ${existingWorkspaceId}`);
+		for (const existingProjectRoot in config) {
+			if (config[existingProjectRoot] === port) {
+				delete config[existingProjectRoot];
+				logger.info(`DevDB: Removed port ${port} from project ${existingProjectRoot}`);
 			}
 		}
 
-		config[workspaceId] = port;
+		config[projectRoot] = port;
 		writeMcpConfig(config);
 	} catch (error) {
 		logger.error('Failed to save port to config:', error);
@@ -53,21 +53,16 @@ export function savePort(port: number, workspaceId: string): void {
 	}
 }
 
-export function getPort(): number | null {
+export function getPort(projectRoot: string): number | null {
 	try {
-		if (!process.env.WORKSPACE_ID) {
-			throw new Error('WORKSPACE_ID environment variable is required for MCP server process');
-		}
-
-		const workspaceId = process.env.WORKSPACE_ID;
 		const config = readMcpConfig();
-		const port = config[workspaceId];
+		const port = config[projectRoot];
 
 		if (port) {
-			logger.info(`DevDB: Read port ${port} for workspace ${workspaceId} from ${MCP_CONFIG_FILE}`);
+			logger.info(`DevDB: Read port ${port} for project ${projectRoot} from ${MCP_CONFIG_FILE}`);
 			return port;
 		} else {
-			logger.info(`DevDB: No port found for workspace ${workspaceId} in ${MCP_CONFIG_FILE}`);
+			logger.info(`DevDB: No port found for project ${projectRoot} in ${MCP_CONFIG_FILE}`);
 			return null;
 		}
 	} catch (error) {
@@ -76,13 +71,13 @@ export function getPort(): number | null {
 	}
 }
 
-export function clearPort(workspaceId: string): void {
+export function clearPort(projectRoot: string): void {
 	try {
 		const config = readMcpConfig();
-		if (config[workspaceId]) {
-			delete config[workspaceId];
+		if (config[projectRoot]) {
+			delete config[projectRoot];
 			writeMcpConfig(config);
-			logger.info(`DevDB: Cleared port for workspace ${workspaceId}`);
+			logger.info(`DevDB: Cleared port for project ${projectRoot}`);
 		}
 	} catch (error) {
 		logger.error('Failed to clear port from config:', error);
