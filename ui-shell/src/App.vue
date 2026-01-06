@@ -16,7 +16,7 @@ const displayedTabs = ref([])
 const activeTabIndex = ref()
 const userPreferences = ref({})
 const editSession = ref([])
-const mcpServerConfig = ref({})
+const mcpServerConfig = ref([])
 const itemsPerPage = ref(10)
 
 onMounted(() => {
@@ -329,10 +329,9 @@ function notify(title) {
 </script>
 
 <template>
-	<!-- eslint-disable vue/no-multiple-template-root -->
+	 <!-- eslint-disable vue/no-multiple-template-root -->
 	<div class="h-full min-h-full w-full min-w-full bg-white">
-		<!-- eslint-disable vue/valid-v-bind -->
-		<DevDB
+		 <!-- eslint-disable vue/valid-v-bind --> <DevDB
 			:activeTabIndex
 			:connected
 			:editSession
@@ -363,5 +362,6 @@ function notify(title) {
 			@update-current-tab-filter="getFilteredData"
 		/>
 	</div>
-	<RouterView />
+	 <RouterView />
 </template>
+

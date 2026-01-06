@@ -267,14 +267,17 @@ claude mcp add --transport stdio devdb-mcp-server node "<paste-script-path-here>
 
 1. Click the hammer icon in DevDb view to copy the MCP configuration JSON
 2. Open your IDE's MCP config file:
-   - **Cursor/Cline**: `.vscode/mcp.json`
-   - **Windsurf**: `windsurf/mcp_config.json`
-3. Paste the copied JSON under the `mcpServers` key
-4. Reload your IDE
+   - **[VS Code](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_other-options-to-add-an-mcp-server)**: `.vscode/mcp.json`
+   - **[Cursor](https://cursor.com/docs/context/mcp#configuration-locations)**: `~/.cursor/mcp.json`
+   - **[Windsurf](https://docs.windsurf.com/windsurf/cascade/mcp#mcp_config-json)**: `~/.codeium/windsurf/mcp_config.json`
+3. Paste the copied JSON under the appropriate key and reload your IDE
 
 Your AI assistant can now access your database schema and run queries.
 
 ![MCP Usage](resources/screenshots/new/mcp-usage.png)
+
+> [!NOTE]
+> You should update the config when you update to a new version of DevDb because the version number may change.
 
 ## URI Handler
 

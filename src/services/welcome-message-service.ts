@@ -35,7 +35,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Refactored MCP implementation for easier integration with Claude Code and other tools
+					✨ Add MCP instruction for Claude Code and other IDEs/MCP clients.
 			`, context);
 }
 

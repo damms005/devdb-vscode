@@ -73,6 +73,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 			if (!cfg.get<boolean>('enableMcpServer', true)) {
 				return { error: "DevDb's MCP server is disabled" }
 			}
+
 			return getMcpConfig()
 		},
 	}
@@ -366,10 +367,35 @@ async function reconnect(webviewView: vscode.WebviewView) {
 function getMcpConfig() {
 	const scriptPath = join(__dirname, 'services/mcp/no-vscode/server.js')
 
-	return {
-		'devdb-mcp-server': {
-			command: 'node',
-			args: [scriptPath]
-		}
-	}
+	const codeConfig = JSON.stringify(
+		{
+			'devdb-mcp-server': {
+				command: 'node',
+				args: [scriptPath],
+				env: [],
+			},
+		},
+		null,
+		2,
+	)
+
+	const mcpServerConfig = [
+		{
+			name: 'Claude Code',
+			config: `claude mcp add --transport stdio devdb-mcp-server node "${scriptPath}"`,
+			onCopyMessage: 'Command copied to clipboard. Run the command to add DevDb MCP server to Claude Code.',
+		},
+		{
+			name: 'Cursor/VS Code',
+			config: codeConfig,
+			onCopyMessage: 'Config copied to clipboard. Add it to your config file. e.g. .vscode/mcp.json',
+		},
+		{
+			name: 'Windsurf',
+			onCopyMessage: 'Config copied to clipboard. Add it to your config file. e.g. ~/.codeium/windsurf/mcp_config.json',
+			config: codeConfig,
+		},
+	]
+
+	return mcpServerConfig
 }
