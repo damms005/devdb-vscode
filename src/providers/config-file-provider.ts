@@ -56,7 +56,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 			return await reportNameError(config);
 		}
 
-		if (config.type === 'mysql') {
+		if (config.type === 'mysql' || config.type === 'mariadb') {
 			const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)
 			if (connection) this.cache?.push(connection)
 		}
