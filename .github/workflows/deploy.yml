@@ -88,6 +88,9 @@ jobs:
       - name: Install macOS dependencies
         if: contains(matrix.os, 'macos')
         run: brew install python-setuptools
+      - name: Install Windows dependencies
+        if: contains(matrix.os, 'windows')
+        run: pip install setuptools
       - uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
