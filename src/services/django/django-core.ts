@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { getPathToWorkspaceFile, getBasePath } from '../workspace';
 import { log } from '../logging-service';
 import * as path from 'path';
+import { existsSync } from 'fs';
 
 const execAsync = promisify(exec);
 
@@ -20,7 +21,8 @@ export interface DjangoDatabaseConfig {
 export function isDjangoProject(): boolean {
 	try {
 		const managePyPath = getPathToWorkspaceFile('manage.py');
-		if (!managePyPath) {
+
+		if (!managePyPath || !existsSync(managePyPath)) {
 			log('Django Core', 'No manage.py found in workspace root');
 			return false;
 		}
