@@ -9,6 +9,7 @@
 # Include source and compiled files
 !*.js
 !dist/**/*.js
+!dist/**/*.node
 !ui-shell/dist/**
 
 # Include icons
@@ -19,5 +20,5 @@
 !snippets/*
 !schemas/*
 
-# Include @vscode/sqlite3 because we excluded it from build in esbuild.js
+# @vscode/sqlite3: uses node-gyp-build with complex dynamic requires that can't be bundled by esbuild
 !node_modules/@vscode/sqlite3/**
