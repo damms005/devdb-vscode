@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
@@ -16,17 +16,32 @@ import { DdevMysqlProvider } from '../providers/mysql/ddev-mysql-provider';
 import { DdevPostgresProvider } from '../providers/postgres/ddev-postgres-provider';
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
 import { AdonisPostgresProvider } from '../providers/postgres/adonis-postgres-provider';
+import { SupabasePostgresProvider } from '../providers/postgres/supabase-postgres-provider';
 import { exportTableData } from './export-table-data';
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
+import { MysqlEngine } from '../database-engines/mysql-engine';
+import { PostgresEngine } from '../database-engines/postgres-engine';
+import { MongodbEngine } from '../database-engines/mongodb-engine';
+import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
+import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
 import { join } from 'path';
+import { remoteConnectionStorageService, StoredRemoteConnection } from './remote-connection-storage-service';
+import { remoteCredentialService } from './remote-credential-service';
+import { getConnectionFor } from './connector';
+import { getRandomString as generateId } from './random-string-generator';
 
 const workspaceTables: string[] = [];
 
 let selectedProvider: string | null = null
+let licenseChecker: (() => boolean) | null = null
+
+export function setLicenseChecker(checker: () => boolean) {
+	licenseChecker = checker
+}
 
 const providers: DatabaseEngineProvider[] = [
 	LaravelLocalSqliteProvider,
@@ -44,6 +59,7 @@ const providers: DatabaseEngineProvider[] = [
 	DdevPostgresProvider,
 	AdonisMysqlProvider,
 	AdonisPostgresProvider,
+	SupabasePostgresProvider,
 ]
 
 export let database: DatabaseEngine | null = null;
@@ -55,6 +71,13 @@ export async function getConnectedDatabase(): Promise<DatabaseEngine | null> {
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
 	const actions: Record<string, () => unknown> = {
 		'request:get-user-preferences': async () => vscode.workspace.getConfiguration('Devdb'),
+		'request:get-license-status': async () => ({ hasLicense: licenseChecker?.() ?? false }),
+		'request:activate-license': async () => {
+			await vscode.commands.executeCommand('devdb.license.manage');
+			const licenseStatus = { hasLicense: licenseChecker?.() ?? false };
+			reply(webviewView.webview, 'response:get-license-status', licenseStatus);
+			return undefined;
+		},
 		'request:get-available-providers': async () => await getAvailableProviders(),
 		'request:select-provider': async () => await selectProvider(data.value, data),
 		'request:select-provider-option': async () => await selectProviderOption(data.value),
@@ -68,6 +91,13 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:export-table-data': async () => await exportTableData(data.value, database),
 		'request:write-mutations': async () => await writeMutations(data.value),
 		'request:reconnect': async () => await reconnect(webviewView),
+		'request:get-remote-connections': async () => await remoteConnectionStorageService.getListItems(),
+		'request:save-remote-connection': async () => await saveRemoteConnection(data.value),
+		'request:connect-to-remote': async () => await connectToRemoteConnection(data.value),
+		'request:delete-remote-connection': async () => {
+			await remoteConnectionStorageService.delete(data.value)
+			return await remoteConnectionStorageService.getListItems()
+		},
 		'request:get-mcp-config': async () => {
 			const cfg = vscode.workspace.getConfiguration('Devdb')
 			if (!cfg.get<boolean>('enableMcpServer', true)) {
@@ -363,6 +393,158 @@ async function reconnect(webviewView: vscode.WebviewView) {
 	vscode.window.showErrorMessage('No existing connection')
 }
 
+
+async function saveRemoteConnection(formData: any) {
+	const connectionType = formData.connectionType as string
+	const port = formData.dbPort ? Number(formData.dbPort) : undefined
+	const isPostgres = port === 5432
+
+	let type: StoredRemoteConnection['type']
+	if (connectionType === 'ssh-tunnel') {
+		type = isPostgres ? 'postgres-ssh' : 'mysql-ssh'
+	} else if (connectionType === 'mongodb') {
+		type = 'mongodb'
+	} else {
+		type = isPostgres ? 'postgres' : 'mysql'
+	}
+
+	const connection: StoredRemoteConnection = {
+		id: generateId('rc-'),
+		name: formData.connectionName,
+		type,
+		host: formData.dbHost || 'localhost',
+		port,
+		username: formData.dbUsername || undefined,
+		database: formData.dbName || undefined,
+		sshHost: formData.sshHost || undefined,
+		sshPort: formData.sshPort ? Number(formData.sshPort) : undefined,
+		sshUsername: formData.sshUsername || undefined,
+		sshPrivateKeyPath: formData.sshPrivateKeyPath || undefined,
+		mongoConnectionString: formData.mongoConnectionString || undefined,
+	}
+
+	await remoteConnectionStorageService.save(connection, formData.dbPassword || undefined)
+
+	return await remoteConnectionStorageService.getListItems()
+}
+
+async function connectToRemoteConnection(connectionId: string) {
+	const connection = await remoteConnectionStorageService.getById(connectionId)
+	if (!connection) {
+		return { connected: false, error: 'Connection not found' }
+	}
+
+	try {
+		let engine: DatabaseEngine | null = null
+
+		if (connection.type === 'mongodb') {
+			const password = await remoteCredentialService.getCredential(connection.name, 'password')
+			const config: MongodbConfig = {
+				name: connection.name,
+				type: 'mongodb',
+				host: connection.host,
+				port: connection.port,
+				username: connection.username,
+				database: connection.database ?? '',
+				authSource: connection.authSource,
+				schemaSampleSize: connection.schemaSampleSize,
+				password: password ?? undefined,
+				connectionString: connection.mongoConnectionString,
+			}
+			const mongoEngine = new MongodbEngine(config)
+			if (!(await mongoEngine.connect())) {
+				return { connected: false, error: `Failed to connect to MongoDB: ${connection.name}` }
+			}
+			engine = mongoEngine
+		}
+
+		if (connection.type === 'mysql-ssh') {
+			const config: MysqlSshConfigFile = {
+				name: connection.name,
+				type: 'mysql-ssh',
+				host: connection.host,
+				port: connection.port,
+				username: connection.username,
+				database: connection.database ?? '',
+				sshHost: connection.sshHost ?? '',
+				sshPort: connection.sshPort,
+				sshUsername: connection.sshUsername ?? '',
+				sshPrivateKeyPath: connection.sshPrivateKeyPath,
+			}
+			const sshEngine = new MysqlSshEngine(config, remoteCredentialService)
+			if (!(await sshEngine.connect())) {
+				return { connected: false, error: `Failed to connect via SSH to MySQL: ${connection.name}` }
+			}
+			engine = sshEngine
+		}
+
+		if (connection.type === 'postgres-ssh') {
+			const config: PostgresSshConfigFile = {
+				name: connection.name,
+				type: 'postgres-ssh',
+				host: connection.host,
+				port: connection.port,
+				username: connection.username,
+				database: connection.database ?? '',
+				sshHost: connection.sshHost ?? '',
+				sshPort: connection.sshPort,
+				sshUsername: connection.sshUsername ?? '',
+				sshPrivateKeyPath: connection.sshPrivateKeyPath,
+			}
+			const sshEngine = new PostgresSshEngine(config, remoteCredentialService)
+			if (!(await sshEngine.connect())) {
+				return { connected: false, error: `Failed to connect via SSH to PostgreSQL: ${connection.name}` }
+			}
+			engine = sshEngine
+		}
+
+		if (connection.type === 'mysql') {
+			const password = await remoteCredentialService.getCredential(connection.name, 'password')
+			const knex = await getConnectionFor(
+				connection.name, 'mysql2',
+				connection.host, connection.port ?? 3306,
+				connection.username ?? 'root', password ?? '',
+				connection.database, false
+			)
+			if (!knex) {
+				return { connected: false, error: `Failed to connect to MySQL: ${connection.name}` }
+			}
+			const mysqlEngine = new MysqlEngine(knex)
+			if (!(await mysqlEngine.isOkay())) {
+				return { connected: false, error: `MySQL connection not healthy: ${connection.name}` }
+			}
+			engine = mysqlEngine
+		}
+
+		if (connection.type === 'postgres') {
+			const password = await remoteCredentialService.getCredential(connection.name, 'password')
+			const knex = await getConnectionFor(
+				connection.name, 'postgres',
+				connection.host, connection.port ?? 5432,
+				connection.username ?? 'postgres', password ?? '',
+				connection.database, false
+			)
+			if (!knex) {
+				return { connected: false, error: `Failed to connect to PostgreSQL: ${connection.name}` }
+			}
+			const pgEngine = new PostgresEngine(knex)
+			if (!(await pgEngine.isOkay())) {
+				return { connected: false, error: `PostgreSQL connection not healthy: ${connection.name}` }
+			}
+			engine = pgEngine
+		}
+
+		if (!engine) {
+			return { connected: false, error: `Unsupported connection type: ${connection.type}` }
+		}
+
+		database = engine
+		await remoteConnectionStorageService.updateLastConnected(connectionId)
+		return { connected: true }
+	} catch (error) {
+		return { connected: false, error: String(error) }
+	}
+}
 
 function getMcpConfig() {
 	const scriptPath = join(__dirname, 'services/mcp/no-vscode/server.js')

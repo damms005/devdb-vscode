@@ -128,29 +128,4 @@ export class LicenseService {
 		return this.isLicenseValid;
 	}
 
-	async validateAndEnforce(): Promise<boolean> {
-		if (!this.isLicenseValid) {
-			const status = await this.licenseManager.checkLicenseStatus();
-			this.isLicenseValid = status.isValid;
-
-			if (!this.isLicenseValid) {
-				const action = await vscode.window.showErrorMessage(
-					'DevDb Pro requires a valid license to continue',
-					'Enter License',
-					'Learn More'
-				);
-
-				if (action === 'Enter License') {
-					await this.showLicensePrompt();
-					return this.isLicenseValid;
-				} else if (action === 'Learn More') {
-					vscode.env.openExternal(vscode.Uri.parse('https://polar.sh/damms005/devdb-pro'));
-				}
-
-				return false;
-			}
-		}
-
-		return true;
-	}
 }

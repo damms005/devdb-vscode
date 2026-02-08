@@ -26,7 +26,9 @@ export class LicenseManager {
 	}
 
 	private isValidLicense(licenseInfo: LicenseInfo): boolean {
-		return licenseInfo.status === 'granted' && new Date(licenseInfo.expires_at) > new Date();
+		const expiryWithGrace = new Date(licenseInfo.expires_at);
+		expiryWithGrace.setMonth(expiryWithGrace.getMonth() + 1);
+		return licenseInfo.status === 'granted' && expiryWithGrace > new Date();
 	}
 
 	async promptForLicense(): Promise<string | undefined> {
