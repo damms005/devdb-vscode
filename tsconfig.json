@@ -13,6 +13,13 @@
 		"sourceMap": true,
 		"rootDir": "src",
 		"strict": true /* enable all strict type-checking options */,
+		/**
+		 * Required due to @modelcontextprotocol/sdk .d.ts type errors (HeadersInit not found, ESM/CJS resolution-mode).
+		 * Only skips .d.ts files — our .ts source files are still fully type-checked.
+		 * See: https://github.com/modelcontextprotocol/typescript-sdk/issues/985
+		 * See: https://github.com/modelcontextprotocol/typescript-sdk/issues/1314
+		 */
+		"skipLibCheck": true,
 		"esModuleInterop": true,
 		/* Additional Checks */
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */

@@ -34,7 +34,7 @@ export type EngineProviderCache = {
 	details?: string,
 	description: string,
 	type: ConfigFileConnectionTypes,
-	engine: MysqlEngine | MssqlEngine | SqliteEngine,
+	engine: MysqlEngine | MssqlEngine | SqliteEngine | DatabaseEngine,
 }
 
 /**
@@ -42,7 +42,7 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb'
 
 export type DatabaseEngineProvider = {
 	name: string
@@ -159,7 +159,6 @@ export type SqliteConfig = {
 	path: string
 }
 
-// As used in snippets/devdbrc.json
 export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql'
 
 export type SqlConfig = {
@@ -183,6 +182,60 @@ export interface PostgresConfig extends SqlConfig {
 export interface MssqlConfig extends SqlConfig {
 	type: 'mssql'
 	options?: Record<string, unknown>
+}
+
+export interface MongodbConfigFile {
+	name: string
+	type: 'mongodb'
+	host?: string
+	port?: number
+	username?: string
+	database: string
+	authSource?: string
+	schemaSampleSize?: number
+}
+
+export interface MysqlSshConfigFile {
+	name: string
+	type: 'mysql-ssh'
+	host?: string
+	port?: number
+	username?: string
+	database: string
+	sshHost: string
+	sshPort?: number
+	sshUsername: string
+	sshPrivateKeyPath?: string
+}
+
+export interface PostgresSshConfigFile {
+	name: string
+	type: 'postgres-ssh'
+	host?: string
+	port?: number
+	username?: string
+	database: string
+	sshHost: string
+	sshPort?: number
+	sshUsername: string
+	sshPrivateKeyPath?: string
+}
+
+export interface MongodbConfig extends MongodbConfigFile {
+	password?: string
+	connectionString?: string
+}
+
+export interface MysqlSshConfig extends MysqlSshConfigFile {
+	password?: string
+	sshPassword?: string
+	sshPassphrase?: string
+}
+
+export interface PostgresSshConfig extends PostgresSshConfigFile {
+	password?: string
+	sshPassword?: string
+	sshPassphrase?: string
 }
 
 export type LaravelConnection = 'pgsql' | 'mysql'

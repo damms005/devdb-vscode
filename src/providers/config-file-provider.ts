@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { getConfigFileContent } from '../services/config-service';
 import { brief } from '../services/string';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig, ConfigFileConnectionTypes } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig } from '../types';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { getConnectionFor } from '../services/connector';
 import { PostgresEngine } from '../database-engines/postgres-engine';
@@ -209,3 +209,4 @@ async function postgresConfigResolver(postgresConfig: PostgresConfig): Promise<E
 		engine: engine
 	}
 }
+
