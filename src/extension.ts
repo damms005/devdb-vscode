@@ -4,7 +4,7 @@ import { getVueAssets } from './services/html';
 import { LaravelCodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
-import { database } from './services/messenger';
+import { database, setLicenseChecker } from './services/messenger';
 import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
 import { DevDbUriHandler } from './uri-handler';
@@ -12,10 +12,21 @@ import { goToTable } from './services/go-to-table';
 import { startHttpServer, stopHttpServer } from './services/mcp/http-server';
 import { initializeDevWorkspaceProRecommendations } from './services/devworkspacepro-recommendation-service';
 import { logToOutput } from './services/output-service';
+import { LicenseService } from './services/license/license-service';
+import { remoteCredentialService } from './services/remote-credential-service';
+import { remoteConnectionStorageService } from './services/remote-connection-storage-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
+let licenseService: LicenseService;
 
 export async function activate(context: vscode.ExtensionContext) {
+	licenseService = new LicenseService(context.secrets);
+	await licenseService.initialize();
+	setLicenseChecker(() => licenseService.isValid());
+
+	remoteCredentialService.setExtensionContext(context);
+	remoteConnectionStorageService.setExtensionContext(context);
+
 	showWelcomeMessage(context);
 
 	let assets;
@@ -115,6 +126,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('devdb.goto-table', () => goToTable(devDbViewProvider))
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.license.manage', () => licenseService.manageLicense())
 	);
 
 	vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {

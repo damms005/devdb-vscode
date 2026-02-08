@@ -18,6 +18,9 @@ const userPreferences = ref({})
 const editSession = ref([])
 const mcpServerConfig = ref([])
 const itemsPerPage = ref(10)
+const remoteConnections = ref([])
+const connectingRemoteId = ref(undefined)
+const hasLicense = ref(false)
 
 onMounted(() => {
 	vscode.value = acquireVsCodeApi()
@@ -25,6 +28,8 @@ onMounted(() => {
 	vscode.value.postMessage({ type: 'request:get-user-preferences' })
 	vscode.value.postMessage({ type: 'request:get-available-providers' })
 	vscode.value.postMessage({ type: 'request:get-mcp-config' })
+	vscode.value.postMessage({ type: 'request:get-remote-connections' })
+	vscode.value.postMessage({ type: 'request:get-license-status' })
 })
 
 onUnmounted(() => {
@@ -124,6 +129,26 @@ function setupEventHandlers() {
 			case 'response:reconnect':
 				if (payload) {
 					message.value = 'Reconnected'
+				}
+				break
+
+			case 'response:get-license-status':
+				hasLicense.value = payload.value?.hasLicense ?? false
+				break
+
+			case 'response:get-remote-connections':
+			case 'response:save-remote-connection':
+			case 'response:delete-remote-connection':
+				remoteConnections.value = payload.value || []
+				break
+
+			case 'response:connect-to-remote':
+				connectingRemoteId.value = undefined
+				if (payload.value?.connected) {
+					connected.value = true
+					vscode.value.postMessage({ type: 'request:get-tables' })
+				} else if (payload.value?.error) {
+					notify(payload.value.error)
 				}
 				break
 		}
@@ -319,6 +344,23 @@ function handleRowDeleted(primaryKey, tabId) {
 	displayedTabs.value[tabIndex].rows = displayedTabs.value[tabIndex].rows.filter(row => row.id !== primaryKey)
 }
 
+function handleConnectToRemote(connection) {
+	connectingRemoteId.value = connection.id
+	vscode.value.postMessage({ type: 'request:connect-to-remote', value: connection.id })
+}
+
+function handleSaveRemoteConnection(formData) {
+	vscode.value.postMessage({ type: 'request:save-remote-connection', value: removeProxyWrap(formData) })
+}
+
+function handleDeleteRemoteConnection(connectionId) {
+	vscode.value.postMessage({ type: 'request:delete-remote-connection', value: connectionId })
+}
+
+function activateLicense() {
+	vscode.value.postMessage({ type: 'request:activate-license' })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -341,8 +383,12 @@ function notify(title) {
 			:userPreferences
 			:message
 			:mcpServerConfig
+			:hasLicense
+			:remoteConnections
+			:connectingRemoteId
 			@cell-value-changed="handleCellChanged"
 			@commit-mutations="commitToDatabase"
+			@connect-to-remote="handleConnectToRemote"
 			@destroy-ui="destroyUi"
 			@reconnect="reconnect"
 			@export-table-data="exportTableData"
@@ -356,10 +402,13 @@ function notify(title) {
 			@refresh-providers="refreshProviders"
 			@remove-tab="removeTab"
 			@row-deleted="handleRowDeleted"
+			@save-remote-connection="handleSaveRemoteConnection"
+			@delete-remote-connection="handleDeleteRemoteConnection"
 			@select-provider-option="selectProviderOption"
 			@select-provider="selectProvider"
 			@switch-to-tab="switchToTab"
 			@update-current-tab-filter="getFilteredData"
+			@activate-license="activateLicense"
 		/>
 	</div>
 	 <RouterView />
