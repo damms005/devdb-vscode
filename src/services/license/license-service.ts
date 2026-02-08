@@ -35,7 +35,7 @@ export class LicenseService {
 			return;
 		}
 
-		vscode.window.withProgress({
+		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Validating license...',
 			cancellable: false
@@ -95,7 +95,7 @@ export class LicenseService {
 	}
 
 	private async checkLicenseStatus(): Promise<void> {
-		vscode.window.withProgress({
+		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Checking license status...',
 			cancellable: false

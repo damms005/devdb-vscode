@@ -104,22 +104,29 @@ export class LicenseManager {
 			} else {
 				return {
 					success: false,
-					message: response.data.message || 'Failed to activate license'
+					message: response.data?.message
+						? response.data.message
+						: `Server responded with status ${response.status}: ${JSON.stringify(response.data)}`
 				};
 			}
 		} catch (error) {
 			if (axios.isAxiosError(error)) {
-				if (error.response?.data?.message) {
+				const serverMessage = error.response?.data?.message;
+				if (serverMessage) {
 					return {
 						success: false,
-						message: error.response.data.message
+						message: serverMessage
 					};
 				}
+				return {
+					success: false,
+					message: `License activation failed: ${error.message}`
+				};
 			}
 
 			return {
 				success: false,
-				message: `Failed to activate license: ${error instanceof Error ? error.message : 'Unknown error'}`
+				message: `License activation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			};
 		}
 	}
