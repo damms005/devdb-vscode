@@ -33,6 +33,7 @@ import { remoteConnectionStorageService, StoredRemoteConnection } from './remote
 import { remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
 import { getRandomString as generateId } from './random-string-generator';
+import { testRemoteConnection } from './connection-tester';
 
 const workspaceTables: string[] = [];
 
@@ -94,6 +95,8 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-remote-connections': async () => await remoteConnectionStorageService.getListItems(),
 		'request:save-remote-connection': async () => await saveRemoteConnection(data.value),
 		'request:connect-to-remote': async () => await connectToRemoteConnection(data.value),
+		'request:get-remote-connection': async () => await getRemoteConnectionFormData(data.value),
+		'request:test-remote-connection': async () => await testRemoteConnection(data.value),
 		'request:delete-remote-connection': async () => {
 			await remoteConnectionStorageService.delete(data.value)
 			return await remoteConnectionStorageService.getListItems()
@@ -394,6 +397,35 @@ async function reconnect(webviewView: vscode.WebviewView) {
 }
 
 
+async function getRemoteConnectionFormData(connectionId: string) {
+	const stored = await remoteConnectionStorageService.getById(connectionId)
+	if (!stored) return null
+
+	let connectionType: string
+	if (stored.type === 'mysql-ssh' || stored.type === 'postgres-ssh') {
+		connectionType = 'ssh-tunnel'
+	} else if (stored.type === 'mongodb') {
+		connectionType = 'mongodb'
+	} else {
+		connectionType = 'direct'
+	}
+
+	return {
+		id: stored.id,
+		connectionType,
+		connectionName: stored.name,
+		sshHost: stored.sshHost,
+		sshPort: stored.sshPort,
+		sshUsername: stored.sshUsername,
+		sshPrivateKeyPath: stored.sshPrivateKeyPath,
+		dbHost: stored.host,
+		dbPort: stored.port,
+		dbUsername: stored.username,
+		dbName: stored.database,
+		mongoConnectionString: stored.mongoConnectionString,
+	}
+}
+
 async function saveRemoteConnection(formData: any) {
 	const connectionType = formData.connectionType as string
 	const port = formData.dbPort ? Number(formData.dbPort) : undefined
@@ -408,8 +440,18 @@ async function saveRemoteConnection(formData: any) {
 		type = isPostgres ? 'postgres' : 'mysql'
 	}
 
+	const isEdit = !!formData.id
+	let oldConnectionName: string | undefined
+
+	if (isEdit) {
+		const existing = await remoteConnectionStorageService.getById(formData.id)
+		if (existing && existing.name !== formData.connectionName) {
+			oldConnectionName = existing.name
+		}
+	}
+
 	const connection: StoredRemoteConnection = {
-		id: generateId('rc-'),
+		id: formData.id || generateId('rc-'),
 		name: formData.connectionName,
 		type,
 		host: formData.dbHost || 'localhost',
@@ -421,6 +463,14 @@ async function saveRemoteConnection(formData: any) {
 		sshUsername: formData.sshUsername || undefined,
 		sshPrivateKeyPath: formData.sshPrivateKeyPath || undefined,
 		mongoConnectionString: formData.mongoConnectionString || undefined,
+	}
+
+	if (oldConnectionName) {
+		const password = await remoteCredentialService.getCredential(oldConnectionName, 'password')
+		await remoteCredentialService.deleteAllCredentials(oldConnectionName)
+		if (password) {
+			await remoteCredentialService.storeCredential(formData.connectionName, 'password', password)
+		}
 	}
 
 	await remoteConnectionStorageService.save(connection, formData.dbPassword || undefined)
