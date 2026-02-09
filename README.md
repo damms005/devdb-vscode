@@ -44,9 +44,12 @@ Built with 💖 for developers.
 
 ## Latest Features
 
-1. Allow IDEs (VS Code, Cursor, Windsurf, etc.) to run SQL queries against your application database
-1. New zero-config support: applications running in DDEV
-1. New zero-config support: Django, Ruby on Rails, and Adonis (Lucid ORM)
+1. Zero-config auto-detection for local Supabase projects
+1. Fix issues with Django projects zero-config support
+1. Correctly report MariaDB in DDEV projects
+1. **[Pro]** MongoDB support with automatic schema inference
+1. **[Pro]** MySQL/MariaDB over SSH tunnel
+1. **[Pro]** PostgreSQL over SSH tunnel
 
 ## Sponsors
 
@@ -71,7 +74,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements copied to your clipboard or saved to file.
 
-- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, and Microsoft SQL Server; with more to come!
+- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, and MongoDB. Connect to remote databases securely via SSH tunnels.
 
 - **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
 
@@ -139,6 +142,11 @@ Currently supported databases:
 - MariaDB
 - PostgreSQL
 - Microsoft SQL Server
+- Supabase
+- MongoDB **[Pro]**
+- MySQL over SSH **[Pro]** (also supports MariaDB)
+- PostgreSQL over SSH **[Pro]**
+- Supabase Cloud **[Pro]**
 
 ## Loading Databases
 
@@ -149,6 +157,7 @@ DevDb can automatically discover and load your database using connection details
 No [configuration file](#2-config-based-database-loading) is needed when the workspace root contains any of the following:
 
 1. Applications managed by [DDEV](https://ddev.com)
+1. Local [Supabase](https://supabase.com) projects (detected via `supabase/config.toml`)
 1. [Adonis](https://adonisjs.com) using default .env config for MySQL and PostgreSQL (with Lucid ORM)
 1. [Django](https://www.djangoproject.com) with settings.py for SQLite, MySQL, and PostgreSQL
 1. [Ruby on Rails](https://rubyonrails.org) with config/database.yml for SQLite, MySQL, and PostgreSQL
@@ -205,6 +214,53 @@ The configuration file should contain a single array of database connection obje
 	}
 ]
 ```
+
+### 3. Remote & NoSQL Connections [Pro]
+
+With DevDb Pro License, you can connect to remote databases and NoSQL databases directly from your editor.
+
+#### SSH Tunnel Connections (MySQL/MariaDB & PostgreSQL)
+
+Connects to a remote database by forwarding traffic through an SSH tunnel. Authentication supports:
+
+- **Private key** (recommended): Provide the path to your SSH private key (e.g. `~/.ssh/id_rsa` or `~/.ssh/id_ed25519`). If the key is passphrase-protected, you will be prompted for it on first connection.
+- **Password**: If no private key is provided, you will be prompted for the SSH password.
+
+> [!NOTE]
+> The remote server's SSH daemon must have `AllowTcpForwarding` set to `yes` (or `local`) in `/etc/ssh/sshd_config`. Without this, the SSH tunnel will fail to establish. The remote database host/port default to `127.0.0.1:3306` (MySQL) or `127.0.0.1:5432` (PostgreSQL) — change these if your database binds to a different address or port on the remote machine.
+
+#### MongoDB
+
+Connects via either individual fields (host, port, username, database) or a full connection string URI (`mongodb://...` or `mongodb+srv://...`). When using authentication, provide credentials and set the `authSource` (defaults to `admin`).
+
+#### Supabase Cloud
+
+Connect to your Supabase cloud project using the **Direct Connection** type. Use the connection details from your Supabase dashboard (Settings > Database):
+
+- **Host**: Your project's database host (e.g. `db.<project-ref>.supabase.co`)
+- **Port**: `5432`
+- **Username**: `postgres`
+- **Password**: Your database password
+- **Database**: `postgres`
+
+## Troubleshooting Remote Connections
+
+### SSH Tunnels
+
+- `AllowTcpForwarding` must be `yes` or `local` in `/etc/ssh/sshd_config` on the remote server
+- You may need to change private key permissions to `600` (e.g. `chmod 600 ~/.ssh/id_rsa`)
+- DB host/port fields refer to the address **on the remote machine** (e.g. `127.0.0.1:3306`), not your local machine
+- SSH logs: `/var/log/auth.log` (Debian/Ubuntu) or `/var/log/secure` (RHEL/CentOS)
+
+### MongoDB
+
+- `authSource` must match the database where the user was created (typically `admin`)
+- Credentials in connection string URIs must be [URL-encoded](https://www.mongodb.com/docs/manual/reference/connection-string/#std-label-connections-standard-connection-string-format) if they contain special characters
+
+### Supabase Cloud
+
+- Use **Direct Connection** details from Supabase dashboard, not the connection pooler
+- Check Settings > Database > Network Bans if connections are refused
 
 ## Tools and Framework Integrations
 

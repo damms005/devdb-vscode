@@ -20,7 +20,10 @@ const mcpServerConfig = ref([])
 const itemsPerPage = ref(10)
 const remoteConnections = ref([])
 const connectingRemoteId = ref(undefined)
+const loadingTableName = ref(undefined)
+const loadingTableData = ref(false)
 const hasLicense = ref(false)
+const devDb = ref(null)
 
 onMounted(() => {
 	vscode.value = acquireVsCodeApi()
@@ -71,6 +74,8 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-fresh-table-data':
+				loadingTableName.value = undefined
+				loadingTableData.value = false
 				const tab = buildTabFromPayload(payload)
 				if (!tab) return
 
@@ -80,6 +85,8 @@ function setupEventHandlers() {
 
 			case 'response:get-refreshed-table-data':
 			case 'response:load-table-into-current-tab':
+				loadingTableName.value = undefined
+				loadingTableData.value = false
 				console.log({ 'refresh-response-payload': payload }) // TODO: ran into a situation where refreshing a tab didn't reflect latest db changes. remove this line when the issue is fixed
 				const alternativeTab = buildTabFromPayload(payload)
 				if (!alternativeTab) return
@@ -88,6 +95,7 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-filtered-table-data':
+				loadingTableData.value = false
 				const updatedTab = buildTabFromPayload(payload)
 				if (!updatedTab) return
 
@@ -95,6 +103,7 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-data-for-tab-page':
+				loadingTableData.value = false
 				if (!payload.value) return
 
 				displayedTabs.value[activeTabIndex.value].lastQuery = payload.value.lastQuery
@@ -140,6 +149,16 @@ function setupEventHandlers() {
 			case 'response:save-remote-connection':
 			case 'response:delete-remote-connection':
 				remoteConnections.value = payload.value || []
+				break
+
+			case 'response:get-remote-connection':
+				if (payload.value) {
+					devDb.value?.openEditDialog(payload.value)
+				}
+				break
+
+			case 'response:test-remote-connection':
+				devDb.value?.setTestConnectionResult(payload.value)
 				break
 
 			case 'response:connect-to-remote':
@@ -209,10 +228,13 @@ function removeProxyWrap(value) {
 }
 
 function getFreshTableData(table, itemsPerPage) {
+	loadingTableName.value = table
+	loadingTableData.value = true
 	vscode.value.postMessage({ type: 'request:get-fresh-table-data', value: { table, itemsPerPage } })
 }
 
 function refreshActiveTab(activeTab) {
+	loadingTableData.value = true
 	vscode.value.postMessage({
 		type: 'request:get-refreshed-table-data',
 		value: {
@@ -223,6 +245,8 @@ function refreshActiveTab(activeTab) {
 }
 
 function loadTableIntoCurrentTab(table) {
+	loadingTableName.value = table
+	loadingTableData.value = true
 	if (activeTabIndex.value === undefined || activeTabIndex.value === null) {
 		return getFreshTableData(table, itemsPerPage.value)
 	}
@@ -248,6 +272,7 @@ function getFilteredData(filters, itemsPerPage) {
 }
 
 function updateCurrentTabFilter(table, itemsPerPage, filters) {
+	loadingTableData.value = true
 	filters = filters ? removeProxyWrap(filters) : null
 	vscode.value.postMessage({ type: 'request:get-filtered-table-data', value: { table, itemsPerPage, filters } })
 }
@@ -259,6 +284,7 @@ function switchToTab(tabIndex) {
 }
 
 function getDataForTabPage(tab, page) {
+	loadingTableData.value = true
 	tab = removeProxyWrap(tab)
 
 	vscode.value.postMessage({
@@ -357,6 +383,14 @@ function handleDeleteRemoteConnection(connectionId) {
 	vscode.value.postMessage({ type: 'request:delete-remote-connection', value: connectionId })
 }
 
+function handleGetRemoteConnection(connectionId) {
+	vscode.value.postMessage({ type: 'request:get-remote-connection', value: connectionId })
+}
+
+function handleTestRemoteConnection(formData) {
+	vscode.value.postMessage({ type: 'request:test-remote-connection', value: removeProxyWrap(formData) })
+}
+
 function activateLicense() {
 	vscode.value.postMessage({ type: 'request:activate-license' })
 }
@@ -374,6 +408,7 @@ function notify(title) {
 	 <!-- eslint-disable vue/no-multiple-template-root -->
 	<div class="h-full min-h-full w-full min-w-full bg-white">
 		 <!-- eslint-disable vue/valid-v-bind --> <DevDB
+			ref="devDb"
 			:activeTabIndex
 			:connected
 			:editSession
@@ -386,6 +421,8 @@ function notify(title) {
 			:hasLicense
 			:remoteConnections
 			:connectingRemoteId
+			:loadingTableName
+			:loadingTableData
 			@cell-value-changed="handleCellChanged"
 			@commit-mutations="commitToDatabase"
 			@connect-to-remote="handleConnectToRemote"
@@ -404,6 +441,8 @@ function notify(title) {
 			@row-deleted="handleRowDeleted"
 			@save-remote-connection="handleSaveRemoteConnection"
 			@delete-remote-connection="handleDeleteRemoteConnection"
+			@get-remote-connection="handleGetRemoteConnection"
+			@test-remote-connection="handleTestRemoteConnection"
 			@select-provider-option="selectProviderOption"
 			@select-provider="selectProvider"
 			@switch-to-tab="switchToTab"

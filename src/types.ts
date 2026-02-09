@@ -117,6 +117,8 @@ export interface DatabaseEngine {
 
 	getVersion(): Promise<string | undefined>
 
+	disconnect(): Promise<void>
+
 	rawQuery(code: string): Promise<any>
 }
 
