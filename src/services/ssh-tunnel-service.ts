@@ -1,4 +1,3 @@
-import * as vscode from 'vscode'
 import * as net from 'net'
 import * as os from 'os'
 import * as fs from 'fs'
@@ -17,6 +16,8 @@ export interface SshTunnelConfig {
 
 export interface SshTunnel {
 	localPort: number
+	needsReconnect: boolean
+	reconnect: () => Promise<boolean>
 	close: () => void
 }
 
@@ -100,41 +101,42 @@ export async function createSshTunnel(config: SshTunnelConfig): Promise<SshTunne
 
 	let { client, server } = await connect()
 	let closed = false
+	let _needsReconnect = false
 
-	async function reconnect() {
-		for (let attempt = 0; attempt < maxRetries; attempt++) {
-			vscode.window.showWarningMessage(`SSH tunnel lost. Reconnecting... (attempt ${attempt + 1}/${maxRetries})`)
-
-			await new Promise(res => setTimeout(res, retryDelays[attempt]))
-
-			try {
-				const result = await connect()
-				client = result.client
-				server = result.server
-				vscode.window.showInformationMessage('SSH tunnel restored')
-				return
-			} catch {
-				// retry
-			}
-		}
-
-		vscode.window.showErrorMessage('SSH reconnection failed after 3 attempts')
+	function markDisconnected() {
+		if (closed) return
+		_needsReconnect = true
+		server.close()
 	}
 
-	client.on('close', () => {
-		if (!closed) {
-			reconnect()
-		}
-	})
-
-	client.on('end', () => {
-		if (!closed) {
-			reconnect()
-		}
-	})
+	client.on('close', markDisconnected)
+	client.on('end', markDisconnected)
 
 	return {
 		localPort,
+		get needsReconnect() { return _needsReconnect },
+		async reconnect(): Promise<boolean> {
+			for (let attempt = 0; attempt < maxRetries; attempt++) {
+				if (attempt > 0) {
+					await new Promise(res => setTimeout(res, retryDelays[attempt - 1]))
+				}
+
+				try {
+					const result = await connect()
+					client = result.client
+					server = result.server
+					_needsReconnect = false
+
+					client.on('close', markDisconnected)
+					client.on('end', markDisconnected)
+
+					return true
+				} catch {
+					// retry
+				}
+			}
+			return false
+		},
 		close() {
 			closed = true
 			server.close()

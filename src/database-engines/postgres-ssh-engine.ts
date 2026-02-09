@@ -66,6 +66,30 @@ export class PostgresSshEngine implements DatabaseEngine {
 		}
 	}
 
+	private async ensureConnected(): Promise<void> {
+		if (!this.tunnel?.needsReconnect) return
+
+		if (this.wrappedEngine) {
+			try { await this.wrappedEngine.disconnect() } catch {}
+			this.wrappedEngine = null
+		}
+
+		const reconnected = await this.tunnel.reconnect()
+		if (!reconnected) throw new Error('SSH tunnel reconnection failed')
+
+		const dbPassword = await this.credentialService.getCredential(this.config.name, 'password')
+		const connection = await getConnectionFor(
+			this.config.name, 'postgres',
+			'127.0.0.1', this.tunnel.localPort,
+			this.config.username ?? 'postgres', dbPassword ?? '',
+			this.config.database, false
+		)
+
+		if (!connection) throw new Error('Failed to re-establish database connection')
+
+		this.wrappedEngine = new PostgresEngine(connection)
+	}
+
 	async disconnect(): Promise<void> {
 		if (this.wrappedEngine) {
 			await this.wrappedEngine.disconnect()
@@ -85,14 +109,17 @@ export class PostgresSshEngine implements DatabaseEngine {
 	}
 
 	async isOkay(): Promise<boolean> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.isOkay() ?? Promise.resolve(false)
 	}
 
 	async getTables(): Promise<string[]> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getTables() ?? []
 	}
 
 	async getColumns(table: string): Promise<Column[]> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getColumns(table) ?? []
 	}
 
@@ -101,27 +128,33 @@ export class PostgresSshEngine implements DatabaseEngine {
 	}
 
 	async getTableCreationSql(table: string): Promise<string> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getTableCreationSql(table) ?? ''
 	}
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getTotalRows(table, columns, whereClause) ?? 0
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getRows(table, columns, limit, offset, whereClause)
 	}
 
 	async commitChange(serializedMutation: SerializedMutation, transaction: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void> {
+		await this.ensureConnected()
 		if (!this.wrappedEngine) throw new Error('Not connected')
 		return this.wrappedEngine.commitChange(serializedMutation, transaction as knexlib.Knex.Transaction)
 	}
 
 	async getVersion(): Promise<string | undefined> {
+		await this.ensureConnected()
 		return this.wrappedEngine?.getVersion()
 	}
 
 	async rawQuery(code: string): Promise<any> {
+		await this.ensureConnected()
 		if (!this.wrappedEngine) throw new Error('Not connected')
 		return this.wrappedEngine.rawQuery(code)
 	}
