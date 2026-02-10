@@ -4,7 +4,7 @@ import './assets/base.css'
 import './assets/style.css'
 import { DevDB } from 'devdb-ui'
 import { RouterView } from 'vue-router'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const vscode = ref()
 const message = ref('')
@@ -20,8 +20,9 @@ const mcpServerConfig = ref([])
 const itemsPerPage = ref(10)
 const remoteConnections = ref([])
 const connectingRemoteId = ref(undefined)
-const loadingTableName = ref(undefined)
+const loadingTableNames = ref([])
 const loadingTableData = ref(false)
+const silentlyRefreshingTab = ref(false)
 const hasLicense = ref(false)
 const devDb = ref(null)
 
@@ -33,10 +34,6 @@ onMounted(() => {
 	vscode.value.postMessage({ type: 'request:get-mcp-config' })
 	vscode.value.postMessage({ type: 'request:get-remote-connections' })
 	vscode.value.postMessage({ type: 'request:get-license-status' })
-})
-
-onUnmounted(() => {
-	window.removeEventListener('message')
 })
 
 function setupEventHandlers() {
@@ -74,7 +71,7 @@ function setupEventHandlers() {
 				break
 
 			case 'response:get-fresh-table-data':
-				loadingTableName.value = undefined
+				if (payload.value?.table) loadingTableNames.value = loadingTableNames.value.filter(t => t !== payload.value.table)
 				loadingTableData.value = false
 				const tab = buildTabFromPayload(payload)
 				if (!tab) return
@@ -85,7 +82,7 @@ function setupEventHandlers() {
 
 			case 'response:get-refreshed-table-data':
 			case 'response:load-table-into-current-tab':
-				loadingTableName.value = undefined
+				if (payload.value?.table) loadingTableNames.value = loadingTableNames.value.filter(t => t !== payload.value.table)
 				loadingTableData.value = false
 				console.log({ 'refresh-response-payload': payload }) // TODO: ran into a situation where refreshing a tab didn't reflect latest db changes. remove this line when the issue is fixed
 				const alternativeTab = buildTabFromPayload(payload)
@@ -104,11 +101,16 @@ function setupEventHandlers() {
 
 			case 'response:get-data-for-tab-page':
 				loadingTableData.value = false
+				silentlyRefreshingTab.value = false
 				if (!payload.value) return
 
-				displayedTabs.value[activeTabIndex.value].lastQuery = payload.value.lastQuery
-				displayedTabs.value[activeTabIndex.value].rows = payload.value.rows
-				displayedTabs.value[activeTabIndex.value].pagination = payload.value.pagination
+				const currentTab = displayedTabs.value[activeTabIndex.value]
+				const dataChanged = JSON.stringify(currentTab.rows) !== JSON.stringify(payload.value.rows)
+				if (dataChanged) {
+					currentTab.lastQuery = payload.value.lastQuery
+					currentTab.rows = payload.value.rows
+					currentTab.pagination = payload.value.pagination
+				}
 				break
 
 			case 'ide-action:show-table-data':
@@ -206,6 +208,9 @@ function refreshProviders() {
 
 function removeTab(tabIndex) {
 	displayedTabs.value.splice(tabIndex, 1)
+	if (activeTabIndex.value !== undefined && tabIndex < activeTabIndex.value) {
+		activeTabIndex.value--
+	}
 }
 
 function destroyUi() {
@@ -228,8 +233,7 @@ function removeProxyWrap(value) {
 }
 
 function getFreshTableData(table, itemsPerPage) {
-	loadingTableName.value = table
-	loadingTableData.value = true
+	loadingTableNames.value = [...loadingTableNames.value, table]
 	vscode.value.postMessage({ type: 'request:get-fresh-table-data', value: { table, itemsPerPage } })
 }
 
@@ -245,7 +249,7 @@ function refreshActiveTab(activeTab) {
 }
 
 function loadTableIntoCurrentTab(table) {
-	loadingTableName.value = table
+	loadingTableNames.value = [...loadingTableNames.value, table]
 	loadingTableData.value = true
 	if (activeTabIndex.value === undefined || activeTabIndex.value === null) {
 		return getFreshTableData(table, itemsPerPage.value)
@@ -280,7 +284,23 @@ function updateCurrentTabFilter(table, itemsPerPage, filters) {
 function switchToTab(tabIndex) {
 	activeTabIndex.value = tabIndex
 	const tab = displayedTabs.value[tabIndex]
-	getDataForTabPage(tab, tab.pagination.currentPage)
+	silentRefreshTab(tab)
+}
+
+function silentRefreshTab(tab) {
+	silentlyRefreshingTab.value = true
+	tab = removeProxyWrap(tab)
+	vscode.value.postMessage({
+		type: 'request:get-data-for-tab-page',
+		value: {
+			table: tab.table,
+			columns: tab.columns,
+			page: tab.pagination.currentPage,
+			whereClause: tab.filters,
+			totalRows: tab.totalRows,
+			itemsPerPage: tab.pagination.itemsPerPage,
+		},
+	})
 }
 
 function getDataForTabPage(tab, page) {
@@ -349,14 +369,19 @@ function commitToDatabase(serializedMutations) {
 	vscode.value.postMessage({ type: 'request:write-mutations', value: removeProxyWrap(serializedMutations) })
 }
 
-function refreshTabById(tabId) {
+function refreshTabById(mutationPayload) {
+	const tabId = mutationPayload.value.tabId
 	const tabIndex = displayedTabs.value.findIndex(tab => tab.id === tabId)
-	if (tabIndex === -1) {
-		return
-	}
+	if (tabIndex === -1) return
 
-	const tab = buildTabFromPayload(payload)
-	displayedTabs.value.splice(tabIndex, 1, tab)
+	const tab = displayedTabs.value[tabIndex]
+	vscode.value.postMessage({
+		type: 'request:get-refreshed-table-data',
+		value: {
+			table: tab.table,
+			itemsPerPage: tab.pagination.itemsPerPage,
+		},
+	})
 }
 
 function handleMutationSessionCompleted(tabId) {
@@ -421,8 +446,9 @@ function notify(title) {
 			:hasLicense
 			:remoteConnections
 			:connectingRemoteId
-			:loadingTableName
+			:loadingTableNames
 			:loadingTableData
+			:silentlyRefreshingTab
 			@cell-value-changed="handleCellChanged"
 			@commit-mutations="commitToDatabase"
 			@connect-to-remote="handleConnectToRemote"

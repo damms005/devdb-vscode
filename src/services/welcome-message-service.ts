@@ -35,7 +35,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Better config file parsing and improved UX.
+					✨ Released DevDb Pro. Enjoy!
 			`, context);
 }
 
