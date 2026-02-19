@@ -5,7 +5,7 @@ import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-no
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
 const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor"
-const BUTTON_SUGGEST_FEATURE = "💡 Suggest Feature"
+const BUTTON_GET_PRO = "🚀 Get Pro"
 
 export function showWelcomeMessage(context: vscode.ExtensionContext) {
 	const previousVersion = getPreviousVersion(context);
@@ -35,7 +35,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Released DevDb Pro. Enjoy!
+					✨ Now $3 one-time payment for lifetime DevDb Pro. Enjoy!
 			`, context);
 }
 
@@ -61,7 +61,7 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	}
 
 	if (buttons.length < 3) {
-		buttons.push(BUTTON_SUGGEST_FEATURE);
+		buttons.push(BUTTON_GET_PRO);
 	}
 
 	vscode.window.showInformationMessage(message, ...buttons)
@@ -82,8 +82,8 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 					openExternalLink('https://x.com/_damms005');
 					break;
 
-				case BUTTON_SUGGEST_FEATURE:
-					openExternalLink('https://github.com/damms005/devdb-vscode/discussions/new?category=ideas');
+				case BUTTON_GET_PRO:
+					openExternalLink('https://devdbpro.com/?from=ide');
 					break;
 			}
 		});
