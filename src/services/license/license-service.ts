@@ -31,7 +31,7 @@ export class LicenseService {
 		const token = await this.licenseManager.promptForLicense();
 
 		if (!token) {
-			vscode.window.showWarningMessage('DevDb Pro requires a valid license to function');
+			vscode.window.showWarningMessage('DevDb Pro requires a valid license');
 			return;
 		}
 

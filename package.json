@@ -257,9 +257,9 @@
 		"vsix": "vsce package"
 	},
 	"devDependencies": {
-		"@testcontainers/mssqlserver": "^11.12.0",
-		"@testcontainers/mysql": "^11.12.0",
-		"@testcontainers/postgresql": "^11.12.0",
+		"@testcontainers/mssqlserver": "^11.13.0",
+		"@testcontainers/mysql": "^11.13.0",
+		"@testcontainers/postgresql": "^11.13.0",
 		"@types/express": "^5.0.6",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^18.19.130",
@@ -267,8 +267,8 @@
 		"@types/pluralize": "^0.0.33",
 		"@types/vscode": "~1.83.3",
 		"@types/winston": "^2.4.4",
-		"@typescript-eslint/eslint-plugin": "^8.56.0",
-		"@typescript-eslint/parser": "^8.56.0",
+		"@typescript-eslint/eslint-plugin": "^8.57.2",
+		"@typescript-eslint/parser": "^8.57.2",
 		"@vscode/test-electron": "^2.5.2",
 		"chokidar-cli": "^3.0.0",
 		"eslint": "^10.0.0",
@@ -278,7 +278,7 @@
 		"mocha": "^11.7.5",
 		"prettier": "^3.8.1",
 		"prettier-plugin-tailwindcss": "^0.5.14",
-		"testcontainers": "^11.12.0",
+		"testcontainers": "^11.13.0",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.9.3",
 		"winston": "^3.19.0"
@@ -316,13 +316,17 @@
 		"sqlite3": "^5.1.7",
 		"tedious": "^18.6.2",
 		"ssh2": "^1.17.0",
-		"yaml": "^2.8.2"
+		"yaml": "^2.8.3"
 	},
 	"overrides": {
-		"css-select": "5.2.0",
-		"else-release-fails": "https://github.com/damms005/devdb-vscode/actions/runs/15945597878/job/44979269916 due to https://github.com/fb55/css-select/issues/1592",
-		"minimatch": "^10.2.1",
-		"tar": "^7.5.9"
+		"minimatch": "^10.2.3",
+		"tar": "^7.5.11",
+		"diff": "^8.0.3",
+		"flatted": "^3.4.2",
+		"picomatch": "^4.0.4",
+		"serialize-javascript": "^7.0.3",
+		"hono": "^4.12.7",
+		"express-rate-limit": "^8.2.2"
 	},
 	"prettier": {
 		"plugins": [
