@@ -322,7 +322,8 @@
 		"css-select": "5.2.0",
 		"else-release-fails": "https://github.com/damms005/devdb-vscode/actions/runs/15945597878/job/44979269916 due to https://github.com/fb55/css-select/issues/1592",
 		"minimatch": "^10.2.1",
-		"tar": "^7.5.9"
+		"tar": "^7.5.9",
+		"diff": "^8.0.3"
 	},
 	"prettier": {
 		"plugins": [
