@@ -21,7 +21,12 @@ export async function getConnectionInEnvFile(connection: LaravelConnection, dial
 		return
 	}
 
-	if (connection !== envConnection) {
+	if (connection === 'mysql') {
+		if (envConnection !== 'mysql' && envConnection !== 'mariadb') {
+			log('Laravel env file parser', `Connection type mismatch: expected "mysql" or "mariadb", found "${envConnection}"`);
+			return;
+		}
+	} else if (connection !== envConnection) {
 		log('Laravel env file parser', `Connection type mismatch: expected "${connection}", found "${envConnection}"`);
 		return;
 	}

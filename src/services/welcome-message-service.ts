@@ -35,7 +35,8 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Now $3 one-time payment for lifetime DevDb Pro. Enjoy!
+					✨ Fixed auto-detection of MariaDB in Laravel Sail.
+					✨ Limited offer: *$9* one-time payment for *lifetime* DevDb Pro. Enjoy!
 			`, context);
 }
 

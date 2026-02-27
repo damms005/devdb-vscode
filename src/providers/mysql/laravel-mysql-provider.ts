@@ -9,7 +9,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 	name: 'Laravel Mysql (with Sail support)',
 	type: 'mysql',
 	id: 'laravel-mysql',
-	description: 'Laravel MySQL with default .env config or Sail config in docker-compose.yml',
+	description: 'Laravel MySQL/MariaDB with default .env config or Sail config in docker-compose.yml',
 	engine: undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
@@ -27,7 +27,7 @@ export const LaravelMysqlProvider: DatabaseEngineProvider = {
 			return false;
 		}
 
-		log('Laravel MySQL', 'Checking if Laravel MySQL provider can be used in the current workspace...');
+		log('Laravel MySQL', 'Checking if Laravel MySQL/MariaDB provider can be used in the current workspace...');
 		const connection = await getConnectionInEnvFile('mysql', 'mysql2');
 		log('Laravel MySQL', `Connection status: ${connection ? 'successful' : 'failed'}`);
 		if (!connection) return false
