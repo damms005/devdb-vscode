@@ -105,7 +105,7 @@ export class LicenseManager {
 				return {
 					success: false,
 					message: response.data?.message
-						? response.data.message
+						? `${response.data.message}. Status: ${response.status}`
 						: `Server responded with status ${response.status}: ${JSON.stringify(response.data)}`
 				};
 			}

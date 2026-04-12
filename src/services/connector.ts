@@ -17,7 +17,6 @@ export async function getConnectionFor(description: string, dialect: KnexClientT
 			database: database ? String(database) : database,
 		};
 
-		// Add options to connection config for MSSQL
 		if (dialect === 'mssql' && options) {
 			connection.options = options;
 		}
