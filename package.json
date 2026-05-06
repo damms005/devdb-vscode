@@ -325,8 +325,9 @@
 		"flatted": "^3.4.2",
 		"picomatch": "^4.0.4",
 		"serialize-javascript": "^7.0.3",
-		"hono": "^4.12.7",
-		"express-rate-limit": "^8.2.2"
+		"hono": "^4.12.14",
+		"express-rate-limit": "^8.2.2",
+		"protobufjs": "^7.5.5"
 	},
 	"prettier": {
 		"plugins": [

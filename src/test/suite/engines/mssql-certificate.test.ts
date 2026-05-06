@@ -26,7 +26,7 @@ describe('MSSQL Certificate Connection Tests', () => {
   it('should connect with trustServerCertificate=true', async function () {
     this.timeout(10000);
 
-    const connectionWithTrust = knexlib.knex({
+    const connectionWithTrust = knexlib({
       client: 'mssql',
       connection: {
         host: container.getHost(),
@@ -56,7 +56,7 @@ describe('MSSQL Certificate Connection Tests', () => {
   it('should fail to connect with trustServerCertificate=false', async function () {
     this.timeout(10000);
 
-    const connectionWithoutTrust = knexlib.knex({
+    const connectionWithoutTrust = knexlib({
       client: 'mssql',
       connection: {
         host: container.getHost(),
@@ -91,7 +91,7 @@ describe('MSSQL Certificate Connection Tests', () => {
   it('should connect with MssqlEngine when trustServerCertificate=true', async function () {
     this.timeout(10000);
 
-    const connection = knexlib.knex({
+    const connection = knexlib({
       client: 'mssql',
       connection: {
         host: container.getHost(),
@@ -122,7 +122,7 @@ describe('MSSQL Certificate Connection Tests', () => {
   it('should perform database operations with secure connection', async function () {
     this.timeout(15000);
 
-    const connection = knexlib.knex({
+    const connection = knexlib({
       client: 'mssql',
       connection: {
         host: container.getHost(),

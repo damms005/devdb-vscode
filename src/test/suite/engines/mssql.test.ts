@@ -25,7 +25,7 @@ describe('MSSQL Tests', () => {
 	})
 
 	it('should return foreign key definitions', async () => {
-		const connection = knexlib.knex({
+		const connection = knexlib({
 			client: 'mssql',
 			connection: {
 				host: container.getHost(),
@@ -69,7 +69,7 @@ describe('MSSQL Tests', () => {
 		let engine: MssqlEngine;
 
 		before(async function () {
-			const connection = knexlib.knex({
+			const connection = knexlib({
 				client: 'mssql',
 				connection: {
 					host: container.getHost(),

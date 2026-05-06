@@ -26,7 +26,7 @@ describe('SqliteService Tests', () => {
 	})
 
 	beforeEach(async () => {
-		connection = knexlib.knex({
+		connection = knexlib({
 			client: 'mysql2',
 			connection: {
 				host: container.getHost(),

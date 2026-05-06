@@ -21,7 +21,7 @@ export async function getConnectionFor(description: string, dialect: KnexClientT
 			connection.options = options;
 		}
 
-		const knex = knexlib.knex({
+		const knex = knexlib({
 			client: dialect,
 			connection,
 		});

@@ -5,8 +5,19 @@ import { logToOutput } from '../output-service';
 import knexlib from "knex";
 import { KnexClientType } from '../../types';
 import { getBasePath } from '../workspace';
+import { DdevDetectionService } from '../ddev-detection-service';
 
 const execAsync = promisify(exec);
+
+/**
+ * Resolves the full path to the ddev executable.
+ * Falls back to bare 'ddev' if detection service can't find it.
+ */
+async function getDdevExecutablePath(): Promise<string> {
+  const service = DdevDetectionService.getInstance();
+  const info = await service.detectDdev();
+  return info.installPath || 'ddev';
+}
 
 interface DdevConfig {
   raw: {
@@ -30,7 +41,8 @@ interface DdevConfig {
  */
 export async function isDdevAvailable(requester: string): Promise<boolean> {
   try {
-    const output = await execAsync('ddev --version');
+    const ddevPath = await getDdevExecutablePath();
+    const output = await execAsync(`"${ddevPath}" --version`);
     logToOutput(`${output.stdout.trim()}`, requester);
     return true;
   } catch (error) {
@@ -50,7 +62,8 @@ export async function getDdevConfig(): Promise<DdevConfig | undefined> {
       throw new Error('No workspace folder found');
     }
 
-    const { stdout } = await execAsync(`ddev describe -j`, { cwd: path });
+    const ddevPath = await getDdevExecutablePath();
+    const { stdout } = await execAsync(`"${ddevPath}" describe -j`, { cwd: path });
     return JSON.parse(stdout) as DdevConfig;
   } catch (error) {
     logToOutput(`Failed to get DDEV configuration: ${String(error)}`);

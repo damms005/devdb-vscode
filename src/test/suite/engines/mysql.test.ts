@@ -23,7 +23,7 @@ describe('MySQL Tests', () => {
 	})
 
 	it('should return foreign key definitions', async () => {
-		let connection = knexlib.knex({
+		let connection = knexlib({
 			client: 'mysql2',
 			connection: {
 				host: container.getHost(),
@@ -68,7 +68,7 @@ describe('MySQL Tests', () => {
 		let engine: MysqlEngine;
 
 		beforeEach(async function () {
-			let connection = knexlib.knex({
+			let connection = knexlib({
 				client: 'mysql2',
 				connection: {
 					host: container.getHost(),

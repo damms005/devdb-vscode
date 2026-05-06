@@ -23,7 +23,7 @@ describe('PostgreSQL Tests', () => {
 	})
 
 	it('should return foreign key definitions', async () => {
-		let connection = knexlib.knex({
+		let connection = knexlib({
 			client: 'postgres',
 			connection: {
 				host: container.getHost(),
@@ -67,7 +67,7 @@ describe('PostgreSQL Tests', () => {
 		let engine: PostgresEngine;
 
 		before(async function () {
-			let connection = knexlib.knex({
+			let connection = knexlib({
 				client: 'postgres',
 				connection: {
 					host: container.getHost(),
