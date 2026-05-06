@@ -1,6 +1,6 @@
 {
 	"name": "devdb",
-	"version": "3.0.3",
+	"version": "3.0.4",
 	"publisher": "damms005",
 	"engines": {
 		"vscode": "^1.83.0"
@@ -254,7 +254,8 @@
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
 		"vscode:prepublish": "npm run package",
 		"package": "npm run check-types && node esbuild.js --production",
-		"vsix": "vsce package"
+		"vsix": "vsce package",
+		"postinstall": "node scripts/sync-bun-lockfile.js"
 	},
 	"devDependencies": {
 		"@testcontainers/mssqlserver": "^11.13.0",
@@ -319,15 +320,11 @@
 		"yaml": "^2.8.3"
 	},
 	"overrides": {
-		"minimatch": "^10.2.3",
-		"tar": "^7.5.11",
 		"diff": "^8.0.3",
-		"flatted": "^3.4.2",
+		"ip-address": "^10.1.1",
 		"picomatch": "^4.0.4",
 		"serialize-javascript": "^7.0.3",
-		"hono": "^4.12.14",
-		"express-rate-limit": "^8.2.2",
-		"protobufjs": "^7.5.5"
+		"uuid": "^11.1.1"
 	},
 	"prettier": {
 		"plugins": [

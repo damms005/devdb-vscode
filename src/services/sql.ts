@@ -79,7 +79,7 @@ export const SqlService = {
 
 		if (transaction) {
 			await transaction.raw(query, replacements);
-			transaction.commit()
+			await transaction.commit()
 		} else {
 			await (connection).raw(query, replacements);
 		}
