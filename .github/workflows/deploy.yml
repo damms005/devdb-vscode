@@ -55,6 +55,14 @@ jobs:
     strategy:
       matrix:
         include:
+          # Universal (platform-agnostic) build. Open VSX clients like Windsurf
+          # default to resolving a "universal" targetPlatform. Without this, they
+          # fall back to the last universal version ever published (v1.14.26).
+          # See: https://github.com/eclipse-openvsx/openvsx/issues/943
+          - os: ubuntu-22.04
+            platform: ''
+            arch: ''
+            npm_config_arch: x64
           - os: windows-2022
             platform: win32
             arch: x64
@@ -102,12 +110,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
-      - shell: pwsh
-        run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
-      - run: bun run compile && bunx vsce package --target ${{ env.target }}
+      - name: Set target
+        shell: pwsh
+        run: echo "target=${{ matrix.platform && format('{0}-{1}', matrix.platform, matrix.arch) }}" >> $env:GITHUB_ENV
+      - name: Package extension
+        run: |
+          if [ -n "${{ env.target }}" ]; then
+            bun run compile && bunx vsce package --target ${{ env.target }}
+          else
+            bun run compile && bunx vsce package
+          fi
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.target }}
+          name: ${{ env.target || 'universal' }}
           path: '*.vsix'
           retention-days: 7
 
