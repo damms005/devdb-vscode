@@ -3,12 +3,12 @@ import { ModelMap } from '../types';
 import { getTableModelMapForCurrentWorkspace } from './codelens/laravel/laravel-codelens-service';
 import { getWordUnderCursor } from './document-service';
 import { LaravelFactoryGenerator } from './laravel/factory-generator';
-import { database } from './messenger';
+import { getDatabase } from './messenger';
 import { showMissingDatabaseNotification } from './error-notification-service';
 import { explainSelectedQuery } from './codelens/laravel/sql-query-explainer-provider';
 
 export async function contextMenuLaravelFactoryGenerator() {
-	if (!database) {
+	if (!getDatabase()) {
 		return showMissingDatabaseNotification()
 	}
 
@@ -24,7 +24,7 @@ export async function contextMenuLaravelFactoryGenerator() {
 		return vscode.window.showErrorMessage(`No model found by name ${wordUnderCursor}`);
 	}
 
-	const generator = new LaravelFactoryGenerator(database);
+	const generator = new LaravelFactoryGenerator(getDatabase());
 	await generator.generateFactory(wordUnderCursor, model.filePath);
 }
 

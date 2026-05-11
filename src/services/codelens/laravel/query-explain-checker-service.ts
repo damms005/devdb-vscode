@@ -1,16 +1,17 @@
 import * as vscode from 'vscode';
 import { Program, Node } from 'php-parser';
 import { isNamespaced } from '../../laravel/code-runner/qualifier-service';
-import { database } from '../../messenger';
+import { getDatabase } from '../../messenger';
 import { showMissingDatabaseNotification } from '../../error-notification-service';
 
 export function passesBasicExplainerCheck(document: vscode.TextDocument, selection: vscode.Selection, documentAst: Program, quietly = false): boolean {
-	if (!database) {
+	const db = getDatabase();
+	if (!db) {
 		if (!quietly) showMissingDatabaseNotification()
 		return false
 	}
 
-	if (database.getType() !== 'mysql2') {
+	if (db.getType() !== 'mysql2') {
 		if (!quietly) vscode.window.showErrorMessage('This feature is only available for MySQL databases.');
 		return false
 	}

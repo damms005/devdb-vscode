@@ -4,7 +4,7 @@ import { getVueAssets } from './services/html';
 import { LaravelCodelensProvider } from './services/codelens/code-lens-service';
 import { showWelcomeMessage } from './services/welcome-message-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
-import { database, setLicenseChecker } from './services/messenger';
+import { getDatabase, setLicenseChecker } from './services/messenger';
 import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
 import { DevDbUriHandler } from './uri-handler';
@@ -95,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'devdb.laravel.generate-factory',
 			async (modelName: string, modelFilePath: string) => {
-				const generator = new LaravelFactoryGenerator(database);
+				const generator = new LaravelFactoryGenerator(getDatabase());
 				await generator.generateFactory(modelName, modelFilePath);
 			}
 		)

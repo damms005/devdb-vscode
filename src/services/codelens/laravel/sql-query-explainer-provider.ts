@@ -5,7 +5,7 @@ import {
     extractUseStatements,
     getAst,
 } from '../../laravel/code-runner/qualifier-service';
-import { database } from '../../messenger';
+import { getDatabase } from '../../messenger';
 import { getCurrentVersion } from '../../welcome-message-service';
 import { extractVariables, replaceVariables } from '../../string';
 import httpClient from '../../http-client';
@@ -24,7 +24,7 @@ export class SqlQueryCodeLensProvider implements vscode.CodeLensProvider {
 
     public provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]> {
 
-        if (!database || !this.isLaravelPhpFile(document)) {
+        if (!getDatabase() || !this.isLaravelPhpFile(document)) {
             return [];
         }
 
@@ -103,7 +103,8 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
 
             progress.report({ message: 'Running query...' });
 
-            if (!database) {
+            const db = getDatabase();
+            if (!db) {
                 vscode.window.showErrorMessage('No database connection found. Please select a database in DevDb and try again.', 'Connect').then(selection => {
                     if (selection === 'Connect') {
                         vscode.commands.executeCommand('devdb.focus');
@@ -129,10 +130,10 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
             const [unboundQuery, bindings, boundQuery] = queriesWithBindings[0];
 
             progress.report({ message: 'Getting MySQL version...' });
-            const version = await database.getVersion();
+            const version = await db.getVersion();
 
             progress.report({ message: 'Getting query execution plan...' });
-            const explainJsonResult = await database.rawQuery(`EXPLAIN FORMAT=JSON ${boundQuery}`);
+            const explainJsonResult = await db.rawQuery(`EXPLAIN FORMAT=JSON ${boundQuery}`);
             if (!Array.isArray(explainJsonResult) || !explainJsonResult[0] || !explainJsonResult[0]['EXPLAIN']) {
                 vscode.window.showErrorMessage('Failed to get EXPLAIN JSON output from MySQL. The query might not be supported for explanation.');
                 return;
@@ -141,7 +142,7 @@ export async function explainSelectedQuery(document: vscode.TextDocument, select
 
             let explainTree: string | undefined;
             try {
-                const explainTreeResult = await database.rawQuery(`EXPLAIN FORMAT=TREE ${boundQuery}`);
+                const explainTreeResult = await db.rawQuery(`EXPLAIN FORMAT=TREE ${boundQuery}`);
                 if (Array.isArray(explainTreeResult) && explainTreeResult[0] && explainTreeResult[0]['EXPLAIN']) {
                     explainTree = explainTreeResult[0]['EXPLAIN'];
                 }

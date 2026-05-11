@@ -35,10 +35,11 @@ import { getConnectionFor } from './connector';
 import { getRandomString as generateId } from './random-string-generator';
 import { testRemoteConnection } from './connection-tester';
 
-const workspaceTables: string[] = [];
+let workspaceTables: string[] = [];
 
 let selectedProvider: string | null = null
 let licenseChecker: (() => boolean) | null = null
+let connectionId = 0
 
 export function setLicenseChecker(checker: () => boolean) {
 	licenseChecker = checker
@@ -63,9 +64,9 @@ const providers: DatabaseEngineProvider[] = [
 	SupabasePostgresProvider,
 ]
 
-export let database: DatabaseEngine | null = null;
+let database: DatabaseEngine | null = null;
 
-export async function getConnectedDatabase(): Promise<DatabaseEngine | null> {
+export function getDatabase(): DatabaseEngine | null {
 	return database;
 }
 
@@ -203,6 +204,7 @@ export async function autoConnectProvider(devDbViewProvider: DevDbViewProvider, 
 async function selectProvider(providerId: string, data: any): Promise<boolean> {
 
 	selectedProvider = data
+	const thisConnectionId = ++connectionId
 
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === providerId))
 
@@ -215,17 +217,21 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 		await provider.reconnect()
 	}
 
-	database = await provider.getDatabaseEngine() as DatabaseEngine
+	const engine = await provider.getDatabaseEngine() as DatabaseEngine
 
-	if (!database) {
+	if (thisConnectionId !== connectionId) return false
+
+	if (!engine) {
 		vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
 		return false
 	}
 
+	database = engine
 	return true
 }
 
 async function selectProviderOption(option: EngineProviderOption): Promise<boolean> {
+	const thisConnectionId = ++connectionId
 	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === option.provider))
 
 	if (!provider) {
@@ -233,13 +239,16 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 		return false
 	}
 
-	database = await provider.getDatabaseEngine(option) as DatabaseEngine
+	const engine = await provider.getDatabaseEngine(option) as DatabaseEngine
 
-	if (!database) {
+	if (thisConnectionId !== connectionId) return false
+
+	if (!engine) {
 		vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
 		return false
 	}
 
+	database = engine
 	return true
 }
 
@@ -330,7 +339,7 @@ async function getTables(): Promise<string[] | undefined> {
 
 		logToOutput(`Tables available: ${tables.length}`, `Comm - ${database?.getType()}- ${await database?.getVersion()}`)
 
-		workspaceTables.push(...tables)
+		workspaceTables = [...tables]
 	}
 
 	return tables
@@ -478,8 +487,9 @@ async function saveRemoteConnection(formData: any) {
 	return await remoteConnectionStorageService.getListItems()
 }
 
-async function connectToRemoteConnection(connectionId: string) {
-	const connection = await remoteConnectionStorageService.getById(connectionId)
+async function connectToRemoteConnection(remoteConnectionId: string) {
+	const thisConnectionId = ++connectionId
+	const connection = await remoteConnectionStorageService.getById(remoteConnectionId)
 	if (!connection) {
 		return { connected: false, error: 'Connection not found' }
 	}
@@ -588,8 +598,10 @@ async function connectToRemoteConnection(connectionId: string) {
 			return { connected: false, error: `Unsupported connection type: ${connection.type}` }
 		}
 
+		if (thisConnectionId !== connectionId) return { connected: false, error: 'Connection superseded by a newer request' }
+
 		database = engine
-		await remoteConnectionStorageService.updateLastConnected(connectionId)
+		await remoteConnectionStorageService.updateLastConnected(remoteConnectionId)
 		return { connected: true }
 	} catch (error) {
 		return { connected: false, error: String(error) }

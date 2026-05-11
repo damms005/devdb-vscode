@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { logToOutput } from "../output-service";
-import { getConnectedDatabase } from "../messenger";
+import { getDatabase } from "../messenger";
 import { savePort, clearPort } from "./no-vscode/port-manager";
 import logger from './no-vscode/logger';
 import { validateQuery, getQueryType } from './query-validator';
@@ -60,14 +60,14 @@ async function startServerOnAvailablePort(app: express.Express, startPort: numbe
 
 async function checkAndTruncateLogFile() {
 	const logFilePath = path.join(os.homedir(), '.devdb', 'mcp-log.txt');
-	
+
 	try {
 		const stats = await fs.promises.stat(logFilePath);
 		if (stats.size > 5 * 1024) {
 			const data = await fs.promises.readFile(logFilePath, 'utf8');
 			const lines = data.split('\n');
 			let truncatedData = '';
-			
+
 			for (let i = lines.length - 1; i >= 0; i--) {
 				const testData = lines[i] + '\n' + truncatedData;
 				if (Buffer.byteLength(testData, 'utf8') > 1024) {
@@ -75,7 +75,7 @@ async function checkAndTruncateLogFile() {
 				}
 				truncatedData = testData;
 			}
-			
+
 			await fs.promises.writeFile(logFilePath, truncatedData);
 			logger.info('Log file truncated', { originalSize: stats.size, newSize: Buffer.byteLength(truncatedData, 'utf8') });
 		}
@@ -88,7 +88,7 @@ async function checkAndTruncateLogFile() {
 
 export async function startHttpServer() {
 	await checkAndTruncateLogFile();
-	
+
 	if (port) {
 		writeMcpLog('MCP HTTP server is already running', 'info', { port });
 		return port;
@@ -113,7 +113,7 @@ export async function startHttpServer() {
 
 		app.get('/tables', async function (req: any, res: any) {
 			logger.debug('HTTP request: GET /tables');
-			const db = await getConnectedDatabase();
+			const db = getDatabase();
 			if (!db) {
 				logger.error('No database connected for /tables request');
 				return res.status(500).json({ error: 'No DB connected' });
@@ -126,7 +126,7 @@ export async function startHttpServer() {
 		app.get('/tables/:tableName/schema', async function (req: any, res: any) {
 			const { tableName } = req.params;
 			logger.debug('HTTP request: GET /tables/:tableName/schema', { tableName });
-			const db = await getConnectedDatabase();
+			const db = getDatabase();
 			if (!db) {
 				logger.error('No database connected for schema request', { tableName });
 				return res.status(500).json({ error: 'No DB connected' });
@@ -154,7 +154,7 @@ export async function startHttpServer() {
 				logger.warn('Destructive query warning', { queryType: getQueryType(query), warning: validation.warning });
 			}
 			try {
-				const db = await getConnectedDatabase();
+				const db = getDatabase();
 				if (!db) {
 					logger.error('No database connected for query request', { queryType: getQueryType(query) });
 					return res.status(500).json({ message: 'No DB connected' });
@@ -171,7 +171,7 @@ export async function startHttpServer() {
 
 		app.get('/database-type', async function (_req: any, res: any) {
 			logger.debug('HTTP request: GET /database-type');
-			const db = await getConnectedDatabase();
+			const db = getDatabase();
 			if (!db) {
 				logger.error('No database connected for /database-type request');
 				return res.status(500).json({ error: 'No DB connected' });

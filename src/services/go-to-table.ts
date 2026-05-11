@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DevDbViewProvider } from "../devdb-view-provider";
-import { autoConnectProvider, getAvailableProviders, getConnectedDatabase } from "./messenger";
+import { autoConnectProvider, getAvailableProviders, getDatabase } from "./messenger";
 import { DatabaseEngine } from '../types';
 import { logToOutput } from './output-service';
 
@@ -14,7 +14,7 @@ export async function goToTable(devDbViewProvider: DevDbViewProvider | undefined
 		return;
 	}
 
-	const database = await getDatabase(devDbViewProvider)
+	const database = await getOrConnectDatabase(devDbViewProvider)
 
 	if (!database) {
 		logToOutput('No database connection found. Please connect to one first.', 'Go to Table')
@@ -42,8 +42,8 @@ export async function goToTable(devDbViewProvider: DevDbViewProvider | undefined
 	}
 }
 
-export async function getDatabase(devDbViewProvider: DevDbViewProvider): Promise<DatabaseEngine | null> {
-	let database: DatabaseEngine | null = await getConnectedDatabase()
+async function getOrConnectDatabase(devDbViewProvider: DevDbViewProvider): Promise<DatabaseEngine | null> {
+	const database = getDatabase();
 
 	if (database) {
 		return database;
@@ -63,5 +63,5 @@ export async function getDatabase(devDbViewProvider: DevDbViewProvider): Promise
 	 */
 	await autoConnectProvider(devDbViewProvider, nonDefaultProviders[0]);
 
-	return await getConnectedDatabase()
+	return getDatabase()
 }
