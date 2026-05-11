@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import logger from "./logger"
 import { MCP_CONFIG_DIR, MCP_CONFIG_FILE } from './config';
 
@@ -27,7 +28,9 @@ function readMcpConfig(): McpConfig {
 function writeMcpConfig(config: McpConfig): void {
 	try {
 		ensureConfigDir();
-		fs.writeFileSync(MCP_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+		const tmpFile = `${MCP_CONFIG_FILE}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+		fs.writeFileSync(tmpFile, JSON.stringify(config, null, 2), 'utf8');
+		fs.renameSync(tmpFile, MCP_CONFIG_FILE);
 	} catch (error) {
 		logger.error('Failed to write MCP config file:', error);
 		throw error;
