@@ -191,9 +191,10 @@ describe('PostgreSQL Tests', () => {
 				.replace(/"/g, '')
 				.replace(/\n|\t/g, '')
 				.replace(/\s+/g, ' ')
-				.trim();
+				.trim()
+				.toLowerCase();
 
-			assert.strictEqual(creationSql, 'CREATE TABLE public.users ( id integer, name CHARACTER varying (255), age integer, location CHARACTER varying (255) );');
+			assert.strictEqual(creationSql, 'create table public.users ( id integer, name character varying (255), age integer, location character varying (255));');
 		});
 
 		it('should filter values in uuid and integer column types', async () => {

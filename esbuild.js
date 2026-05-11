@@ -60,7 +60,7 @@ async function main () {
 		 *  - vscode: not a typical npm package - injected by the IDE at runtime
 		 *  - @vscode/sqlite3: has native bindings loaded via node-gyp-build (complex dynamic require)
 		 */
-		external: ['vscode', '@vscode/sqlite3'],
+		external: ['vscode', '@vscode/sqlite3', 'better-sqlite3'],
 		define: {
 			'process.env.DEVDB_LICENSE_API_BASE': JSON.stringify(
 				production
