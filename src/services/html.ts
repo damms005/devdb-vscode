@@ -50,24 +50,23 @@ export function getWebviewHtml(webview: vscode.Webview, jsFile: string, cssFile:
 export async function getVueAssets(context: vscode.ExtensionContext): Promise<VueAssets> {
 	const allFiles = await vscode.workspace.fs.readDirectory(vscode.Uri.file(context.extensionPath));
 
-	return new Promise(async (resolve, reject) => {
-		const uiFolder = allFiles.find((item) => item[0] === FRONTEND_FOLDER_NAME && item[1] === vscode.FileType.Directory);
+	const uiFolder = allFiles.find((item) => item[0] === FRONTEND_FOLDER_NAME && item[1] === vscode.FileType.Directory);
+	if (!uiFolder) {
+		throw new Error('Could not find UI assets folder');
+	}
 
-		if (uiFolder) {
-			const projectFolder = join(context.extensionPath, FRONTEND_FOLDER_NAME, 'dist', 'assets')
-			const uiFiles: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(vscode.Uri.file(projectFolder));
-			const jsFile = uiFiles.find((item) => item[1] === vscode.FileType.File && item[0].endsWith('.js'));
-			const cssFile = uiFiles.find((item) => item[1] === vscode.FileType.File && item[0].endsWith('.css'));
-			if (!jsFile || !cssFile) return
+	const projectFolder = join(context.extensionPath, FRONTEND_FOLDER_NAME, 'dist', 'assets');
+	const uiFiles: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(vscode.Uri.file(projectFolder));
+	const jsFile = uiFiles.find((item) => item[1] === vscode.FileType.File && item[0].endsWith('.js'));
+	const cssFile = uiFiles.find((item) => item[1] === vscode.FileType.File && item[0].endsWith('.css'));
+	if (!jsFile || !cssFile) {
+		throw new Error('UI asset files (JS or CSS) not found in build output');
+	}
 
-			resolve({
-				jsFile: jsFile[0],
-				cssFile: cssFile[0]
-			})
-		}
-
-		reject('Could not find UI assets');
-	})
+	return {
+		jsFile: jsFile[0],
+		cssFile: cssFile[0]
+	};
 }
 
 /**
