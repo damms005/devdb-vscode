@@ -5,6 +5,7 @@ import { getPort } from "./port-manager";
 import logger from './logger';
 import * as path from 'path';
 import * as fs from 'fs';
+import { validateQuery, getQueryType } from '../query-validator';
 
 const server = new McpServer({
 	name: "DevDB",
@@ -199,10 +200,23 @@ server.registerTool(
 			};
 		}
 
-		logger.info('Executing new query', { query });
+		const validation = validateQuery(query);
+		if (!validation.allowed) {
+			logger.warn('Blocked destructive query via MCP stdio', { queryType: getQueryType(query) });
+			return {
+				content: [{ type: 'text', text: validation.warning || 'Query blocked' }],
+				isError: true,
+			};
+		}
+		if (validation.warning) {
+			logger.warn('Destructive query warning', { queryType: getQueryType(query), warning: validation.warning });
+		}
+
+		logger.info('Executing new query', { queryType: getQueryType(query), queryLength: query.length });
+		logger.debug('Full query text', { query });
 		try {
 			const result = await executeQuery(projectRoot, query);
-			logger.info('Query executed successfully', { query, resultLength: JSON.stringify(result).length });
+			logger.info('Query executed successfully', { queryType: getQueryType(query), resultLength: JSON.stringify(result).length });
 			return {
 				content: [{
 					type: 'text',
@@ -210,7 +224,8 @@ server.registerTool(
 				}]
 			};
 		} catch (error) {
-			logger.error('Query execution failed', { query, error: String(error) });
+			logger.error('Query execution failed', { queryType: getQueryType(query), error: String(error) });
+			logger.debug('Failed query text', { query });
 			return {
 				content: [{
 					type: 'text',

@@ -1,5 +1,4 @@
 import express, { Request, Response, NextFunction } from "express";
-import { createServer } from "net";
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,6 +7,7 @@ import { logToOutput } from "../output-service";
 import { getConnectedDatabase } from "../messenger";
 import { savePort, clearPort } from "./no-vscode/port-manager";
 import logger from './no-vscode/logger';
+import { validateQuery, getQueryType } from './query-validator';
 
 function writeMcpLog(message: string, level: 'info' | 'error' | 'warn' | 'debug' = 'info', metadata?: any) {
 	logger[level](message, metadata);
@@ -27,30 +27,35 @@ export function getProjectRoot(): string {
 	return workspacePath;
 }
 
-function isPortAvailable(port: number): Promise<boolean> {
-	return new Promise((resolve) => {
-		const server = createServer();
-		server.listen(port, () => {
-			server.once('close', () => {
-				resolve(true);
-			});
-			server.close();
-		});
-		server.on('error', () => {
-			resolve(false);
-		});
-	});
-}
-
-async function findAvailablePort(startPort: number = 50001): Promise<number> {
+async function startServerOnAvailablePort(app: express.Express, startPort: number = 50001): Promise<{ server: ReturnType<typeof app.listen>, port: number }> {
 	let currentPort = startPort;
-	while (!(await isPortAvailable(currentPort))) {
-		currentPort++;
-		if (currentPort > 65535) {
-			throw new Error('No available ports found');
+	for (let attempt = 0; attempt < 100; attempt++) {
+		try {
+			return await new Promise((resolve, reject) => {
+				const srv = app.listen(currentPort, () => {
+					resolve({ server: srv, port: currentPort });
+				});
+				srv.on('error', (err: NodeJS.ErrnoException) => {
+					if (err.code === 'EADDRINUSE') {
+						srv.close();
+						reject(err);
+					} else {
+						reject(err);
+					}
+				});
+			});
+		} catch (err: any) {
+			if (err.code === 'EADDRINUSE') {
+				currentPort++;
+				if (currentPort > 65535) {
+					throw new Error('No available ports found');
+				}
+				continue;
+			}
+			throw err;
 		}
 	}
-	return currentPort;
+	throw new Error('No available ports found after 100 attempts');
 }
 
 async function checkAndTruncateLogFile() {
@@ -92,8 +97,6 @@ export async function startHttpServer() {
 	writeMcpLog('Starting HTTP server for MCP');
 
 	try {
-		const availablePort = await findAvailablePort(50001);
-		logger.info('Found available port for MCP HTTP server', { availablePort });
 		const app = express();
 		app.use(express.json());
 
@@ -135,23 +138,33 @@ export async function startHttpServer() {
 
 		app.post('/query', async function (req: any, res: any) {
 			const { query } = req.body;
-			logger.info('HTTP request: POST /query', { query });
+			logger.info('HTTP request: POST /query', { queryType: getQueryType(query), queryLength: query?.length });
+			logger.debug('Full query text', { query });
 
 			if (!query) {
 				logger.error('Query is required but not provided');
 				return res.status(400).json({ error: 'Query is required' });
 			}
+			const validation = validateQuery(query);
+			if (!validation.allowed) {
+				logger.warn('Blocked destructive query via MCP HTTP', { queryType: getQueryType(query) });
+				return res.status(403).json({ error: validation.warning, blocked: true });
+			}
+			if (validation.warning) {
+				logger.warn('Destructive query warning', { queryType: getQueryType(query), warning: validation.warning });
+			}
 			try {
 				const db = await getConnectedDatabase();
 				if (!db) {
-					logger.error('No database connected for query request', { query });
+					logger.error('No database connected for query request', { queryType: getQueryType(query) });
 					return res.status(500).json({ message: 'No DB connected' });
 				}
 				const result = await db.rawQuery(query);
-				logger.info('Query executed successfully', { query, resultLength: JSON.stringify(result).length });
+				logger.info('Query executed successfully', { queryType: getQueryType(query), resultLength: JSON.stringify(result).length });
 				res.json({ result });
 			} catch (error) {
-				logger.error('Query execution failed', { query, error: (error as Error).message });
+				logger.error('Query execution failed', { queryType: getQueryType(query), error: (error as Error).message });
+				logger.debug('Failed query text', { query });
 				res.status(500).json({ error: `Error running query: ${(error as Error).message}` });
 			}
 		});
@@ -168,18 +181,12 @@ export async function startHttpServer() {
 			res.json({ type });
 		});
 
-		const server = app.listen(availablePort, () => {
-			const projectRoot = getProjectRoot();
-			writeMcpLog(`MCP HTTP server listening on port ${availablePort} for project ${projectRoot}`, 'info', { port: availablePort, projectRoot });
-		});
+		const { server: httpServer, port: availablePort } = await startServerOnAvailablePort(app);
 
-		server.on('error', (error: any) => {
-			writeMcpLog(`MCP HTTP server error: ${error.message}`, 'error', { error: error.message, port: availablePort });
-			throw error;
-		});
+		const projectRoot = getProjectRoot();
+		writeMcpLog(`MCP HTTP server listening on port ${availablePort} for project ${projectRoot}`, 'info', { port: availablePort, projectRoot });
 
 		port = availablePort;
-		const projectRoot = getProjectRoot();
 		logger.info('Saving port for project', { port: availablePort, projectRoot });
 		savePort(availablePort, projectRoot);
 		return availablePort;
