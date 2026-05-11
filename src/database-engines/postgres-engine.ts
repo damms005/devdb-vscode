@@ -55,10 +55,10 @@ export class PostgresEngine implements DatabaseEngine {
         FROM
             information_schema.columns
         WHERE
-            table_name = '${tableName}' AND table_schema = '${schemaName}'
+            table_name = ? AND table_schema = ?
         GROUP BY
             table_name, table_schema
-    `) as any;
+    `, [tableName, schemaName]) as any;
 
 		const sql = tableCreationSql.rows[0]?.create_sql || '';
 
@@ -226,10 +226,10 @@ async function getForeignKeyFor(table: string, column: string, connection: knexl
 					ON ccu.constraint_name = tc.constraint_name
 			WHERE
 					tc.constraint_type = 'FOREIGN KEY'
-					AND kcu.table_name = LOWER('${tableName}')
-					AND kcu.table_schema = LOWER('${schemaName}')
-					AND kcu.column_name = LOWER('${column}')
-				`);
+					AND kcu.table_name = LOWER(?)
+					AND kcu.table_schema = LOWER(?)
+					AND kcu.column_name = LOWER(?)
+				`, [tableName, schemaName, column]);
 
 	const foreignKeys: Fk[] = result.rows;
 	if (foreignKeys.length === 0) return undefined;

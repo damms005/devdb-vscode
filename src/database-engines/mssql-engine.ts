@@ -44,7 +44,7 @@ export class MssqlEngine implements DatabaseEngine {
 			'Create Table': string;
 		}
 
-		const creationSql = (await this.connection.raw<CreationSqlResult>(`exec sp_columns '${table}'`));
+		const creationSql = (await this.connection.raw<CreationSqlResult>('exec sp_columns ?', [table]));
 
 		return JSON.stringify(creationSql, null, 2);
 
@@ -70,7 +70,7 @@ export class MssqlEngine implements DatabaseEngine {
 
 		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
-		const columns: TableColumn[] = await this.connection.raw(`SELECT COLUMN_NAME AS Field, DATA_TYPE AS Type, IS_NULLABLE AS [Null], COLUMNPROPERTY(object_id(TABLE_NAME), COLUMN_NAME, 'IsIdentity') AS [Key] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${table}';`) as any[];
+		const columns: TableColumn[] = await this.connection.raw(`SELECT COLUMN_NAME AS Field, DATA_TYPE AS Type, IS_NULLABLE AS [Null], COLUMNPROPERTY(object_id(TABLE_NAME), COLUMN_NAME, 'IsIdentity') AS [Key] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?;`, [table]) as any[];
 
 		const computedColumns: Column[] = []
 
@@ -153,9 +153,9 @@ async function getForeignKeyFor(table: string, column: string, connection: knexl
 			sys.foreign_key_columns AS fc
 			ON f.OBJECT_ID = fc.constraint_object_id
 		WHERE
-			f.parent_object_id = OBJECT_ID(N'${table}')
-			AND COL_NAME(fc.parent_object_id, fc.parent_column_id) = N'${column}'
-	`);
+			f.parent_object_id = OBJECT_ID(?)
+			AND COL_NAME(fc.parent_object_id, fc.parent_column_id) = ?
+	`, [table, column]);
 
 	if (foreignKeys.length === 0) return;
 

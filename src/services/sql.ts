@@ -3,6 +3,11 @@ import { Column, DatabaseEngine, KnexClientType, QueryResponse, SerializedMutati
 import { reportError } from "./initialization-error-service";
 import { SqliteEngine } from "../database-engines/sqlite-engine";
 
+export function sanitizeIdentifier(identifier: string, openDelimiter: string, closeDelimiter: string): string {
+	const escaped = identifier.replace(new RegExp(`\\${closeDelimiter}`, 'g'), `${closeDelimiter}${closeDelimiter}`);
+	return `${openDelimiter}${escaped}${closeDelimiter}`;
+}
+
 export const SqlService = {
 
 	buildWhereClause(engine: DatabaseEngine, dialect: KnexClientType, columns: Column[], whereClause?: Record<string, any>): WhereEntry[] {
@@ -69,12 +74,16 @@ export const SqlService = {
 		let replacements: Record<string, any> = { primaryKey };
 		const closeDelimiter = openDelimiter === '[' ? ']' : openDelimiter;
 
+		const safeTable = sanitizeIdentifier(table, openDelimiter, closeDelimiter);
+		const safePkCol = sanitizeIdentifier(primaryKeyColumn, openDelimiter, closeDelimiter);
+
 		if (serializedMutation.type === 'cell-update') {
 			const { column, newValue } = serializedMutation;
-			query = `UPDATE ${openDelimiter}${table}${closeDelimiter} SET ${openDelimiter}${column.name}${closeDelimiter} = :newValue WHERE ${openDelimiter}${primaryKeyColumn}${closeDelimiter} = :primaryKey`;
+			const safeColName = sanitizeIdentifier(column.name, openDelimiter, closeDelimiter);
+			query = `UPDATE ${safeTable} SET ${safeColName} = :newValue WHERE ${safePkCol} = :primaryKey`;
 			replacements = { ...replacements, newValue };
 		} else if (serializedMutation.type === 'row-delete') {
-			query = `DELETE FROM ${openDelimiter}${table}${closeDelimiter} WHERE ${openDelimiter}${primaryKeyColumn}${closeDelimiter} = :primaryKey`;
+			query = `DELETE FROM ${safeTable} WHERE ${safePkCol} = :primaryKey`;
 		}
 
 		if (transaction) {
