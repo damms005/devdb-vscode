@@ -46,7 +46,7 @@ export async function testRemoteConnection(formData: any): Promise<{ success: bo
 					sshPrivateKeyPath: formData.sshPrivateKeyPath,
 				}
 				const sshEngine = new PostgresSshEngine(config, remoteCredentialService)
-				if (!(await sshEngine.connect())) {
+				if (!(await sshEngine.connect(formData.dbPassword ?? undefined))) {
 					return { success: false, message: 'Failed to connect via SSH to PostgreSQL' }
 				}
 				engine = sshEngine
@@ -64,7 +64,7 @@ export async function testRemoteConnection(formData: any): Promise<{ success: bo
 					sshPrivateKeyPath: formData.sshPrivateKeyPath,
 				}
 				const sshEngine = new MysqlSshEngine(config, remoteCredentialService)
-				if (!(await sshEngine.connect())) {
+				if (!(await sshEngine.connect(formData.dbPassword ?? undefined))) {
 					return { success: false, message: 'Failed to connect via SSH to MySQL' }
 				}
 				engine = sshEngine
@@ -98,7 +98,7 @@ export async function testRemoteConnection(formData: any): Promise<{ success: bo
 		}
 
 		if (engine) {
-			try { await engine.disconnect() } catch {}
+			try { await engine.disconnect() } catch { }
 		}
 
 		return { success: true, message: 'Connection successful' }

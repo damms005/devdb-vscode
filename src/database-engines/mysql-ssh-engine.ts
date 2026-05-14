@@ -19,58 +19,60 @@ export class MysqlSshEngine implements DatabaseEngine {
 		this.credentialService = credentialService
 	}
 
-	async connect(): Promise<boolean> {
-		try {
-			const dbPassword = await this.credentialService.getCredential(this.config.name, 'password')
-				?? await this.credentialService.promptForCredential(this.config.name, 'password')
+	async connect(dbPassword?: string): Promise<boolean> {
+		const password = dbPassword
+			?? await this.credentialService.getCredential(this.config.name, 'password')
+			?? await this.credentialService.promptForCredential(this.config.name, 'password')
 
-			let sshAuth: { privateKey?: Buffer; passphrase?: string; password?: string } = {}
+		let sshAuth: { privateKey?: Buffer; passphrase?: string; password?: string } = {}
 
-			if (this.config.sshPrivateKeyPath) {
-				const keyPath = this.config.sshPrivateKeyPath.startsWith('~')
-					? this.config.sshPrivateKeyPath.replace('~', os.homedir())
-					: this.config.sshPrivateKeyPath
-				const privateKey = fs.readFileSync(keyPath)
-				const passphrase = await this.credentialService.getCredential(this.config.name, 'sshPassphrase')
-				sshAuth = { privateKey, passphrase: passphrase ?? undefined }
-			} else {
-				const sshPassword = await this.credentialService.getCredential(this.config.name, 'sshPassword')
-					?? await this.credentialService.promptForCredential(this.config.name, 'sshPassword')
-				sshAuth = { password: sshPassword ?? undefined }
-			}
-
-			this.tunnel = await createSshTunnel({
-				sshHost: this.config.sshHost,
-				sshPort: this.config.sshPort ?? 22,
-				sshUsername: this.config.sshUsername,
-				sshPassword: sshAuth.password,
-				sshPrivateKeyPath: this.config.sshPrivateKeyPath,
-				sshPassphrase: sshAuth.passphrase,
-				remoteHost: this.config.host ?? '127.0.0.1',
-				remotePort: this.config.port ?? 3306,
-			})
-
-			const connection = await getConnectionFor(
-				this.config.name, 'mysql2',
-				'127.0.0.1', this.tunnel.localPort,
-				this.config.username ?? 'root', dbPassword ?? '',
-				this.config.database, false
-			)
-
-			if (!connection) return false
-
-			this.wrappedEngine = new MysqlEngine(connection)
-			return this.wrappedEngine.isOkay()
-		} catch {
-			return false
+		if (this.config.sshPrivateKeyPath) {
+			const keyPath = this.config.sshPrivateKeyPath.startsWith('~')
+				? this.config.sshPrivateKeyPath.replace('~', os.homedir())
+				: this.config.sshPrivateKeyPath
+			const privateKey = fs.readFileSync(keyPath)
+			const passphrase = await this.credentialService.getCredential(this.config.name, 'sshPassphrase')
+			sshAuth = { privateKey, passphrase: passphrase ?? undefined }
+		} else {
+			const sshPassword = await this.credentialService.getCredential(this.config.name, 'sshPassword')
+				?? await this.credentialService.promptForCredential(this.config.name, 'sshPassword')
+			sshAuth = { password: sshPassword ?? undefined }
 		}
+
+		this.tunnel = await createSshTunnel({
+			sshHost: this.config.sshHost,
+			sshPort: this.config.sshPort ?? 22,
+			sshUsername: this.config.sshUsername,
+			sshPassword: sshAuth.password,
+			sshPrivateKeyPath: this.config.sshPrivateKeyPath,
+			sshPassphrase: sshAuth.passphrase,
+			remoteHost: this.config.host ?? '127.0.0.1',
+			remotePort: this.config.port ?? 3306,
+		})
+
+		const connection = await getConnectionFor(
+			this.config.name, 'mysql2',
+			'127.0.0.1', this.tunnel.localPort,
+			this.config.username ?? 'root', password ?? '',
+			this.config.database, false
+		)
+
+		if (!connection) throw new Error('Failed to establish database connection through SSH tunnel')
+
+		this.wrappedEngine = new MysqlEngine(connection)
+		try {
+			await this.wrappedEngine.getConnection()!.raw('SELECT VERSION()')
+		} catch (err) {
+			throw new Error(`Database query through SSH tunnel failed: ${err instanceof Error ? err.message : String(err)}`)
+		}
+		return true
 	}
 
 	private async ensureConnected(): Promise<void> {
 		if (!this.tunnel?.needsReconnect) return
 
 		if (this.wrappedEngine) {
-			try { await this.wrappedEngine.disconnect() } catch {}
+			try { await this.wrappedEngine.disconnect() } catch { }
 			this.wrappedEngine = null
 		}
 

@@ -208,6 +208,7 @@ function selectProviderOption(option) {
 
 function refreshProviders() {
 	vscode.value.postMessage({ type: 'request:get-available-providers' })
+	vscode.value.postMessage({ type: 'request:get-remote-connections' })
 }
 
 function removeTab(tabIndex) {
