@@ -147,6 +147,10 @@ function setupEventHandlers() {
 				hasLicense.value = payload.value?.hasLicense ?? false
 				break
 
+			case 'response:create-gift-link':
+				devDb.value?.setGiftLinkResult(payload.value)
+				break
+
 			case 'response:get-remote-connections':
 			case 'response:save-remote-connection':
 			case 'response:delete-remote-connection':
@@ -420,6 +424,10 @@ function activateLicense() {
 	vscode.value.postMessage({ type: 'request:activate-license' })
 }
 
+function handleCreateGiftLink(message, hint) {
+	vscode.value.postMessage({ type: 'request:create-gift-link', value: { message, hint } })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -474,6 +482,7 @@ function notify(title) {
 			@switch-to-tab="switchToTab"
 			@update-current-tab-filter="getFilteredData"
 			@activate-license="activateLicense"
+			@create-gift-link="handleCreateGiftLink"
 		/>
 	</div>
 	 <RouterView />

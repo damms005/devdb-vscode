@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	remoteCredentialService.setExtensionContext(context);
 	remoteConnectionStorageService.setExtensionContext(context);
 
-	showWelcomeMessage(context);
+	showWelcomeMessage(context, licenseService.isValid());
 
 	let assets;
 
