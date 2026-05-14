@@ -34,6 +34,7 @@ import { remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
 import { getRandomString as generateId } from './random-string-generator';
 import { testRemoteConnection } from './connection-tester';
+import { createGiftLink } from './gift-service';
 
 let workspaceTables: string[] = [];
 
@@ -110,6 +111,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 
 			return getMcpConfig()
 		},
+		'request:create-gift-link': async () => await createGiftLink(data.value),
 	}
 
 	const action = actions[data.type]

@@ -3,11 +3,10 @@ import { ExtensionConstants } from "../constants";
 import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-notification-service';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
-const BUTTON_CONDITIONAL_FOLLOW_ON_X = "𝕏 Follow"
 const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor"
 const BUTTON_GET_PRO = "🚀 Get Pro"
 
-export function showWelcomeMessage(context: vscode.ExtensionContext) {
+export function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense = false) {
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
 
@@ -35,8 +34,10 @@ export function showWelcomeMessage(context: vscode.ExtensionContext) {
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
-					✨ Fixed auto-detection of MariaDB in Laravel Sail.
-					✨ Limited offer: *$9* one-time payment for *lifetime* DevDb Pro. Enjoy!
+					✨ Gift DevDb Pro to your colleagues and friends!
+					${hasLicense
+			? ''
+			: `✨ Limited offer: *$9* one-time payment for *lifetime* DevDb Pro. Enjoy!`}
 			`, context);
 }
 
@@ -55,15 +56,9 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 		if (!hasUserClickedButton(context, ExtensionConstants.clickedGitHubStarring)) {
 			buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO);
 		}
-
-		if (!hasUserClickedButton(context, ExtensionConstants.clickedToFollowOnX)) {
-			buttons.push(BUTTON_CONDITIONAL_FOLLOW_ON_X);
-		}
 	}
 
-	if (buttons.length < 3) {
-		buttons.push(BUTTON_GET_PRO);
-	}
+	buttons.push(BUTTON_GET_PRO);
 
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then((val: string | undefined) => {
@@ -76,11 +71,6 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:
 					updateUserAction(context, ExtensionConstants.clickedGitHubStarring);
 					openExternalLink('https://github.com/damms005/devdb-vscode');
-					break;
-
-				case BUTTON_CONDITIONAL_FOLLOW_ON_X:
-					updateUserAction(context, ExtensionConstants.clickedToFollowOnX);
-					openExternalLink('https://x.com/_damms005');
 					break;
 
 				case BUTTON_GET_PRO:
