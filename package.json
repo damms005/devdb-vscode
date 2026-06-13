@@ -293,7 +293,7 @@
 		"case": "^1.6.3",
 		"cosmiconfig": "^9.0.1",
 		"dotenv": "^17.4.2",
-		"esbuild": "^0.28.0",
+		"esbuild": "^0.28.1",
 		"express": "^5.2.1",
 		"knex": "^3.2.6",
 		"lru-cache": "^11.2.7",
