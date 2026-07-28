@@ -1,5 +1,7 @@
 # DevDb
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fdamms005%2Fdevdb-vscode.svg)](https://mcptoplist.com/server/glama%2Fdamms005%2Fdevdb-vscode)
+
 <p align="center">
     <a href="https://github.com/damms005/devdb-vscode/actions"><img alt="Tests passing" src="https://img.shields.io/github/actions/workflow/status/damms005/devdb-vscode/deploy.yml?style=for-the-badge&logo=github&label=TESTS"></a>
     <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb"><img alt="VS Code Marketplace Installs" src="https://img.shields.io/visual-studio-marketplace/i/damms005.devdb?style=for-the-badge&cacheSeconds=10800"></a>
