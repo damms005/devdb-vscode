@@ -3,8 +3,9 @@ import { existsSync } from 'fs';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { getConfigFileContent } from '../services/config-service';
 import { brief } from '../services/string';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig, DuckDbConfig } from '../types';
 import { MysqlEngine } from '../database-engines/mysql-engine';
+import { DuckDbEngine } from '../database-engines/duckdb-engine';
 import { getConnectionFor } from '../services/connector';
 import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MssqlEngine } from '../database-engines/mssql-engine';
@@ -26,7 +27,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
 
-		const configContent: (SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig)[] | undefined = await getConfigFileContent()
+		const configContent: (SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig)[] | undefined = await getConfigFileContent()
 		if (!configContent) return false
 		if (!configContent.length) return false
 		if (!this.cache) this.cache = []
@@ -43,11 +44,16 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 		return (this.cache ?? []).length > 0
 	},
 
-	async resolveConfiguration(config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig): Promise<boolean> {
+	async resolveConfiguration(config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig): Promise<boolean> {
 		if (!this.cache) this.cache = []
 
 		if (config.type === 'sqlite') {
 			const connection = await sqliteConfigResolver(config)
+			if (connection) this.cache.push(connection)
+		}
+
+		if (config.type === 'duckdb') {
+			const connection = await duckdbConfigResolver(config)
 			if (connection) this.cache.push(connection)
 		}
 
@@ -161,6 +167,35 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 			details: sqliteConnection.path,
 			description: brief(sqliteConnection.path),
 			type: 'sqlite',
+			engine: engine
+		}
+	}
+}
+
+async function duckdbConfigResolver(duckdbConfig: DuckDbConfig): Promise<EngineProviderCache | undefined> {
+
+	if (!existsSync(duckdbConfig.path)) {
+		await showErrorWithConfigFileButton(
+			`A path to a DuckDB database file specified in your config file is not valid: ${duckdbConfig.path}`,
+			duckdbConfig
+		);
+		return Promise.resolve(undefined);
+	}
+
+	const engine: DuckDbEngine = new DuckDbEngine(duckdbConfig.path)
+	const isOkay = (await engine.isOkay())
+	if (!isOkay) {
+		await showErrorWithConfigFileButton(
+			'The DuckDB database specified in your config file is not valid.',
+			duckdbConfig
+		);
+		return
+	} else {
+		return {
+			id: duckdbConfig.path,
+			details: duckdbConfig.path,
+			description: brief(duckdbConfig.path),
+			type: 'duckdb',
 			engine: engine
 		}
 	}

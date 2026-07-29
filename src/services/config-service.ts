@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CosmiconfigResult, cosmiconfig } from 'cosmiconfig';
-import { SqliteConfig, MysqlConfig, MssqlConfig, PostgresConfig } from '../types';
+import { SqliteConfig, MysqlConfig, MssqlConfig, PostgresConfig, DuckDbConfig } from '../types';
 import { getPathToWorkspaceFile } from './workspace';
 
 export const DEVDB_CONFIG_FILE_NAME = '.devdbrc'
@@ -9,7 +9,7 @@ export function getConfigFilePath() {
 	return getPathToWorkspaceFile(DEVDB_CONFIG_FILE_NAME)
 }
 
-export async function getConfigFileContent(): Promise<(SqliteConfig | MysqlConfig | MssqlConfig | PostgresConfig)[] | undefined> {
+export async function getConfigFileContent(): Promise<(SqliteConfig | MysqlConfig | MssqlConfig | PostgresConfig | DuckDbConfig)[] | undefined> {
 	const configFilePath = getConfigFilePath()
 	if (!configFilePath) return
 

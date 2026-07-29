@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { getConfigFilePath } from './config-service';
-import { MssqlConfig, MysqlConfig, PostgresConfig, SqliteConfig } from '../types';
+import { MssqlConfig, MysqlConfig, PostgresConfig, SqliteConfig, DuckDbConfig } from '../types';
 
-type ConfigType = SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig;
+type ConfigType = SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig;
 
 /**
  * Shows an error message with a button to open the config file.

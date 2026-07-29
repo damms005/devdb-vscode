@@ -429,6 +429,10 @@ function handleCreateGiftLink(message, hint) {
 	vscode.value.postMessage({ type: 'request:create-gift-link', value: { message, hint } })
 }
 
+function handlePgvectorSimilaritySearch(payload) {
+	vscode.value.postMessage({ type: 'request:pgvector-similarity-search', value: removeProxyWrap(payload) })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -484,6 +488,7 @@ function notify(title) {
 			@update-current-tab-filter="getFilteredData"
 			@activate-license="activateLicense"
 			@create-gift-link="handleCreateGiftLink"
+			@pgvector-similarity-search="handlePgvectorSimilaritySearch"
 		/>
 	</div>
 	 <RouterView />

@@ -27,6 +27,26 @@
         }
       },
       {
+        "title": "DuckDB Configuration",
+        "required": [
+          "type",
+          "path"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "duckdb"
+            ],
+            "description": "Database type - DuckDB"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to DuckDB database file"
+          }
+        }
+      },
+      {
         "title": "MySQL/MariaDB Configuration",
         "required": [
           "type",

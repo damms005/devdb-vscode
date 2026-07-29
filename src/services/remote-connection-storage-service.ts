@@ -4,7 +4,7 @@ import { remoteCredentialService } from './remote-credential-service'
 export interface StoredRemoteConnection {
 	id: string
 	name: string
-	type: 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres'
+	type: 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres' | 'redis' | 'clickhouse'
 	host: string
 	port?: number
 	username?: string
@@ -16,6 +16,9 @@ export interface StoredRemoteConnection {
 	authSource?: string
 	schemaSampleSize?: number
 	mongoConnectionString?: string
+	protocol?: 'http' | 'https'
+	redisConnectionString?: string
+	keyPrefix?: string
 	lastConnected?: string
 }
 

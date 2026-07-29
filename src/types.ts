@@ -42,11 +42,11 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse'
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql'
+	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb'
 	id: string
 	ddev?: boolean
 	description: string
@@ -63,7 +63,7 @@ export type DatabaseEngineProvider = {
 	 */
 	canBeUsedInCurrentWorkspace(): Promise<boolean>
 
-	resolveConfiguration?: (config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig) => Promise<boolean>
+	resolveConfiguration?: (config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig) => Promise<boolean>
 
 	/**
 	 * The handler provided by this provider
@@ -161,7 +161,12 @@ export type SqliteConfig = {
 	path: string
 }
 
-export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql'
+export type DuckDbConfig = {
+	type: 'duckdb'
+	path: string
+}
+
+export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql' | 'duckdb'
 
 export type SqlConfig = {
 	name: string
@@ -238,6 +243,37 @@ export interface PostgresSshConfig extends PostgresSshConfigFile {
 	password?: string
 	sshPassword?: string
 	sshPassphrase?: string
+}
+
+export interface ClickhouseConfigFile {
+	name: string
+	type: 'clickhouse'
+	host: string
+	port: number
+	protocol?: 'http' | 'https'
+	username: string
+	database: string
+}
+
+export interface ClickhouseConfig extends ClickhouseConfigFile {
+	password?: string
+}
+
+export interface RedisConfigFile {
+	name: string
+	type: 'redis'
+	host?: string
+	port?: number
+	username?: string
+	database?: number
+	keyPrefix?: string
+	tls?: boolean
+	scanCount?: number
+}
+
+export interface RedisConfig extends RedisConfigFile {
+	password?: string
+	connectionString?: string
 }
 
 export type LaravelConnection = 'pgsql' | 'mysql'

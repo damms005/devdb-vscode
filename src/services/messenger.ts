@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig, ClickhouseConfig } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
+import { FilePickerDuckDbProvider } from '../providers/duckdb/file-picker-duckdb-provider';
+import { NeonPostgresProvider } from '../providers/postgres/neon-postgres-provider';
 import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
@@ -25,6 +27,8 @@ import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MongodbEngine } from '../database-engines/mongodb-engine';
+import { RedisEngine } from '../database-engines/redis-engine';
+import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
 import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
 import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
@@ -49,6 +53,7 @@ export function setLicenseChecker(checker: () => boolean) {
 const providers: DatabaseEngineProvider[] = [
 	LaravelLocalSqliteProvider,
 	FilePickerSqliteProvider,
+	FilePickerDuckDbProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
 	RailsSqliteProvider,
@@ -63,6 +68,7 @@ const providers: DatabaseEngineProvider[] = [
 	AdonisMysqlProvider,
 	AdonisPostgresProvider,
 	SupabasePostgresProvider,
+	NeonPostgresProvider,
 ]
 
 let database: DatabaseEngine | null = null;
@@ -112,6 +118,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 			return getMcpConfig()
 		},
 		'request:create-gift-link': async () => await createGiftLink(data.value),
+		'request:pgvector-similarity-search': async () => await pgvectorSimilaritySearch(data.value),
 	}
 
 	const action = actions[data.type]
@@ -596,6 +603,45 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 			engine = pgEngine
 		}
 
+		if (connection.type === 'redis') {
+			const password = await remoteCredentialService.getCredential(connection.name, 'password')
+			const config: RedisConfig = {
+				name: connection.name,
+				type: 'redis',
+				host: connection.host,
+				port: connection.port,
+				username: connection.username,
+				database: connection.database ? Number(connection.database) : undefined,
+				keyPrefix: connection.keyPrefix,
+				password: password ?? undefined,
+				connectionString: connection.redisConnectionString,
+			}
+			const redisEngine = new RedisEngine(config)
+			if (!(await redisEngine.connect())) {
+				return { connected: false, error: `Failed to connect to Redis: ${connection.name}` }
+			}
+			engine = redisEngine
+		}
+
+		if (connection.type === 'clickhouse') {
+			const password = await remoteCredentialService.getCredential(connection.name, 'password')
+			const config: ClickhouseConfig = {
+				name: connection.name,
+				type: 'clickhouse',
+				host: connection.host,
+				port: connection.port ?? 8123,
+				protocol: connection.protocol,
+				username: connection.username ?? 'default',
+				database: connection.database ?? 'default',
+				password: password ?? undefined,
+			}
+			const clickhouseEngine = new ClickhouseEngine(config)
+			if (!(await clickhouseEngine.connect())) {
+				return { connected: false, error: `Failed to connect to ClickHouse: ${connection.name}` }
+			}
+			engine = clickhouseEngine
+		}
+
 		if (!engine) {
 			return { connected: false, error: `Unsupported connection type: ${connection.type}` }
 		}
@@ -607,6 +653,37 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 		return { connected: true }
 	} catch (error) {
 		return { connected: false, error: String(error) }
+	}
+}
+
+async function pgvectorSimilaritySearch(payload: {
+	table: string,
+	column: string,
+	reference: number[] | string | number,
+	limit?: number,
+}): Promise<{ rows: any[], columns?: Column[], indexes?: Array<{ indexName: string, indexType: string, definition: string }>, sql?: string, error?: string }> {
+	if (!database) {
+		return { rows: [], error: 'No database selected' }
+	}
+
+	const engine = database as PostgresEngine
+	if (typeof engine.vectorSimilaritySearch !== 'function') {
+		return { rows: [], error: 'Vector similarity search is only supported on PostgreSQL (pgvector)' }
+	}
+
+	try {
+		const columns = await engine.getColumns(payload.table)
+		const result = await engine.vectorSimilaritySearch(payload.table, payload.column, payload.reference, payload.limit ?? 10)
+		const indexes = await engine.getVectorIndexes(payload.table, payload.column)
+
+		return {
+			rows: result?.rows ?? [],
+			sql: result?.sql,
+			columns,
+			indexes,
+		}
+	} catch (error) {
+		return { rows: [], error: String(error) }
 	}
 }
 
