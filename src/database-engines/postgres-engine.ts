@@ -1,6 +1,6 @@
 import knexlib from "knex";
 import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
-import { SqlService } from '../services/sql';
+import { SqlService, sanitizeIdentifier } from '../services/sql';
 import { reportError } from "../services/initialization-error-service";
 
 export class PostgresEngine implements DatabaseEngine {
@@ -98,12 +98,14 @@ export class PostgresEngine implements DatabaseEngine {
 
 		const { schemaName, tableName } = getTableSchema(table);
 
-		type TableColumn = { "type": string, name: string, ordinal_position: number, is_nullable: string }
+		type TableColumn = { "type": string, name: string, ordinal_position: number, is_nullable: string, udt_name: string }
 
 		const columns: TableColumn[] = await this.connection('information_schema.columns')
 			.whereRaw("LOWER(table_name) = LOWER(?)", [tableName])
 			.whereRaw("LOWER(table_schema) = LOWER(?)", [schemaName])
-			.select(['column_name AS name', 'data_type AS type', 'ordinal_position', 'is_nullable']) as any[];
+			.select(['column_name AS name', 'data_type AS type', 'udt_name', 'ordinal_position', 'is_nullable']) as any[];
+
+		const vectorDimensions = await this.getVectorColumnDimensions(schemaName, tableName);
 
 		const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase()
 
@@ -119,6 +121,29 @@ export class PostgresEngine implements DatabaseEngine {
 
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.name, this.connection);
+
+			const isVector = column.udt_name?.toLowerCase() === 'vector';
+
+			if (isVector) {
+				const dimension = vectorDimensions[column.name.toLowerCase()];
+				const type = dimension && dimension > 0 ? `vector(${dimension})` : 'vector';
+
+				computedColumns.push({
+					...{
+						name: column.name,
+						type,
+						isPrimaryKey: primaryKeySet.has(column.name.toLowerCase()),
+						isNumeric: false,
+						isPlainTextType: false,
+						isNullable: column.is_nullable === 'YES',
+						isEditable: false,
+						foreignKey
+					},
+					ordinal_position: column.ordinal_position
+				} as Column & { ordinal_position: number });
+
+				continue;
+			}
 
 			computedColumns.push({
 				...{
@@ -181,6 +206,142 @@ export class PostgresEngine implements DatabaseEngine {
 		if (!this.connection) throw new Error('Connection not initialized');
 
 		return (await this.connection.raw(code)).toString();
+	}
+
+	/**
+	 * Returns a map of lowercased column name to its pgvector dimension for a table.
+	 * pgvector stores the declared dimension directly in `pg_attribute.atttypmod`
+	 * (e.g. `vector(1536)` => 1536), or -1 when the dimension was left unspecified.
+	 *
+	 * @returns {Promise<Record<string, number>>}
+	 */
+	async getVectorColumnDimensions(schemaName: string, tableName: string): Promise<Record<string, number>> {
+		if (!this.connection) {
+			throw new Error('Not connected to the database');
+		}
+
+		try {
+			const result = await this.connection.raw(`
+				SELECT a.attname AS name, a.atttypmod AS dimension
+				FROM pg_attribute a
+				JOIN pg_class c ON c.oid = a.attrelid
+				JOIN pg_namespace n ON n.oid = c.relnamespace
+				JOIN pg_type t ON t.oid = a.atttypid
+				WHERE LOWER(c.relname) = LOWER(?)
+					AND LOWER(n.nspname) = LOWER(?)
+					AND t.typname = 'vector'
+					AND a.attnum > 0
+					AND NOT a.attisdropped
+			`, [tableName, schemaName]) as any;
+
+			const dimensions: Record<string, number> = {};
+			for (const row of result.rows) {
+				dimensions[String(row.name).toLowerCase()] = Number(row.dimension);
+			}
+
+			return dimensions;
+		} catch (error) {
+			reportError(`PostgreSQL vector dimension lookup error: ${error}`);
+			return {};
+		}
+	}
+
+	/**
+	 * Runs a pgvector nearest-neighbour search against `column` ordered by cosine
+	 * distance (`<=>`). The reference may be a raw vector (array or `[..]` literal
+	 * string) or the primary key value of an existing row to compare against.
+	 *
+	 * @returns {Promise<QueryResponse | undefined>} rows with an extra `_distance` column, ascending.
+	 */
+	async vectorSimilaritySearch(table: string, column: string, reference: number[] | string | number, limit: number = 10): Promise<QueryResponse | undefined> {
+		if (!this.connection) {
+			throw new Error('Not connected to the database');
+		}
+
+		const { schemaName, tableName } = getTableSchema(table);
+		const quotedTable = `${sanitizeIdentifier(schemaName, '"', '"')}.${sanitizeIdentifier(tableName, '"', '"')}`;
+		const quotedColumn = sanitizeIdentifier(column, '"', '"');
+		const safeLimit = Math.max(1, Math.min(1000, Math.trunc(Number(limit) || 10)));
+
+		const rawVector = this.normalizeVectorReference(reference);
+
+		try {
+			if (rawVector !== undefined) {
+				const sql = `SELECT *, (${quotedColumn} <=> ?::vector) AS _distance FROM ${quotedTable} ORDER BY ${quotedColumn} <=> ?::vector LIMIT ${safeLimit}`;
+				const result = await this.connection.raw(sql, [rawVector, rawVector]) as any;
+				return { rows: result.rows, sql };
+			}
+
+			const columns = await this.getColumns(table);
+			const primaryKeyColumn = columns.find(candidate => candidate.isPrimaryKey)?.name;
+			if (!primaryKeyColumn) {
+				throw new Error(`Cannot resolve reference row: table ${table} has no primary key`);
+			}
+			const quotedPrimaryKey = sanitizeIdentifier(primaryKeyColumn, '"', '"');
+
+			const sql = `SELECT t.*, (t.${quotedColumn} <=> ref.v) AS _distance FROM ${quotedTable} t CROSS JOIN (SELECT ${quotedColumn} AS v FROM ${quotedTable} WHERE ${quotedPrimaryKey} = ? LIMIT 1) ref ORDER BY t.${quotedColumn} <=> ref.v LIMIT ${safeLimit}`;
+			const result = await this.connection.raw(sql, [reference]) as any;
+			return { rows: result.rows, sql };
+		} catch (error) {
+			reportError(`PostgreSQL vector similarity search error: ${error}`);
+			return;
+		}
+	}
+
+	/**
+	 * Normalizes a reference into a pgvector literal string (`[a,b,c]`) when it
+	 * represents a raw vector, or returns undefined when it should be treated as
+	 * a primary key value.
+	 */
+	private normalizeVectorReference(reference: number[] | string | number): string | undefined {
+		if (Array.isArray(reference)) {
+			return `[${reference.join(',')}]`;
+		}
+
+		if (typeof reference === 'string' && reference.trim().startsWith('[')) {
+			return reference.trim();
+		}
+
+		return undefined;
+	}
+
+	/**
+	 * Returns any pgvector ANN indexes (ivfflat/hnsw) defined on the table,
+	 * optionally filtered to a single column, for surfacing index health.
+	 *
+	 * @returns {Promise<Array<{ indexName: string, indexType: string, definition: string }>>}
+	 */
+	async getVectorIndexes(table: string, column?: string): Promise<Array<{ indexName: string, indexType: string, definition: string }>> {
+		if (!this.connection) {
+			throw new Error('Not connected to the database');
+		}
+
+		const { schemaName, tableName } = getTableSchema(table);
+
+		try {
+			const result = await this.connection.raw(`
+				SELECT i.relname AS index_name, am.amname AS index_type, pg_get_indexdef(i.oid) AS definition
+				FROM pg_class t
+				JOIN pg_namespace n ON n.oid = t.relnamespace
+				JOIN pg_index ix ON ix.indrelid = t.oid
+				JOIN pg_class i ON i.oid = ix.indexrelid
+				JOIN pg_am am ON am.oid = i.relam
+				WHERE LOWER(t.relname) = LOWER(?)
+					AND LOWER(n.nspname) = LOWER(?)
+					AND am.amname IN ('ivfflat', 'hnsw')
+			`, [tableName, schemaName]) as any;
+
+			return result.rows
+				.filter((row: any) => !column || String(row.definition).toLowerCase().includes(String(column).toLowerCase()))
+				.map((row: any) => ({
+					indexName: row.index_name,
+					indexType: row.index_type,
+					definition: row.definition,
+				}));
+		} catch (error) {
+			reportError(`PostgreSQL vector index lookup error: ${error}`);
+			return [];
+		}
 	}
 }
 
