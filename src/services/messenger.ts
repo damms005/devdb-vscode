@@ -379,11 +379,16 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 		return response
 	}
 
-	const transaction = (database.getType()) === 'sqlite'
-		? await (database as SqliteEngine).transaction()
-		: await (database.getConnection())?.transaction();
+	const isSqlite = database.getType() === 'sqlite';
+	// Engines without a knex/sqlite connection (DuckDB, Redis, ClickHouse) manage their own
+	// writes and do not use a transaction object; they apply changes directly in commitChange.
+	const usesTransaction = isSqlite || database.getConnection() !== null;
 
-	if (!transaction) {
+	const transaction = isSqlite
+		? await (database as SqliteEngine).transaction()
+		: (usesTransaction ? await (database.getConnection())?.transaction() : undefined);
+
+	if (usesTransaction && !transaction) {
 		response.outcome = 'error';
 		response.errorMessage = 'Could not start transaction';
 		return response
@@ -392,14 +397,18 @@ async function writeMutations(serializedMutations: SerializedMutation[]) {
 	try {
 		await Promise.all(serializedMutations.map(async (serializedMutation) => {
 			if (!database) return;
-			return database.commitChange(serializedMutation, transaction);
+			return database.commitChange(serializedMutation, transaction as any);
 		}));
 
-		await transaction.commit();
+		if (transaction) {
+			await transaction.commit();
+		}
 	} catch (error) {
 		response.outcome = 'error';
 		response.errorMessage = String(error);
-		await transaction.rollback();
+		if (transaction) {
+			await transaction.rollback();
+		}
 	}
 
 	return response
