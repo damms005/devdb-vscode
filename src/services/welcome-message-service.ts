@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
 import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-notification-service';
+import { showNewDatastoresNotice } from './new-datastores-notification-service';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor"
@@ -15,6 +16,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense 
 	if (!previousVersion) {
 		if (currentVersion) {
 			showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion, true);
+			showNewDatastoresNotice(context, currentVersion, true, hasLicense);
 		}
 
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
@@ -30,6 +32,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense 
 
 	if (currentVersion) {
 		showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion);
+		showNewDatastoresNotice(context, currentVersion, false, hasLicense);
 	}
 
 	showMessageAndButtons(`
