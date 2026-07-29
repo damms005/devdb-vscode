@@ -59,8 +59,10 @@ async function main () {
 		 * Reasons for externalizing:
 		 *  - vscode: not a typical npm package - injected by the IDE at runtime
 		 *  - @vscode/sqlite3: has native bindings loaded via node-gyp-build (complex dynamic require)
+		 *  - @duckdb/node-api: optional native driver resolved at runtime; its per-platform
+		 *    .node bindings can't be bundled and must be loaded from node_modules
 		 */
-		external: ['vscode', '@vscode/sqlite3', 'better-sqlite3'],
+		external: ['vscode', '@vscode/sqlite3', 'better-sqlite3', '@duckdb/node-api'],
 		define: {
 			'process.env.DEVDB_LICENSE_API_BASE': JSON.stringify(
 				production
