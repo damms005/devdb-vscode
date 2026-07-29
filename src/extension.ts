@@ -15,6 +15,7 @@ import { logToOutput } from './services/output-service';
 import { LicenseService } from './services/license/license-service';
 import { remoteCredentialService } from './services/remote-credential-service';
 import { remoteConnectionStorageService } from './services/remote-connection-storage-service';
+import { embeddingService } from './services/embedding-service';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 let licenseService: LicenseService;
@@ -26,6 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	remoteCredentialService.setExtensionContext(context);
 	remoteConnectionStorageService.setExtensionContext(context);
+	embeddingService.setExtensionContext(context);
 
 	showWelcomeMessage(context, licenseService.isValid());
 

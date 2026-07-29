@@ -35,6 +35,7 @@ import { DevDbViewProvider } from '../devdb-view-provider';
 import { join } from 'path';
 import { remoteConnectionStorageService, StoredRemoteConnection } from './remote-connection-storage-service';
 import { remoteCredentialService } from './remote-credential-service';
+import { embeddingService, EmbeddingConfigInput } from './embedding-service';
 import { getConnectionFor } from './connector';
 import { buildSslPostgresKnexConnection } from '../providers/postgres/neon-connection-helper';
 import { getRandomString as generateId } from './random-string-generator';
@@ -120,6 +121,10 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		},
 		'request:create-gift-link': async () => await createGiftLink(data.value),
 		'request:pgvector-similarity-search': async () => await pgvectorSimilaritySearch(data.value),
+		'request:get-embedding-configs': async () => ({ configs: embeddingService.getConfigs() }),
+		'request:save-embedding-config': async () => ({ configs: await embeddingService.saveConfig(data.value.config as EmbeddingConfigInput) }),
+		'request:delete-embedding-config': async () => ({ configs: await embeddingService.deleteConfig(data.value.id as string) }),
+		'request:test-embedding-config': async () => await embeddingService.testConfig(data.value),
 	}
 
 	const action = actions[data.type]
@@ -679,9 +684,14 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 async function pgvectorSimilaritySearch(payload: {
 	table: string,
 	column: string,
-	reference: number[] | string | number,
+	reference?: number[] | string | number,
+	queryText?: string,
+	embedConfigId?: string,
+	metric?: 'cosine' | 'l2' | 'ip' | 'l1',
 	limit?: number,
-}): Promise<{ rows: any[], columns?: Column[], indexes?: Array<{ indexName: string, indexType: string, definition: string }>, sql?: string, error?: string }> {
+	where?: string,
+	efSearch?: number,
+}): Promise<Record<string, any>> {
 	if (!database) {
 		return { rows: [], error: 'No database selected' }
 	}
@@ -691,20 +701,77 @@ async function pgvectorSimilaritySearch(payload: {
 		return { rows: [], error: 'Vector similarity search is only supported on PostgreSQL (pgvector)' }
 	}
 
+	const requestedLimit = payload.limit ?? 10
+
 	try {
+		let rawVector: number[] | undefined
+		let embedding: { provider?: string, model?: string } | undefined
+
+		if (payload.queryText && payload.queryText.trim().length > 0) {
+			if (!payload.embedConfigId) {
+				return { rows: [], requestedLimit, error: 'Choose an embedding endpoint to search by text' }
+			}
+
+			const embedded = await embeddingService.embedWithConfigId(payload.embedConfigId, payload.queryText.trim())
+			rawVector = embedded.vector
+			embedding = { provider: embedded.provider, model: embedded.model }
+		}
+
 		const columns = await engine.getColumns(payload.table)
-		const result = await engine.vectorSimilaritySearch(payload.table, payload.column, payload.reference, payload.limit ?? 10)
+		const { schemaName, tableName } = splitSchemaAndTable(payload.table)
+		const dimensions = await engine.getVectorColumnDimensions(schemaName, tableName)
+		const dimension = dimensions[payload.column.toLowerCase()]
+
+		const result = await engine.vectorSimilaritySearch({
+			table: payload.table,
+			column: payload.column,
+			reference: payload.reference,
+			rawVector,
+			metric: payload.metric,
+			limit: requestedLimit,
+			where: payload.where,
+			efSearch: payload.efSearch,
+		})
+
+		if (!result) {
+			return { rows: [], requestedLimit, error: 'Vector similarity search failed' }
+		}
+
 		const indexes = await engine.getVectorIndexes(payload.table, payload.column)
+		const warnings = [...(result.warnings ?? [])]
+		if (result.rows.length > 0 && result.rows.length < requestedLimit) {
+			warnings.push(`Only ${result.rows.length} of ${requestedLimit} requested rows returned — a metadata filter may be too selective.`)
+		}
 
 		return {
-			rows: result?.rows ?? [],
-			sql: result?.sql,
+			rows: result.rows,
 			columns,
+			metric: result.metric,
+			operator: result.operator,
+			scoreLabel: result.scoreLabel,
+			limit: result.rows.length,
+			requestedLimit,
+			sql: result.sql,
+			where: payload.where,
+			dimension,
+			queryDimension: result.queryDimension,
+			scan: result.scan,
 			indexes,
+			warnings,
+			embedding,
 		}
 	} catch (error) {
-		return { rows: [], error: String(error) }
+		return { rows: [], requestedLimit, error: error instanceof Error ? error.message : String(error) }
 	}
+}
+
+function splitSchemaAndTable(table: string): { schemaName: string, tableName: string } {
+	if (table.includes('.')) {
+		const [schemaName, tableName] = table.split('.')
+		return { schemaName, tableName }
+	}
+
+	return { schemaName: 'public', tableName: table }
 }
 
 function getMcpConfig() {
