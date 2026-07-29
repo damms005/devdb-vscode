@@ -19,6 +19,7 @@ export interface StoredRemoteConnection {
 	protocol?: 'http' | 'https'
 	redisConnectionString?: string
 	keyPrefix?: string
+	ssl?: boolean
 	lastConnected?: string
 }
 

@@ -36,6 +36,7 @@ import { join } from 'path';
 import { remoteConnectionStorageService, StoredRemoteConnection } from './remote-connection-storage-service';
 import { remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
+import { buildSslPostgresKnexConnection } from '../providers/postgres/neon-connection-helper';
 import { getRandomString as generateId } from './random-string-generator';
 import { testRemoteConnection } from './connection-tester';
 import { createGiftLink } from './gift-service';
@@ -450,6 +451,7 @@ async function getRemoteConnectionFormData(connectionId: string) {
 		dbUsername: stored.username,
 		dbName: stored.database,
 		mongoConnectionString: stored.mongoConnectionString,
+		ssl: stored.ssl ?? false,
 	}
 }
 
@@ -490,6 +492,7 @@ async function saveRemoteConnection(formData: any) {
 		sshUsername: formData.sshUsername || undefined,
 		sshPrivateKeyPath: formData.sshPrivateKeyPath || undefined,
 		mongoConnectionString: formData.mongoConnectionString || undefined,
+		ssl: formData.ssl === true ? true : undefined,
 	}
 
 	if (oldConnectionName) {
@@ -596,12 +599,20 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 
 		if (connection.type === 'postgres') {
 			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const knex = await getConnectionFor(
-				connection.name, 'postgres',
-				connection.host, connection.port ?? 5432,
-				connection.username ?? 'postgres', password ?? '',
-				connection.database, false
-			)
+			const knex = connection.ssl === true
+				? buildSslPostgresKnexConnection({
+					host: connection.host,
+					port: connection.port ?? 5432,
+					user: connection.username ?? 'postgres',
+					password: password ?? '',
+					database: connection.database ?? '',
+				})
+				: await getConnectionFor(
+					connection.name, 'postgres',
+					connection.host, connection.port ?? 5432,
+					connection.username ?? 'postgres', password ?? '',
+					connection.database, false
+				)
 			if (!knex) {
 				return { connected: false, error: `Failed to connect to PostgreSQL: ${connection.name}` }
 			}

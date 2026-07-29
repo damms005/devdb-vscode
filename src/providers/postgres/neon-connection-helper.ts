@@ -133,6 +133,21 @@ export function buildNeonKnexConnection(details: NeonConnectionDetails): knexlib
 }
 
 /**
+ * Builds an SSL-enforced Knex Postgres connection from discrete connection
+ * details, applying Neon pooler-host rewriting.
+ *
+ * Reuses {@link buildNeonKnexConnection} so any cloud Postgres that requires TLS
+ * (Neon, Supabase, etc.) can connect. Non-Neon hosts pass through
+ * {@link toPooledNeonHost} unchanged.
+ */
+export function buildSslPostgresKnexConnection(details: NeonConnectionDetails): knexlib.Knex {
+	return buildNeonKnexConnection({
+		...details,
+		host: toPooledNeonHost(details.host),
+	});
+}
+
+/**
  * Resolves a Neon connection string straight into a Knex connection.
  * Returns undefined when the string is not a parseable Neon endpoint.
  */
