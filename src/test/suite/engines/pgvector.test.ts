@@ -29,6 +29,9 @@ describe('pgvector Tests', () => {
 				password: container.getPassword(),
 				database: container.getDatabase(),
 			},
+			// Pin to a single connection so a session-level `SET enable_seqscan`
+			// in the scan-detection test persists across the engine's own queries.
+			pool: { min: 1, max: 1 },
 		})
 
 		engine = new PostgresEngine(connection);
@@ -78,7 +81,7 @@ describe('pgvector Tests', () => {
 	});
 
 	it('orders similarity search results by ascending cosine distance for a raw vector', async () => {
-		const result = await engine.vectorSimilaritySearch('embeddings', 'embedding', '[1, 0, 0]', 10);
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', limit: 10 });
 
 		assert.ok(result, 'expected a result');
 		const labels = result!.rows.map((row: any) => row.label);
@@ -94,7 +97,7 @@ describe('pgvector Tests', () => {
 	});
 
 	it('accepts a numeric array as the similarity reference', async () => {
-		const result = await engine.vectorSimilaritySearch('embeddings', 'embedding', [0, 1, 0], 2);
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: [0, 1, 0], limit: 2 });
 
 		assert.ok(result);
 		assert.strictEqual(result!.rows.length, 2);
@@ -102,13 +105,78 @@ describe('pgvector Tests', () => {
 	});
 
 	it('runs similarity search against an existing row by primary key', async () => {
-		const result = await engine.vectorSimilaritySearch('embeddings', 'embedding', 1, 3);
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: 1, limit: 3 });
 
 		assert.ok(result);
 		// row 1 is 'a' => it is its own nearest neighbour (distance 0)
 		assert.strictEqual(result!.rows[0].label, 'a');
 		assert.strictEqual(Number(result!.rows[0]._distance), 0);
 		assert.strictEqual(result!.rows[1].label, 'b');
+	});
+
+	it('returns a bounded cosine _similarity (1 - distance) for the cosine metric', async () => {
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', metric: 'cosine', limit: 4 });
+
+		assert.ok(result);
+		assert.strictEqual(result!.metric, 'cosine');
+		assert.strictEqual(result!.operator, '<=>');
+		// nearest row 'a' is identical => cosine similarity ~1
+		assert.ok(Math.abs(Number(result!.rows[0]._similarity) - 1) < 1e-6, `expected ~1, got ${result!.rows[0]._similarity}`);
+	});
+
+	it('supports the L2 metric and leaves _similarity null', async () => {
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', metric: 'l2', limit: 4 });
+
+		assert.ok(result);
+		assert.strictEqual(result!.operator, '<->');
+		assert.strictEqual(result!.rows[0].label, 'a');
+		assert.strictEqual(result!.rows[0]._similarity, null);
+	});
+
+	it('narrows results with a WHERE metadata filter', async () => {
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', where: "label = 'c'", limit: 10 });
+
+		assert.ok(result);
+		assert.strictEqual(result!.rows.length, 1);
+		assert.strictEqual(result!.rows[0].label, 'c');
+	});
+
+	it('blocks a dimension-mismatched query vector with a warning and no rows', async () => {
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0, 0]', limit: 10 });
+
+		assert.ok(result);
+		assert.strictEqual(result!.rows.length, 0);
+		assert.ok(result!.warnings.some(warning => warning.includes('dimensions')), `expected a dimension warning, got ${JSON.stringify(result!.warnings)}`);
+	});
+
+	it('reports an index scan when an HNSW index exists, else a sequential scan', async () => {
+		const withoutIndex = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', limit: 4 });
+		assert.ok(withoutIndex);
+		assert.strictEqual(withoutIndex!.scan?.type, 'seq');
+
+		await engine.connection?.raw(`CREATE INDEX embeddings_hnsw ON embeddings USING hnsw (embedding vector_cosine_ops)`);
+		// On this tiny table the planner prefers a seq scan on cost; force it to
+		// choose the ANN index so we deterministically exercise index detection.
+		// The single-connection pool (see `before`) keeps this SET on the session
+		// used by the engine's own EXPLAIN.
+		await engine.connection?.raw(`SET enable_seqscan = off`);
+
+		try {
+			const withIndex = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', metric: 'cosine', limit: 4 });
+			assert.ok(withIndex);
+			assert.strictEqual(withIndex!.scan?.type, 'index');
+			assert.strictEqual(withIndex!.scan?.indexType, 'hnsw');
+		} finally {
+			await engine.connection?.raw(`SET enable_seqscan = on`);
+		}
+	});
+
+	it('produces display-safe SQL that does not dump the raw vector literal', async () => {
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', limit: 4 });
+
+		assert.ok(result);
+		assert.ok(!result!.sql.includes('[1,0,0]') && !result!.sql.includes('[1, 0, 0]'), `SQL should be truncated, got ${result!.sql}`);
+		assert.ok(result!.sql.includes('dims') || result!.sql.includes('[…]'), `expected a truncated literal, got ${result!.sql}`);
 	});
 
 	it('reports ANN indexes on the vector column', async () => {

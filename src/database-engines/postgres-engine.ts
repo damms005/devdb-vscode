@@ -247,41 +247,102 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 
 	/**
-	 * Runs a pgvector nearest-neighbour search against `column` ordered by cosine
-	 * distance (`<=>`). The reference may be a raw vector (array or `[..]` literal
-	 * string) or the primary key value of an existing row to compare against.
+	 * Runs a pgvector nearest-neighbour search against `column`, ordered ascending
+	 * by the chosen distance operator. The reference may be a raw vector (array or
+	 * `[..]` literal string), an already-embedded `rawVector`, or the primary key
+	 * value of an existing row to compare against ("more like this row").
 	 *
-	 * @returns {Promise<QueryResponse | undefined>} rows with an extra `_distance` column, ascending.
+	 * Each returned row carries a numeric `_distance` (the operator value) plus a
+	 * `_similarity` (1 - distance for cosine, negated inner product for ip, `NULL`
+	 * for l2/l1). The metric defaults to the ANN index opclass, else cosine.
+	 *
+	 * @returns rows plus display-safe SQL, resolved metric/operator, scan plan and warnings.
 	 */
-	async vectorSimilaritySearch(table: string, column: string, reference: number[] | string | number, limit: number = 10): Promise<QueryResponse | undefined> {
+	async vectorSimilaritySearch(options: {
+		table: string,
+		column: string,
+		reference?: number[] | string | number,
+		rawVector?: number[],
+		metric?: VectorMetric,
+		limit?: number,
+		where?: string,
+		efSearch?: number,
+	}): Promise<{ rows: any[], sql: string, operator: string, metric: string, scoreLabel: string, queryDimension?: number, scan?: { type: 'index' | 'seq', indexName?: string, indexType?: string }, warnings: string[] } | undefined> {
 		if (!this.connection) {
 			throw new Error('Not connected to the database');
 		}
 
-		const { schemaName, tableName } = getTableSchema(table);
+		const { schemaName, tableName } = getTableSchema(options.table);
 		const quotedTable = `${sanitizeIdentifier(schemaName, '"', '"')}.${sanitizeIdentifier(tableName, '"', '"')}`;
-		const quotedColumn = sanitizeIdentifier(column, '"', '"');
-		const safeLimit = Math.max(1, Math.min(1000, Math.trunc(Number(limit) || 10)));
+		const quotedColumn = sanitizeIdentifier(options.column, '"', '"');
+		const safeLimit = Math.max(1, Math.min(1000, Math.trunc(Number(options.limit) || 10)));
+		const whereClause = options.where && options.where.trim().length > 0 ? `WHERE ${options.where.trim()}` : '';
 
-		const rawVector = this.normalizeVectorReference(reference);
+		const metric: VectorMetric = options.metric ?? (await this.getVectorIndexOpclass(options.table, options.column)) ?? 'cosine';
+		const { operator, scoreLabel } = getMetricDefinition(metric);
+		const warnings: string[] = [];
+
+		if (metric === 'ip') {
+			warnings.push('Inner product (<#>) returns the negative inner product; _similarity is negated to restore the intuitive sign.');
+		}
+
+		const parsed = parseVectorReference(options.rawVector, options.reference);
 
 		try {
-			if (rawVector !== undefined) {
-				const sql = `SELECT *, (${quotedColumn} <=> ?::vector) AS _distance FROM ${quotedTable} ORDER BY ${quotedColumn} <=> ?::vector LIMIT ${safeLimit}`;
-				const result = await this.connection.raw(sql, [rawVector, rawVector]) as any;
-				return { rows: result.rows, sql };
+			if (parsed.literal !== undefined) {
+				const queryDimension = parsed.dimension;
+				const columnDimensions = await this.getVectorColumnDimensions(schemaName, tableName);
+				const columnDimension = columnDimensions[options.column.toLowerCase()];
+
+				if (queryDimension !== undefined && queryDimension > 0 && columnDimension !== undefined && columnDimension > 0 && queryDimension !== columnDimension) {
+					return {
+						rows: [],
+						sql: '',
+						operator,
+						metric,
+						scoreLabel,
+						queryDimension,
+						warnings: [`Query vector has ${queryDimension} dimensions but column is vector(${columnDimension}) — cannot search`],
+					};
+				}
+
+				const similaritySelect = getSimilaritySelect(metric, quotedColumn, '?::vector', operator);
+				const runSql = `SELECT *, (${quotedColumn} ${operator} ?::vector) AS _distance, ${similaritySelect} AS _similarity FROM ${quotedTable} ${whereClause} ORDER BY ${quotedColumn} ${operator} ?::vector LIMIT ${safeLimit}`;
+				const bindings = [parsed.literal, ...(metric === 'cosine' || metric === 'ip' ? [parsed.literal] : []), parsed.literal];
+
+				const rows = await this.runSearch(runSql, bindings, options.efSearch);
+				const scan = await this.detectScan(options.table, options.column, runSql, bindings);
+				if (scan?.type === 'seq') {
+					warnings.push('Sequential scan — results are exact but may be slow on large tables; a production ANN index for this metric may return different (approximate) rows.');
+				}
+
+				const displaySql = runSql.split('?::vector').join(truncateVectorLiteral(parsed.dimension));
+				return { rows, sql: displaySql, operator, metric, scoreLabel, queryDimension, scan, warnings };
 			}
 
-			const columns = await this.getColumns(table);
+			if (parsed.pkValue === undefined) {
+				throw new Error('No vector or reference row provided for similarity search');
+			}
+
+			const columns = await this.getColumns(options.table);
 			const primaryKeyColumn = columns.find(candidate => candidate.isPrimaryKey)?.name;
 			if (!primaryKeyColumn) {
-				throw new Error(`Cannot resolve reference row: table ${table} has no primary key`);
+				throw new Error(`Cannot resolve reference row: table ${options.table} has no primary key`);
 			}
 			const quotedPrimaryKey = sanitizeIdentifier(primaryKeyColumn, '"', '"');
 
-			const sql = `SELECT t.*, (t.${quotedColumn} <=> ref.v) AS _distance FROM ${quotedTable} t CROSS JOIN (SELECT ${quotedColumn} AS v FROM ${quotedTable} WHERE ${quotedPrimaryKey} = ? LIMIT 1) ref ORDER BY t.${quotedColumn} <=> ref.v LIMIT ${safeLimit}`;
-			const result = await this.connection.raw(sql, [reference]) as any;
-			return { rows: result.rows, sql };
+			const similaritySelect = getSimilaritySelect(metric, `t.${quotedColumn}`, 'ref.v', operator);
+			const runSql = `SELECT t.*, (t.${quotedColumn} ${operator} ref.v) AS _distance, ${similaritySelect} AS _similarity FROM ${quotedTable} t CROSS JOIN (SELECT ${quotedColumn} AS v FROM ${quotedTable} WHERE ${quotedPrimaryKey} = ? LIMIT 1) ref ${whereClause} ORDER BY t.${quotedColumn} ${operator} ref.v LIMIT ${safeLimit}`;
+			const bindings = [parsed.pkValue];
+
+			const rows = await this.runSearch(runSql, bindings, options.efSearch);
+			const scan = await this.detectScan(options.table, options.column, runSql, bindings);
+			if (scan?.type === 'seq') {
+				warnings.push('Sequential scan — results are exact but may be slow on large tables; a production ANN index for this metric may return different (approximate) rows.');
+			}
+
+			const displaySql = runSql.replace('?', String(parsed.pkValue));
+			return { rows, sql: displaySql, operator, metric, scoreLabel, scan, warnings };
 		} catch (error) {
 			reportError(`PostgreSQL vector similarity search error: ${error}`);
 			return;
@@ -289,17 +350,82 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 
 	/**
-	 * Normalizes a reference into a pgvector literal string (`[a,b,c]`) when it
-	 * represents a raw vector, or returns undefined when it should be treated as
-	 * a primary key value.
+	 * Executes the search SQL, wrapping it in a transaction and issuing
+	 * `SET LOCAL hnsw.ef_search` first when an efSearch value is supplied
+	 * (SET LOCAL only takes effect inside a transaction).
 	 */
-	private normalizeVectorReference(reference: number[] | string | number): string | undefined {
-		if (Array.isArray(reference)) {
-			return `[${reference.join(',')}]`;
+	private async runSearch(sql: string, bindings: any[], efSearch?: number): Promise<any[]> {
+		if (!this.connection) {
+			throw new Error('Not connected to the database');
 		}
 
-		if (typeof reference === 'string' && reference.trim().startsWith('[')) {
-			return reference.trim();
+		const efInt = Math.trunc(Number(efSearch) || 0);
+		if (efInt > 0) {
+			return this.connection.transaction(async (trx) => {
+				await trx.raw(`SET LOCAL hnsw.ef_search = ${efInt}`);
+				const result = await trx.raw(sql, bindings) as any;
+				return result.rows;
+			});
+		}
+
+		const result = await this.connection.raw(sql, bindings) as any;
+		return result.rows;
+	}
+
+	/**
+	 * Runs `EXPLAIN (FORMAT JSON)` for the search and reports whether the planner
+	 * chose an ANN (hnsw/ivfflat) index scan or a sequential scan. Never throws —
+	 * on failure it returns undefined so the search itself is unaffected.
+	 */
+	private async detectScan(table: string, column: string, sql: string, bindings: any[]): Promise<{ type: 'index' | 'seq', indexName?: string, indexType?: string } | undefined> {
+		if (!this.connection) {
+			return undefined;
+		}
+
+		try {
+			const annIndexes = await this.getVectorIndexes(table, column);
+			const annIndexByName = new Map(annIndexes.map(index => [index.indexName, index.indexType]));
+
+			const explain = await this.connection.raw(`EXPLAIN (FORMAT JSON) ${sql}`, bindings) as any;
+			const plan = explain.rows[0]['QUERY PLAN'];
+			const rootPlan = Array.isArray(plan) ? plan[0]?.Plan : plan?.Plan;
+
+			const indexHit = findIndexScanNode(rootPlan, annIndexByName);
+			if (indexHit) {
+				return { type: 'index', indexName: indexHit.indexName, indexType: indexHit.indexType };
+			}
+
+			return { type: 'seq' };
+		} catch (error) {
+			reportError(`PostgreSQL vector EXPLAIN error: ${error}`);
+			return undefined;
+		}
+	}
+
+	/**
+	 * Reads the opclass of any ANN index on the column to pick a sensible default
+	 * metric: `vector_ip_ops` => ip, `vector_l1_ops` => l1, `vector_l2_ops` => l2,
+	 * `vector_cosine_ops` (or none) => cosine.
+	 *
+	 * @returns {Promise<VectorMetric | undefined>} the matched metric, or undefined when no ANN index exists.
+	 */
+	async getVectorIndexOpclass(table: string, column: string): Promise<VectorMetric | undefined> {
+		const indexes = await this.getVectorIndexes(table, column);
+
+		for (const index of indexes) {
+			const definition = index.definition.toLowerCase();
+			if (definition.includes('vector_ip_ops')) {
+				return 'ip';
+			}
+			if (definition.includes('vector_l1_ops')) {
+				return 'l1';
+			}
+			if (definition.includes('vector_l2_ops')) {
+				return 'l2';
+			}
+			if (definition.includes('vector_cosine_ops')) {
+				return 'cosine';
+			}
 		}
 
 		return undefined;
@@ -362,6 +488,111 @@ function getTableSchema(table: string): { schemaName: string, tableName: string 
 	}
 
 	return { schemaName, tableName };
+}
+
+export type VectorMetric = 'cosine' | 'l2' | 'ip' | 'l1';
+
+/**
+ * Maps a metric to its pgvector distance operator and a human-friendly score label.
+ */
+function getMetricDefinition(metric: VectorMetric): { operator: string, scoreLabel: string } {
+	switch (metric) {
+		case 'l2':
+			return { operator: '<->', scoreLabel: 'L2 distance' };
+		case 'ip':
+			return { operator: '<#>', scoreLabel: 'inner product' };
+		case 'l1':
+			return { operator: '<+>', scoreLabel: 'L1 distance' };
+		case 'cosine':
+		default:
+			return { operator: '<=>', scoreLabel: 'cosine similarity' };
+	}
+}
+
+/**
+ * Builds the SQL expression for the interpretable `_similarity` value per metric:
+ * cosine => `1 - distance`, ip => negated inner product, l2/l1 => `NULL`
+ * (unbounded distances have no bounded similarity, so the UI shows distance instead).
+ */
+function getSimilaritySelect(metric: VectorMetric, columnExpr: string, vectorExpr: string, operator: string): string {
+	if (metric === 'cosine') {
+		return `1 - (${columnExpr} ${operator} ${vectorExpr})`;
+	}
+
+	if (metric === 'ip') {
+		return `-(${columnExpr} ${operator} ${vectorExpr})`;
+	}
+
+	return 'NULL';
+}
+
+/**
+ * Resolves the caller-supplied reference into either a pgvector literal string
+ * (`[a,b,c]`, with its dimension) or a primary-key value ("more like this row").
+ * `rawVector` (already-embedded query text) takes precedence over `reference`.
+ */
+function parseVectorReference(
+	rawVector: number[] | undefined,
+	reference: number[] | string | number | undefined,
+): { literal?: string, dimension?: number, pkValue?: string | number } {
+	if (Array.isArray(rawVector)) {
+		return { literal: `[${rawVector.join(',')}]`, dimension: rawVector.length };
+	}
+
+	if (Array.isArray(reference)) {
+		return { literal: `[${reference.join(',')}]`, dimension: reference.length };
+	}
+
+	if (typeof reference === 'string' && reference.trim().startsWith('[')) {
+		const literal = reference.trim();
+		const inner = literal.slice(1, literal.lastIndexOf(']')).trim();
+		const dimension = inner.length === 0 ? 0 : inner.split(',').length;
+		return { literal, dimension };
+	}
+
+	if (reference !== undefined) {
+		return { pkValue: reference as string | number };
+	}
+
+	return {};
+}
+
+/**
+ * Produces a display-safe placeholder for a bound vector literal so generated SQL
+ * shown to the user does not dump thousands of floats.
+ */
+function truncateVectorLiteral(dimension?: number): string {
+	return dimension && dimension > 0 ? `[… ${dimension} dims …]` : '[…]';
+}
+
+/**
+ * Recursively walks an EXPLAIN plan tree looking for an Index (Only) Scan that
+ * uses one of the known ANN indexes; returns its name and type when found.
+ */
+function findIndexScanNode(
+	node: any,
+	annIndexByName: Map<string, string>,
+): { indexName: string, indexType: string } | undefined {
+	if (!node || typeof node !== 'object') {
+		return undefined;
+	}
+
+	const nodeType = String(node['Node Type'] ?? '');
+	const indexName = node['Index Name'];
+	if (nodeType.includes('Index Scan') && indexName && annIndexByName.has(indexName)) {
+		return { indexName, indexType: annIndexByName.get(indexName)! };
+	}
+
+	if (Array.isArray(node.Plans)) {
+		for (const child of node.Plans) {
+			const hit = findIndexScanNode(child, annIndexByName);
+			if (hit) {
+				return hit;
+			}
+		}
+	}
+
+	return undefined;
 }
 
 async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<{ table: string, column: string } | undefined> {
