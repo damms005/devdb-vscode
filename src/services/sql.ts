@@ -118,6 +118,14 @@ export function buildWhereClause(engine: DatabaseEngine | SqliteEngine, dialect:
 			}
 
 			const isStringablePostgresComparison = /(uuid|integer|smallint|bigint|int\d|timestamp)/i.test(targetColumn.type) && dialect === 'postgres';
+
+			// Skip opaque/complex columns that cannot be substring-matched with LIKE
+			// (e.g. pgvector embeddings, DuckDB LIST/STRUCT/MAP, ClickHouse Array). A LIKE
+			// against these either errors (vector has no LIKE operator) or is meaningless.
+			if (targetColumn.isPlainTextType === false && !isNumericComparison && !isStringablePostgresComparison && targetColumn.type !== 'boolean') {
+				return;
+			}
+
 			let columnExpression = column;
 
 			value = getTransformedValue(targetColumn, value, isNumericComparison);
