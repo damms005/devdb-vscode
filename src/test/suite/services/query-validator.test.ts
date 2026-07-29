@@ -125,3 +125,28 @@ describe('sanitizeIdentifier', () => {
 		assert.strictEqual(sanitizeIdentifier('a`b`c', '`', '`'), '`a``b``c`');
 	});
 });
+
+describe('Query Validator - Redis engine guard', () => {
+	it('blocks FLUSHALL for redis (plain string)', () => {
+		assert.strictEqual(validateQuery('FLUSHALL', 'redis').allowed, false);
+	});
+
+	it('blocks FLUSHDB for redis via JSON-array command form', () => {
+		assert.strictEqual(validateQuery('["FLUSHDB"]', 'redis').allowed, false);
+	});
+
+	it('blocks CONFIG and SHUTDOWN for redis', () => {
+		assert.strictEqual(validateQuery('CONFIG SET maxmemory 0', 'redis').allowed, false);
+		assert.strictEqual(validateQuery('SHUTDOWN NOSAVE', 'redis').allowed, false);
+	});
+
+	it('allows normal redis reads/writes', () => {
+		assert.strictEqual(validateQuery('GET foo', 'redis').allowed, true);
+		assert.strictEqual(validateQuery('["HSET","user:1","name","Ada"]', 'redis').allowed, true);
+	});
+
+	it('does not apply SQL patterns to redis commands', () => {
+		// "DROP" is a real (harmless) concept-free token for redis; ensure SQL DROP-DATABASE block does not fire
+		assert.strictEqual(validateQuery('GET drop:database:key', 'redis').allowed, true);
+	});
+});

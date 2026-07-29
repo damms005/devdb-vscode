@@ -145,7 +145,8 @@ export async function startHttpServer() {
 				logger.error('Query is required but not provided');
 				return res.status(400).json({ error: 'Query is required' });
 			}
-			const validation = validateQuery(query);
+			const db = getDatabase();
+			const validation = validateQuery(query, db?.getType());
 			if (!validation.allowed) {
 				logger.warn('Blocked destructive query via MCP HTTP', { queryType: getQueryType(query) });
 				return res.status(403).json({ error: validation.warning, blocked: true });
@@ -154,7 +155,6 @@ export async function startHttpServer() {
 				logger.warn('Destructive query warning', { queryType: getQueryType(query), warning: validation.warning });
 			}
 			try {
-				const db = getDatabase();
 				if (!db) {
 					logger.error('No database connected for query request', { queryType: getQueryType(query) });
 					return res.status(500).json({ message: 'No DB connected' });
