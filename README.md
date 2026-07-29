@@ -44,6 +44,11 @@ Built with 💖 for developers.
 
 ## Latest Features
 
+1. **[Pro]** Vector search for PostgreSQL (pgvector) — inspect embeddings and find similar rows
+1. **[Pro]** Redis / Valkey support
+1. **[Pro]** ClickHouse support
+1. **[Pro]** DuckDB support
+1. **[Pro]** Neon (serverless Postgres) support
 1. Zero-config auto-detection for local Supabase projects
 1. Fix issues with Django projects zero-config support
 1. Correctly report MariaDB in DDEV projects
@@ -74,7 +79,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements copied to your clipboard or saved to file.
 
-- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, and MongoDB. Connect to remote databases securely via SSH tunnels.
+- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, MongoDB, Redis/Valkey, ClickHouse, DuckDB, and Neon, plus PostgreSQL vector search (pgvector). Connect to remote databases securely via SSH tunnels.
 
 - **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
 
@@ -147,6 +152,11 @@ Currently supported databases:
 - MySQL over SSH **[Pro]** (also supports MariaDB)
 - PostgreSQL over SSH **[Pro]**
 - Supabase Cloud **[Pro]**
+- PostgreSQL vector search — pgvector **[Pro]**
+- Redis / Valkey **[Pro]**
+- ClickHouse **[Pro]**
+- DuckDB **[Pro]**
+- Neon **[Pro]**
 
 ## Loading Databases
 

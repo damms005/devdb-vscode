@@ -34,6 +34,7 @@ export function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense 
 
 	showMessageAndButtons(`
 					DevDb updated to ${currentVersion}.
+					✨ New in Pro: Vector search (pgvector), Redis/Valkey, ClickHouse, DuckDB & Neon.
 					✨ Gift DevDb Pro to your colleagues and friends!
 					${hasLicense
 			? ''
