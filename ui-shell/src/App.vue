@@ -433,6 +433,22 @@ function handlePgvectorSimilaritySearch(payload) {
 	vscode.value.postMessage({ type: 'request:pgvector-similarity-search', value: removeProxyWrap(payload) })
 }
 
+function handleGetEmbeddingConfigs() {
+	vscode.value.postMessage({ type: 'request:get-embedding-configs' })
+}
+
+function handleSaveEmbeddingConfig(config) {
+	vscode.value.postMessage({ type: 'request:save-embedding-config', value: removeProxyWrap(config) })
+}
+
+function handleDeleteEmbeddingConfig(id) {
+	vscode.value.postMessage({ type: 'request:delete-embedding-config', value: removeProxyWrap(id) })
+}
+
+function handleTestEmbeddingConfig(payload) {
+	vscode.value.postMessage({ type: 'request:test-embedding-config', value: removeProxyWrap(payload) })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -489,6 +505,10 @@ function notify(title) {
 			@activate-license="activateLicense"
 			@create-gift-link="handleCreateGiftLink"
 			@pgvector-similarity-search="handlePgvectorSimilaritySearch"
+			@get-embedding-configs="handleGetEmbeddingConfigs"
+			@save-embedding-config="handleSaveEmbeddingConfig"
+			@delete-embedding-config="handleDeleteEmbeddingConfig"
+			@test-embedding-config="handleTestEmbeddingConfig"
 		/>
 	</div>
 	 <RouterView />
