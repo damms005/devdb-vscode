@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, writeFileSync } from 'fs';
 import { DuckDbEngine } from '../../../database-engines/duckdb-engine';
 
 describe('DuckDB Tests', () => {
@@ -10,7 +10,9 @@ describe('DuckDB Tests', () => {
 
 	before(async function () {
 		dbPath = join(tmpdir(), `devdb-duckdb-test-${Date.now()}-${Math.random().toString(36).slice(2)}.duckdb`);
-		engine = new DuckDbEngine(dbPath);
+		// Write-mode engine: these tests create tables / insert rows, so the file
+		// must be opened read-write (the safe default is now read-only).
+		engine = new DuckDbEngine(dbPath, { readOnly: false });
 	});
 
 	afterEach(async () => {
@@ -145,5 +147,91 @@ describe('DuckDB Tests', () => {
 		const foreignKeyColumn = columns.find((column) => column.name === 'parentId');
 
 		assert.strictEqual(foreignKeyColumn?.foreignKey?.table, 'ParentTable');
+	});
+
+	it('should return SUMMARIZE rows via raw() (D1: no longer a silent no-op)', async () => {
+		await engine.raw(`CREATE TABLE metrics (id INTEGER, amount DOUBLE, label VARCHAR)`);
+		await engine.raw(`INSERT INTO metrics VALUES (1, 10.5, 'a'), (2, 20.0, 'b'), (3, 30.5, 'a')`);
+
+		const rows = await engine.raw(`SUMMARIZE metrics`);
+
+		assert.ok(Array.isArray(rows), 'SUMMARIZE must return a rows array, not a { changes } no-op');
+		assert.strictEqual(rows.length, 3, 'one summary row per column');
+		const columnNames = rows.map((row: any) => String(row.column_name)).sort();
+		assert.deepStrictEqual(columnNames, ['amount', 'id', 'label']);
+
+		const helperRows = await engine.summarize('metrics');
+		assert.strictEqual(helperRows.length, 3);
+	});
+
+	it('should disable edits and refuse mutations when opened read-only (D2/D4)', async () => {
+		const readOnlyPath = join(tmpdir(), `devdb-duckdb-ro-${Date.now()}-${Math.random().toString(36).slice(2)}.duckdb`);
+
+		const writer = new DuckDbEngine(readOnlyPath, { readOnly: false });
+		await writer.raw(`CREATE TABLE people (id INTEGER PRIMARY KEY, name VARCHAR)`);
+		await writer.raw(`INSERT INTO people VALUES (1, 'Ada'), (2, 'Linus')`);
+		await writer.disconnect();
+
+		const readOnly = new DuckDbEngine(readOnlyPath, { readOnly: true });
+		try {
+			assert.strictEqual(readOnly.isReadOnly(), true);
+
+			const columns = await readOnly.getColumns('people');
+			assert.ok(columns.length > 0);
+			assert.ok(columns.every((column) => column.isEditable === false), 'read-only columns must not be editable');
+
+			// Reading still works
+			const result = await readOnly.getRows('people', columns, 10, 0);
+			assert.strictEqual(result?.rows.length, 2);
+
+			// A mutation must throw, not silently no-op
+			await assert.rejects(
+				() => readOnly.commitChange({
+					type: 'cell-update',
+					table: 'people',
+					column: { name: 'name', type: 'VARCHAR', isPrimaryKey: false, isPlainTextType: true, isNullable: true, isEditable: false },
+					primaryKeyColumn: 'id',
+					primaryKey: 1,
+					newValue: 'Grace',
+					originalValue: 'Ada',
+				} as any),
+				/read-only/i,
+			);
+		} finally {
+			await readOnly.disconnect();
+			readOnly.destroy();
+			if (existsSync(readOnlyPath)) {
+				rmSync(readOnlyPath, { force: true });
+			}
+		}
+	});
+
+	it('should open a CSV data file as a queryable view (D3)', async () => {
+		const csvPath = join(tmpdir(), `devdb-duckdb-data-${Date.now()}-${Math.random().toString(36).slice(2)}.csv`);
+		writeFileSync(csvPath, 'id,name,score\n1,Ada,90\n2,Linus,85\n3,Grace,95\n');
+
+		const dataEngine = new DuckDbEngine(':memory:', { dataFile: { path: csvPath, viewName: 'people' } });
+		try {
+			assert.strictEqual(await dataEngine.isOkay(), true);
+			assert.strictEqual(dataEngine.isReadOnly(), true, 'data-file views are not editable');
+
+			const tables = await dataEngine.getTables();
+			assert.ok(tables.includes('people'), `expected view "people" in tables: ${tables.join(', ')}`);
+
+			const columns = await dataEngine.getColumns('people');
+			const columnNames = columns.map((column) => column.name).sort();
+			assert.deepStrictEqual(columnNames, ['id', 'name', 'score']);
+			assert.ok(columns.every((column) => column.isEditable === false));
+
+			const result = await dataEngine.getRows('people', columns, 10, 0);
+			assert.strictEqual(result?.rows.length, 3);
+			assert.deepStrictEqual(result?.rows.map((row) => row.name).sort(), ['Ada', 'Grace', 'Linus']);
+		} finally {
+			await dataEngine.disconnect();
+			dataEngine.destroy();
+			if (existsSync(csvPath)) {
+				rmSync(csvPath, { force: true });
+			}
+		}
 	});
 });

@@ -26,8 +26,34 @@ interface DuckDbInstance {
 
 interface DuckDbModule {
 	DuckDBInstance: {
-		create(path?: string, config?: Record<string, unknown>): Promise<DuckDbInstance>;
+		create(path?: string, config?: Record<string, string>): Promise<DuckDbInstance>;
 	};
+}
+
+/**
+ * A data file (Parquet/CSV/JSON) DuckDB can read directly. When provided, the
+ * engine opens an in-memory database and exposes the file as a queryable VIEW,
+ * which is the defining DuckDB feature (query files without importing them).
+ */
+export interface DuckDbDataFile {
+	path: string;
+	viewName: string;
+}
+
+export interface DuckDbEngineOptions {
+	/**
+	 * Opens the database with `access_mode=READ_ONLY` so DuckDB never takes an
+	 * exclusive write lock on the user's file (which would block their other
+	 * DuckDB processes). Defaults to `true` for on-disk files. Pass `false` to
+	 * explicitly opt into a read-write connection.
+	 */
+	readOnly?: boolean;
+
+	/**
+	 * When set, the engine ignores `dbPath`, opens an in-memory database and
+	 * registers `dataFile` as a VIEW. Such views are never editable.
+	 */
+	dataFile?: DuckDbDataFile;
 }
 
 /**
@@ -41,9 +67,30 @@ export class DuckDbEngine implements DatabaseEngine {
 	private instance: DuckDbInstance | null = null;
 	private connection: DuckDbConnection | null = null;
 	private connecting: Promise<DuckDbConnection | null> | null = null;
+	private readonly readOnly: boolean;
+	private readonly dataFile?: DuckDbDataFile;
 
-	constructor(dbPath: string = ':memory:') {
-		this.dbPath = dbPath;
+	constructor(dbPath: string = ':memory:', options: DuckDbEngineOptions = {}) {
+		this.dataFile = options.dataFile;
+		this.dbPath = this.dataFile ? ':memory:' : dbPath;
+		this.readOnly = options.readOnly ?? (this.dbPath !== ':memory:');
+	}
+
+	/**
+	 * True when the file is opened read-only (default for on-disk files) or when
+	 * browsing a data file as a VIEW. Callers use this to disable edits so
+	 * `commitChange` never silently no-ops against a non-writable connection.
+	 */
+	isReadOnly(): boolean {
+		return this.connectionIsReadOnly() || !!this.dataFile;
+	}
+
+	/**
+	 * Whether the underlying DuckDB connection is opened with `access_mode=READ_ONLY`.
+	 * Only on-disk files can be read-only; `:memory:` databases are always writable.
+	 */
+	private connectionIsReadOnly(): boolean {
+		return this.readOnly && this.dbPath !== ':memory:';
 	}
 
 	getType(): KnexClient {
@@ -86,11 +133,20 @@ export class DuckDbEngine implements DatabaseEngine {
 		this.connecting = (async () => {
 			try {
 				const { DuckDBInstance } = await this.loadDriver();
-				this.instance = await DuckDBInstance.create(this.dbPath);
+				const config: Record<string, string> = {};
+				if (this.connectionIsReadOnly()) {
+					config.access_mode = 'READ_ONLY';
+				}
+				this.instance = await DuckDBInstance.create(this.dbPath, config);
 				this.connection = await this.instance.connect();
+
+				if (this.dataFile) {
+					await this.connection.run(this.buildCreateViewSql(this.dataFile));
+				}
+
 				return this.connection;
 			} catch (err) {
-				reportError(`DuckDB connection error: ${err}`);
+				reportError(this.describeConnectionError(err));
 				return null;
 			} finally {
 				this.connecting = null;
@@ -98,6 +154,41 @@ export class DuckDbEngine implements DatabaseEngine {
 		})();
 
 		return this.connecting;
+	}
+
+	/**
+	 * Surfaces the holder PID from DuckDB's lock-conflict error so the user can
+	 * identify (and close) the other process holding the write lock, instead of
+	 * seeing an opaque "IO Error". Falls back to the raw error otherwise.
+	 */
+	private describeConnectionError(err: unknown): string {
+		const message = String(err);
+		const pidMatch = message.match(/PID\s+(\d+)/i);
+		if (pidMatch) {
+			return `DuckDB file "${this.dbPath}" is locked by another process (PID ${pidMatch[1]}). Close that process, or open the database read-only. Original error: ${message}`;
+		}
+		return `DuckDB connection error: ${message}`;
+	}
+
+	/**
+	 * Builds a `CREATE VIEW` over a data file using the reader matching its
+	 * extension (`read_parquet`/`read_csv_auto`/`read_json_auto`).
+	 */
+	private buildCreateViewSql(dataFile: DuckDbDataFile): string {
+		const reader = this.dataFileReader(dataFile.path);
+		const literalPath = dataFile.path.replace(/'/g, "''");
+		return `CREATE VIEW ${this.escapeIdentifier(dataFile.viewName)} AS SELECT * FROM ${reader}('${literalPath}')`;
+	}
+
+	private dataFileReader(path: string): string {
+		const lower = path.toLowerCase();
+		if (lower.endsWith('.parquet')) {
+			return 'read_parquet';
+		}
+		if (lower.endsWith('.json') || lower.endsWith('.ndjson')) {
+			return 'read_json_auto';
+		}
+		return 'read_csv_auto';
 	}
 
 	private async query(sql: string, params: any[] = []): Promise<Record<string, any>[]> {
@@ -208,7 +299,8 @@ export class DuckDbEngine implements DatabaseEngine {
 					isPrimaryKey: this.toBoolean(column.pk),
 					isNumeric: !isComplex && this.getNumericColumnTypeNamesLowercase().includes(baseType),
 					isPlainTextType: !isComplex && this.getPlainStringTypes().includes(baseType),
-					isEditable: !isComplex
+					isEditable: !this.isReadOnly()
+						&& !isComplex
 						&& (editableColumnTypeNamesLowercase.includes(baseType)
 							|| editableColumnTypeNamesLowercase.some((editable) => baseType.startsWith(editable))),
 					foreignKey: foreignKey
@@ -314,6 +406,20 @@ export class DuckDbEngine implements DatabaseEngine {
 		}
 	}
 
+	/**
+	 * Runs `SUMMARIZE <table>` and returns the per-column statistics rows
+	 * (min/max/approx_unique/avg/std/percentiles/null_percentage/…) for a future
+	 * column-stats panel.
+	 */
+	async summarize(table: string): Promise<Record<string, any>[]> {
+		try {
+			return await this.query(`SUMMARIZE ${this.escapeIdentifier(table)}`);
+		} catch (err) {
+			reportError(`DuckDB summarize error: ${err}`);
+			return [];
+		}
+	}
+
 	async getVersion(): Promise<string> {
 		try {
 			const rows = await this.query('SELECT version() AS version');
@@ -330,6 +436,10 @@ export class DuckDbEngine implements DatabaseEngine {
 	 * updates and row deletions working for the embedded file.
 	 */
 	async commitChange(mutation: SerializedMutation): Promise<void> {
+		if (this.isReadOnly()) {
+			throw new Error(`Cannot modify data: the DuckDB connection to "${this.dbPath}" is read-only.`);
+		}
+
 		const connection = await this.getDuckDbConnection();
 		if (!connection) {
 			throw new Error('Cannot connect to database');
@@ -337,21 +447,38 @@ export class DuckDbEngine implements DatabaseEngine {
 
 		const { type, table, primaryKeyColumn, primaryKey } = mutation;
 
+		let sql: string;
+		let params: any[];
+
 		if (type === 'cell-update') {
-			const sql = `UPDATE ${this.escapeIdentifier(table)}
-			             SET ${this.escapeIdentifier(mutation.column.name)} = $1
-			             WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $2`;
-			await connection.run(sql, [this.transformValueForDuckDb(mutation.newValue), primaryKey]);
-			return;
+			sql = `UPDATE ${this.escapeIdentifier(table)}
+			       SET ${this.escapeIdentifier(mutation.column.name)} = $1
+			       WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $2`;
+			params = [this.transformValueForDuckDb(mutation.newValue), primaryKey];
+		} else if (type === 'row-delete') {
+			sql = `DELETE FROM ${this.escapeIdentifier(table)} WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $1`;
+			params = [primaryKey];
+		} else {
+			throw new Error(`Unsupported mutation type: ${type}`);
 		}
 
-		if (type === 'row-delete') {
-			const sql = `DELETE FROM ${this.escapeIdentifier(table)} WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $1`;
-			await connection.run(sql, [primaryKey]);
-			return;
+		/**
+		 * DuckDB has no shared knex/SQLite transaction object on this engine
+		 * (getConnection() is null), so we wrap the write in an explicit
+		 * BEGIN/COMMIT to keep it atomic and roll back on failure.
+		 */
+		await connection.run('BEGIN TRANSACTION');
+		try {
+			await connection.run(sql, params);
+			await connection.run('COMMIT');
+		} catch (err) {
+			try {
+				await connection.run('ROLLBACK');
+			} catch (rollbackErr) {
+				reportError(`DuckDB rollback error: ${rollbackErr}`);
+			}
+			throw err;
 		}
-
-		throw new Error(`Unsupported mutation type: ${type}`);
 	}
 
 	async raw(code: string): Promise<any> {
@@ -365,7 +492,7 @@ export class DuckDbEngine implements DatabaseEngine {
 				throw new Error('Cannot connect to database');
 			}
 
-			const isReadQuery = /^\s*(SELECT|PRAGMA|WITH|SHOW|DESCRIBE|EXPLAIN|CALL|VALUES|FROM|TABLE)\b/i.test(code);
+			const isReadQuery = /^\s*(SELECT|PRAGMA|WITH|SHOW|DESCRIBE|EXPLAIN|CALL|VALUES|FROM|TABLE|SUMMARIZE|PIVOT|UNPIVOT)\b/i.test(code);
 
 			if (isReadQuery) {
 				return await this.query(code);
