@@ -193,6 +193,7 @@ function buildTabFromPayload(payload) {
 		pagination: payload.value.pagination,
 		tableCreationSql: payload.value.tableCreationSql,
 		lastQuery: payload.value.lastQuery,
+		stats: payload.value.stats,
 	}
 
 	return tab
@@ -449,6 +450,15 @@ function handleTestEmbeddingConfig(payload) {
 	vscode.value.postMessage({ type: 'request:test-embedding-config', value: removeProxyWrap(payload) })
 }
 
+function handleSummarizeTable(table) {
+	vscode.value.postMessage({ type: 'request:summarize-table', value: { table } })
+}
+
+function handleCancelQuery() {
+	loadingTableData.value = false
+	vscode.value.postMessage({ type: 'request:cancel-query' })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -509,6 +519,8 @@ function notify(title) {
 			@save-embedding-config="handleSaveEmbeddingConfig"
 			@delete-embedding-config="handleDeleteEmbeddingConfig"
 			@test-embedding-config="handleTestEmbeddingConfig"
+			@summarize-table="handleSummarizeTable"
+			@cancel-query="handleCancelQuery"
 		/>
 	</div>
 	 <RouterView />

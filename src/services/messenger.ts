@@ -29,6 +29,7 @@ import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MongodbEngine } from '../database-engines/mongodb-engine';
 import { RedisEngine } from '../database-engines/redis-engine';
 import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
+import { DuckDbEngine } from '../database-engines/duckdb-engine';
 import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
 import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
@@ -47,6 +48,30 @@ let workspaceTables: string[] = [];
 let selectedProvider: string | null = null
 let licenseChecker: (() => boolean) | null = null
 let connectionId = 0
+
+/**
+ * Tracks the currently in-flight table-data/raw query so it can be cancelled.
+ * Only engines that accept an {@link AbortSignal} (e.g. ClickHouse) will actually
+ * abort; for others `cancel-query` is a harmless no-op.
+ */
+let activeQueryController: AbortController | null = null
+
+function beginQuery(): AbortSignal {
+	activeQueryController?.abort()
+	activeQueryController = new AbortController()
+	return activeQueryController.signal
+}
+
+function endQuery(controller: AbortController | null): void {
+	if (activeQueryController === controller) {
+		activeQueryController = null
+	}
+}
+
+function cancelActiveQuery(): void {
+	activeQueryController?.abort()
+	activeQueryController = null
+}
 
 export function setLicenseChecker(checker: () => boolean) {
 	licenseChecker = checker
@@ -125,6 +150,11 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:save-embedding-config': async () => ({ configs: await embeddingService.saveConfig(data.value.config as EmbeddingConfigInput) }),
 		'request:delete-embedding-config': async () => ({ configs: await embeddingService.deleteConfig(data.value.id as string) }),
 		'request:test-embedding-config': async () => await embeddingService.testConfig(data.value),
+		'request:summarize-table': async () => await summarizeTable(data.value),
+		'request:cancel-query': async () => {
+			cancelActiveQuery()
+			return undefined
+		},
 	}
 
 	const action = actions[data.type]
@@ -300,23 +330,31 @@ async function getTableData(requestPayload: {
 
 	if (!database) return
 
-	const columns = await database.getColumns(requestPayload.table)
-	const queryResponse = await database.getRows(requestPayload.table, columns, requestPayload.itemsPerPage, 0, requestPayload.filters)
-	const totalRows = (await database?.getTotalRows(requestPayload.table, columns, requestPayload.filters))
-	const pagination = getPaginationFor(requestPayload.table, 1, totalRows, requestPayload.itemsPerPage)
-	const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
+	const signal = beginQuery()
+	const controller = activeQueryController
 
-	if (!queryResponse) return
+	try {
+		const columns = await database.getColumns(requestPayload.table)
+		const queryResponse = await database.getRows(requestPayload.table, columns, requestPayload.itemsPerPage, 0, requestPayload.filters, signal)
+		const totalRows = (await database?.getTotalRows(requestPayload.table, columns, requestPayload.filters, signal))
+		const pagination = getPaginationFor(requestPayload.table, 1, totalRows, requestPayload.itemsPerPage)
+		const tableCreationSql = await database.getTableCreationSql(requestPayload.table)
 
-	return {
-		id: getRandomString('tab-'),
-		table: requestPayload.table,
-		tableCreationSql,
-		lastQuery: queryResponse.sql,
-		columns,
-		rows: queryResponse.rows || [],
-		totalRows,
-		pagination,
+		if (!queryResponse) return
+
+		return {
+			id: getRandomString('tab-'),
+			table: requestPayload.table,
+			tableCreationSql,
+			lastQuery: queryResponse.sql,
+			columns,
+			rows: queryResponse.rows || [],
+			totalRows,
+			pagination,
+			stats: queryResponse.stats,
+		}
+	} finally {
+		endQuery(controller)
 	}
 }
 
@@ -335,15 +373,40 @@ async function loadRowsForPage(requestPayload: {
 	const limit = pagination.itemsPerPage
 	const offset = (pagination.currentPage - 1) * limit
 
-	const rows = await database.getRows(requestPayload.table, requestPayload.columns, limit, offset, requestPayload.whereClause)
+	const signal = beginQuery()
+	const controller = activeQueryController
 
-	return {
-		id: getRandomString('tab-'),
-		table: requestPayload.table,
-		lastQuery: rows?.sql,
-		rows: rows?.rows || [],
-		totalRows: requestPayload.totalRows,
-		pagination,
+	try {
+		const rows = await database.getRows(requestPayload.table, requestPayload.columns, limit, offset, requestPayload.whereClause, signal)
+
+		return {
+			id: getRandomString('tab-'),
+			table: requestPayload.table,
+			lastQuery: rows?.sql,
+			rows: rows?.rows || [],
+			totalRows: requestPayload.totalRows,
+			pagination,
+			stats: rows?.stats,
+		}
+	} finally {
+		endQuery(controller)
+	}
+}
+
+async function summarizeTable(payload: { table: string }): Promise<{ rows?: Record<string, any>[], error?: string }> {
+	if (!database) {
+		return { error: 'No database selected' }
+	}
+
+	const engine = database as DuckDbEngine
+	if (typeof engine.summarize !== 'function') {
+		return { error: 'Summarize is only supported on DuckDB' }
+	}
+
+	try {
+		return { rows: await engine.summarize(payload.table) }
+	} catch (error) {
+		return { error: error instanceof Error ? error.message : String(error) }
 	}
 }
 

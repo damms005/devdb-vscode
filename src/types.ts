@@ -109,9 +109,9 @@ export interface DatabaseEngine {
 	 */
 	getNumericColumnTypeNamesLowercase(): string[]
 
-	getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number>
+	getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>, signal?: AbortSignal): Promise<number>
 
-	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined>
+	getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>, signal?: AbortSignal): Promise<QueryResponse | undefined>
 
 	commitChange(serializedMutation: SerializedMutation, transaction: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void>
 
@@ -152,6 +152,8 @@ export interface PaginatedTableQueryResponse {
 	lastQuery?: string,
 	pagination: PaginationData
 	columns?: Column[]
+	/** Server-side execution statistics, when the engine reports them (e.g. ClickHouse). */
+	stats?: QueryStats
 }
 
 export interface TableQueryResponse extends PaginatedTableQueryResponse {
