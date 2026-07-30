@@ -110,6 +110,7 @@ function setupEventHandlers() {
 					currentTab.lastQuery = payload.value.lastQuery
 					currentTab.rows = payload.value.rows
 					currentTab.pagination = payload.value.pagination
+					currentTab.stats = payload.value.stats
 				}
 				break
 
