@@ -460,6 +460,14 @@ function handleCancelQuery() {
 	vscode.value.postMessage({ type: 'request:cancel-query' })
 }
 
+function handleRunRawCommand(command) {
+	vscode.value.postMessage({ type: 'request:run-raw-command', value: { command } })
+}
+
+function handleGetRedisNamespaces() {
+	vscode.value.postMessage({ type: 'request:get-redis-namespaces' })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -522,6 +530,8 @@ function notify(title) {
 			@test-embedding-config="handleTestEmbeddingConfig"
 			@summarize-table="handleSummarizeTable"
 			@cancel-query="handleCancelQuery"
+			@run-raw-command="handleRunRawCommand"
+			@get-redis-namespaces="handleGetRedisNamespaces"
 		/>
 	</div>
 	 <RouterView />

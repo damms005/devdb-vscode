@@ -27,7 +27,7 @@ import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MongodbEngine } from '../database-engines/mongodb-engine';
-import { RedisEngine } from '../database-engines/redis-engine';
+import { RedisEngine, RedisNamespace } from '../database-engines/redis-engine';
 import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
 import { DuckDbEngine } from '../database-engines/duckdb-engine';
 import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
@@ -151,6 +151,8 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:delete-embedding-config': async () => ({ configs: await embeddingService.deleteConfig(data.value.id as string) }),
 		'request:test-embedding-config': async () => await embeddingService.testConfig(data.value),
 		'request:summarize-table': async () => await summarizeTable(data.value),
+		'request:run-raw-command': async () => await runRawCommand(data.value),
+		'request:get-redis-namespaces': async () => await getRedisNamespaces(),
 		'request:cancel-query': async () => {
 			cancelActiveQuery()
 			return undefined
@@ -405,6 +407,58 @@ async function summarizeTable(payload: { table: string }): Promise<{ rows?: Reco
 
 	try {
 		return { rows: await engine.summarize(payload.table) }
+	} catch (error) {
+		return { error: error instanceof Error ? error.message : String(error) }
+	}
+}
+
+async function runRawCommand(payload: { command: string }): Promise<{ result?: string, error?: string }> {
+	if (!database) {
+		return { error: 'No database selected' }
+	}
+
+	const engine = database as RedisEngine
+	if (typeof engine.rawQuery !== 'function') {
+		return { error: 'Raw commands are only supported on Redis' }
+	}
+
+	if (!payload?.command || !payload.command.trim()) {
+		return { error: 'Empty command' }
+	}
+
+	try {
+		const raw = await engine.rawQuery(payload.command)
+		return { result: formatRawCommandResult(raw) }
+	} catch (error) {
+		return { error: error instanceof Error ? error.message : String(error) }
+	}
+}
+
+function formatRawCommandResult(result: unknown): string {
+	if (result === null || result === undefined) {
+		return '(nil)'
+	}
+	if (typeof result === 'string') {
+		return result
+	}
+	if (Buffer.isBuffer(result)) {
+		return result.toString()
+	}
+	return JSON.stringify(result, (_key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
+}
+
+async function getRedisNamespaces(): Promise<{ namespaces?: RedisNamespace[], error?: string }> {
+	if (!database) {
+		return { error: 'No database selected' }
+	}
+
+	const engine = database as RedisEngine
+	if (typeof engine.getNamespaces !== 'function') {
+		return { error: 'Namespaces are only supported on Redis' }
+	}
+
+	try {
+		return { namespaces: await engine.getNamespaces() }
 	} catch (error) {
 		return { error: error instanceof Error ? error.message : String(error) }
 	}

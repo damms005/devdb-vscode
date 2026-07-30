@@ -8,6 +8,13 @@ type RedisDataType = 'string' | 'hash' | 'list' | 'set' | 'zset' | 'stream'
 type KeyMeta = { key: string; card: number }
 
 /**
+ * Summary of a top-level `:`-delimited key namespace derived from a bounded key scan.
+ * `prefix` is the first segment before the first `:` (keys without a `:` are grouped
+ * under `(root)`); `keyCount` is how many scanned keys fell under that prefix.
+ */
+export type RedisNamespace = { prefix: string; keyCount: number }
+
+/**
  * Resume point for sequential row-level pagination of a single Redis data type.
  * Lets the next page continue from the last SCAN cursor without re-walking the
  * keyspace, as long as the incoming offset matches where the previous page ended.
@@ -128,6 +135,35 @@ export class RedisEngine implements DatabaseEngine {
 		}
 
 		return [...presentTypes].sort()
+	}
+
+	/**
+	 * Groups keys by their top-level `:` namespace over a bounded key scan, returning each
+	 * prefix with the number of scanned keys under it. Reuses the same bounded SCAN as the
+	 * rest of the engine ({@link RedisEngine.TOTAL_KEY_SCAN_LIMIT}) so it never walks the whole
+	 * keyspace eagerly; the counts are exact when the keyspace is smaller than the scan limit
+	 * and a "scanned so far" estimate otherwise. Keys with no `:` are grouped under `(root)`.
+	 */
+	async getNamespaces(): Promise<RedisNamespace[]> {
+		if (!this.client) {
+			return []
+		}
+
+		const counts = new Map<string, number>()
+		let scanned = 0
+		for await (const key of this.scanKeys()) {
+			const separatorIndex = key.indexOf(':')
+			const prefix = separatorIndex === -1 ? '(root)' : key.slice(0, separatorIndex)
+			counts.set(prefix, (counts.get(prefix) ?? 0) + 1)
+			scanned++
+			if (scanned >= RedisEngine.TOTAL_KEY_SCAN_LIMIT) {
+				break
+			}
+		}
+
+		return [...counts.entries()]
+			.map(([prefix, keyCount]) => ({ prefix, keyCount }))
+			.sort((a, b) => this.naturalCompare(a.prefix, b.prefix))
 	}
 
 	async getColumns(table: string): Promise<Column[]> {
