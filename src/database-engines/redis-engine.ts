@@ -5,6 +5,23 @@ import { SQLiteTransaction } from './sqlite-engine'
 
 type RedisDataType = 'string' | 'hash' | 'list' | 'set' | 'zset' | 'stream'
 
+type KeyMeta = { key: string; card: number }
+
+/**
+ * Resume point for sequential row-level pagination of a single Redis data type.
+ * Lets the next page continue from the last SCAN cursor without re-walking the
+ * keyspace, as long as the incoming offset matches where the previous page ended.
+ */
+type PageCursorState = {
+	endOffset: number
+	cursor: string
+	scanDone: boolean
+	buffer: KeyMeta[]
+	bufferSkip: number
+}
+
+type ExpandedKey = { rows: Record<string, any>[]; truncated: boolean }
+
 /**
  * Redis and Valkey both speak the RESP protocol, so a single node-redis client serves both.
  * Redis has no tabular schema, so we model each Redis data type as a "table" and expand each
@@ -19,6 +36,26 @@ export class RedisEngine implements DatabaseEngine {
 
 	private static readonly ID_SEPARATOR = '\u0000'
 	private static readonly DATA_TYPES: RedisDataType[] = ['string', 'hash', 'list', 'set', 'zset', 'stream']
+
+	/**
+	 * Maximum number of elements read from a single key. A collection larger than this is
+	 * shown truncated (rows carry `_truncated: true`) instead of running an O(N) command that
+	 * would block single-threaded Redis.
+	 */
+	private static readonly ELEMENT_CAP = 100
+
+	/**
+	 * Upper bound on keys scanned when approximating `getTotalRows`. Exact when the keyspace
+	 * is smaller than this; otherwise the returned count is a "scanned so far" estimate.
+	 */
+	private static readonly TOTAL_KEY_SCAN_LIMIT = 50_000
+
+	/**
+	 * Upper bound on keys scanned when materializing rows for a filtered query.
+	 */
+	private static readonly FILTER_KEY_SCAN_LIMIT = 10_000
+
+	private readonly pageCache = new Map<string, PageCursorState>()
 
 	constructor(config: RedisConfig) {
 		this.config = config
@@ -96,12 +133,14 @@ export class RedisEngine implements DatabaseEngine {
 	async getColumns(table: string): Promise<Column[]> {
 		const idColumn: Column = { name: '_id', type: 'id', isPrimaryKey: true, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false }
 		const keyColumn: Column = { name: 'key', type: 'key', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false }
+		const ttlColumn: Column = { name: 'ttl', type: 'number', isPrimaryKey: false, isNumeric: true, isPlainTextType: false, isNullable: true, isEditable: false }
 
 		switch (table as RedisDataType) {
 			case 'string':
 				return [
 					{ ...idColumn, type: 'key' },
 					{ name: 'value', type: 'string', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: true, isEditable: true },
+					ttlColumn,
 				]
 			case 'hash':
 				return [
@@ -109,6 +148,7 @@ export class RedisEngine implements DatabaseEngine {
 					keyColumn,
 					{ name: 'field', type: 'field', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false },
 					{ name: 'value', type: 'string', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: true, isEditable: true },
+					ttlColumn,
 				]
 			case 'list':
 				return [
@@ -116,12 +156,14 @@ export class RedisEngine implements DatabaseEngine {
 					keyColumn,
 					{ name: 'index', type: 'index', isPrimaryKey: false, isNumeric: true, isPlainTextType: false, isNullable: false, isEditable: false },
 					{ name: 'value', type: 'string', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: true, isEditable: false },
+					ttlColumn,
 				]
 			case 'set':
 				return [
 					idColumn,
 					keyColumn,
 					{ name: 'member', type: 'string', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false },
+					ttlColumn,
 				]
 			case 'zset':
 				return [
@@ -129,6 +171,7 @@ export class RedisEngine implements DatabaseEngine {
 					keyColumn,
 					{ name: 'member', type: 'string', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false },
 					{ name: 'score', type: 'score', isPrimaryKey: false, isNumeric: true, isPlainTextType: false, isNullable: false, isEditable: false },
+					ttlColumn,
 				]
 			case 'stream':
 				return [
@@ -136,6 +179,7 @@ export class RedisEngine implements DatabaseEngine {
 					keyColumn,
 					{ name: 'id', type: 'id', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: false, isEditable: false },
 					{ name: 'entry', type: 'json', isPrimaryKey: false, isNumeric: false, isPlainTextType: true, isNullable: true, isEditable: false },
+					ttlColumn,
 				]
 			default:
 				return []
@@ -150,26 +194,25 @@ export class RedisEngine implements DatabaseEngine {
 		return `Redis "${table}" keys modeled as rows. This is a synthetic view; Redis has no schema definition.`
 	}
 
+	/**
+	 * Returns an approximate row count without walking the whole keyspace. Non-filtered counts
+	 * sum per-key row cardinality (capped at {@link RedisEngine.ELEMENT_CAP}) over a bounded key
+	 * scan; the result is exact when the keyspace is smaller than the scan limit and a
+	 * "scanned so far" estimate otherwise. Filtered counts materialize a bounded window of rows.
+	 */
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
 		if (!this.client) {
 			return 0
 		}
 
+		const type = table as RedisDataType
+
 		if (whereClause && Object.keys(whereClause).length > 0) {
-			const rows = await this.materializeRows(table as RedisDataType)
+			const rows = await this.boundedMaterialize(type)
 			return this.applyFilter(rows, whereClause).length
 		}
 
-		const keys = await this.collectKeys(table as RedisDataType)
-		if (table === 'string') {
-			return keys.length
-		}
-
-		let total = 0
-		for (const key of keys) {
-			total += await this.cardinalityOf(table as RedisDataType, key)
-		}
-		return total
+		return this.approximateTotalRows(type)
 	}
 
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
@@ -177,18 +220,22 @@ export class RedisEngine implements DatabaseEngine {
 			return undefined
 		}
 
-		let rows = await this.materializeRows(table as RedisDataType)
+		const type = table as RedisDataType
+
 		if (whereClause && Object.keys(whereClause).length > 0) {
-			rows = this.applyFilter(rows, whereClause)
+			const rows = this.applyFilter(await this.boundedMaterialize(type), whereClause)
+			return { rows: rows.slice(offset, offset + limit) }
 		}
 
-		return { rows: rows.slice(offset, offset + limit) }
+		return { rows: await this.collectPage(type, offset, limit) }
 	}
 
 	async commitChange(serializedMutation: SerializedMutation, _transaction: knexlib.Knex.Transaction | SQLiteTransaction): Promise<void> {
 		if (!this.client) {
 			throw new Error('Not connected')
 		}
+
+		this.pageCache.clear()
 
 		if (serializedMutation.type === 'cell-update') {
 			const mutation = serializedMutation as SerializedCellUpdateMutation
@@ -211,7 +258,7 @@ export class RedisEngine implements DatabaseEngine {
 			const mutation = serializedMutation as SerializedRowDeletionMutation
 
 			if (mutation.table === 'string') {
-				await this.client.del(String(mutation.primaryKey))
+				await this.client.unlink(String(mutation.primaryKey))
 				return
 			}
 
@@ -303,18 +350,43 @@ export class RedisEngine implements DatabaseEngine {
 		} while (cursor !== '0')
 	}
 
-	private async collectKeys(type: RedisDataType): Promise<string[]> {
+	/**
+	 * Natural (numeric-aware) key comparison so keys sort 1, 2, 11 rather than 1, 11, 2.
+	 */
+	private naturalCompare(a: string, b: string): number {
+		return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+	}
+
+	/**
+	 * Number of rows a single key contributes to its type's synthetic table, capped so a huge
+	 * collection never inflates pagination arithmetic beyond what we are willing to read.
+	 */
+	private async rowCardOf(type: RedisDataType, key: string): Promise<number> {
+		return Math.min(await this.cardinalityOf(type, key), RedisEngine.ELEMENT_CAP)
+	}
+
+	/**
+	 * SCANs a single batch of keys of the given type (server-side TYPE filter), returning them
+	 * naturally sorted with their capped row cardinality plus the advanced cursor.
+	 */
+	private async scanTypeBatch(type: RedisDataType, cursor: string): Promise<{ metas: KeyMeta[]; cursor: string }> {
 		if (!this.client) {
-			return []
+			return { metas: [], cursor: '0' }
 		}
 
-		const keys: string[] = []
-		for await (const key of this.scanKeys()) {
-			if (await this.client.type(key) === type) {
-				keys.push(key)
-			}
+		const match = this.config.keyPrefix ? `${this.config.keyPrefix}*` : '*'
+		const count = this.config.scanCount ?? 500
+
+		const reply = await this.client.scan(cursor, { MATCH: match, COUNT: count, TYPE: type })
+		const nextCursor = String(reply.cursor)
+
+		const keys = [...reply.keys].sort((a, b) => this.naturalCompare(a, b))
+		const metas: KeyMeta[] = []
+		for (const key of keys) {
+			metas.push({ key, card: await this.rowCardOf(type, key) })
 		}
-		return keys.sort()
+
+		return { metas, cursor: nextCursor }
 	}
 
 	private async cardinalityOf(type: RedisDataType, key: string): Promise<number> {
@@ -338,58 +410,244 @@ export class RedisEngine implements DatabaseEngine {
 		}
 	}
 
-	private async materializeRows(type: RedisDataType): Promise<Record<string, any>[]> {
+	/**
+	 * Expands a single key into its synthetic rows, reading at most
+	 * {@link RedisEngine.ELEMENT_CAP} elements (HSCAN/SSCAN/ZSCAN and windowed LRANGE/XRANGE)
+	 * so one large collection can never trigger an O(N) blocking command. When the collection
+	 * exceeds the cap every returned row carries `_truncated: true`. The key's TTL is fetched
+	 * once (PTTL) and stamped onto each row.
+	 */
+	private async expandKey(type: RedisDataType, key: string): Promise<ExpandedKey> {
+		if (!this.client) {
+			return { rows: [], truncated: false }
+		}
+
+		const cap = RedisEngine.ELEMENT_CAP
+		const rows: Record<string, any>[] = []
+		let truncated = false
+
+		switch (type) {
+			case 'string': {
+				const value = await this.client.get(key)
+				rows.push({ _id: key, value })
+				break
+			}
+			case 'hash': {
+				let cursor = '0'
+				const entries: { field: string; value: string }[] = []
+				do {
+					const reply = await this.client.hScan(key, cursor, { COUNT: cap })
+					cursor = String(reply.cursor)
+					entries.push(...reply.entries)
+				} while (cursor !== '0' && entries.length < cap)
+				truncated = cursor !== '0' || entries.length > cap
+				for (const { field, value } of entries.slice(0, cap)) {
+					rows.push({ _id: this.buildCompositeId(key, field), key, field, value })
+				}
+				break
+			}
+			case 'list': {
+				const values = await this.client.lRange(key, 0, cap)
+				truncated = values.length > cap
+				values.slice(0, cap).forEach((value, index) => {
+					rows.push({ _id: this.buildCompositeId(key, String(index)), key, index, value })
+				})
+				break
+			}
+			case 'set': {
+				let cursor = '0'
+				const members: string[] = []
+				do {
+					const reply = await this.client.sScan(key, cursor, { COUNT: cap })
+					cursor = String(reply.cursor)
+					members.push(...reply.members)
+				} while (cursor !== '0' && members.length < cap)
+				truncated = cursor !== '0' || members.length > cap
+				for (const member of members.slice(0, cap)) {
+					rows.push({ _id: this.buildCompositeId(key, member), key, member })
+				}
+				break
+			}
+			case 'zset': {
+				let cursor = '0'
+				const members: { value: string; score: number }[] = []
+				do {
+					const reply = await this.client.zScan(key, cursor, { COUNT: cap })
+					cursor = String(reply.cursor)
+					members.push(...reply.members)
+				} while (cursor !== '0' && members.length < cap)
+				truncated = cursor !== '0' || members.length > cap
+				for (const { value, score } of members.slice(0, cap)) {
+					rows.push({ _id: this.buildCompositeId(key, value), key, member: value, score })
+				}
+				break
+			}
+			case 'stream': {
+				const entries = await this.client.xRange(key, '-', '+', { COUNT: cap + 1 })
+				truncated = entries.length > cap
+				for (const { id, message } of entries.slice(0, cap)) {
+					rows.push({ _id: this.buildCompositeId(key, id), key, id, entry: JSON.stringify(message) })
+				}
+				break
+			}
+		}
+
+		const ttl = await this.client.pTTL(key)
+		for (const row of rows) {
+			row.ttl = ttl
+			if (truncated) {
+				row._truncated = true
+			}
+		}
+
+		return { rows, truncated }
+	}
+
+	/**
+	 * Collects one page of rows for a data type without materializing the keyspace. Keys are
+	 * paged via SCAN; keys entirely before the offset window are skipped using O(1) cardinality
+	 * commands (no element reads), and only keys overlapping [offset, offset + limit) are
+	 * expanded. Sequential paging is cheap because the SCAN cursor and any unconsumed keys are
+	 * cached per type keyed by the offset the previous page ended at; a non-matching offset
+	 * re-scans from cursor 0.
+	 */
+	private async collectPage(type: RedisDataType, offset: number, limit: number): Promise<Record<string, any>[]> {
+		if (!this.client || limit <= 0) {
+			return []
+		}
+
+		const cached = this.pageCache.get(type)
+		let cursor: string
+		let scanDone: boolean
+		let buffer: KeyMeta[]
+		let skipInFirst: number
+		let rowPos: number
+
+		if (cached && cached.endOffset === offset) {
+			cursor = cached.cursor
+			scanDone = cached.scanDone
+			buffer = [...cached.buffer]
+			skipInFirst = cached.bufferSkip
+			rowPos = offset
+		} else {
+			cursor = '0'
+			scanDone = false
+			buffer = []
+			skipInFirst = 0
+			rowPos = 0
+		}
+
+		const refill = async (): Promise<boolean> => {
+			while (buffer.length === 0 && !scanDone) {
+				const batch = await this.scanTypeBatch(type, cursor)
+				cursor = batch.cursor
+				if (cursor === '0') {
+					scanDone = true
+				}
+				buffer.push(...batch.metas)
+			}
+			return buffer.length > 0
+		}
+
+		while (rowPos < offset) {
+			if (!(await refill())) {
+				break
+			}
+			const meta = buffer[0]
+			const available = meta.card - skipInFirst
+			if (rowPos + available <= offset) {
+				rowPos += available
+				buffer.shift()
+				skipInFirst = 0
+			} else {
+				skipInFirst += offset - rowPos
+				rowPos = offset
+			}
+		}
+
+		const rows: Record<string, any>[] = []
+		while (rows.length < limit) {
+			if (!(await refill())) {
+				break
+			}
+			const meta = buffer[0]
+			const expanded = await this.expandKey(type, meta.key)
+			const slice = expanded.rows.slice(skipInFirst, skipInFirst + (limit - rows.length))
+
+			if (slice.length === 0) {
+				buffer.shift()
+				skipInFirst = 0
+				continue
+			}
+
+			rows.push(...slice)
+			rowPos += slice.length
+			if (skipInFirst + slice.length >= expanded.rows.length) {
+				buffer.shift()
+				skipInFirst = 0
+			} else {
+				skipInFirst += slice.length
+			}
+		}
+
+		this.pageCache.set(type, { endOffset: offset + rows.length, cursor, scanDone, buffer, bufferSkip: skipInFirst })
+
+		return rows
+	}
+
+	/**
+	 * Approximates total rows for a type by summing capped per-key row cardinality over a
+	 * bounded key scan. Exact when the keyspace is smaller than
+	 * {@link RedisEngine.TOTAL_KEY_SCAN_LIMIT}; a "scanned so far" estimate otherwise.
+	 */
+	private async approximateTotalRows(type: RedisDataType): Promise<number> {
+		if (!this.client) {
+			return 0
+		}
+
+		let cursor = '0'
+		let total = 0
+		let scanned = 0
+		do {
+			const batch = await this.scanTypeBatch(type, cursor)
+			cursor = batch.cursor
+			for (const meta of batch.metas) {
+				total += meta.card
+				scanned++
+				if (scanned >= RedisEngine.TOTAL_KEY_SCAN_LIMIT) {
+					return total
+				}
+			}
+		} while (cursor !== '0')
+
+		return total
+	}
+
+	/**
+	 * Materializes rows over a bounded key window for filtered queries. Each key is expanded
+	 * with the same per-key element cap as pagination so filtering never reads an unbounded
+	 * collection or the whole keyspace.
+	 */
+	private async boundedMaterialize(type: RedisDataType): Promise<Record<string, any>[]> {
 		if (!this.client) {
 			return []
 		}
 
-		const keys = await this.collectKeys(type)
+		let cursor = '0'
+		let scanned = 0
 		const rows: Record<string, any>[] = []
-
-		for (const key of keys) {
-			switch (type) {
-				case 'string': {
-					const value = await this.client.get(key)
-					rows.push({ _id: key, value })
-					break
-				}
-				case 'hash': {
-					const entries = await this.client.hGetAll(key)
-					for (const [field, value] of Object.entries(entries)) {
-						rows.push({ _id: this.buildCompositeId(key, field), key, field, value })
-					}
-					break
-				}
-				case 'list': {
-					const values = await this.client.lRange(key, 0, -1)
-					values.forEach((value, index) => {
-						rows.push({ _id: this.buildCompositeId(key, String(index)), key, index, value })
-					})
-					break
-				}
-				case 'set': {
-					const members = await this.client.sMembers(key)
-					for (const member of members) {
-						rows.push({ _id: this.buildCompositeId(key, member), key, member })
-					}
-					break
-				}
-				case 'zset': {
-					const members = await this.client.zRangeWithScores(key, 0, -1)
-					for (const { value, score } of members) {
-						rows.push({ _id: this.buildCompositeId(key, value), key, member: value, score })
-					}
-					break
-				}
-				case 'stream': {
-					const entries = await this.client.xRange(key, '-', '+')
-					for (const { id, message } of entries) {
-						rows.push({ _id: this.buildCompositeId(key, id), key, id, entry: JSON.stringify(message) })
-					}
-					break
+		do {
+			const batch = await this.scanTypeBatch(type, cursor)
+			cursor = batch.cursor
+			for (const meta of batch.metas) {
+				const expanded = await this.expandKey(type, meta.key)
+				rows.push(...expanded.rows)
+				scanned++
+				if (scanned >= RedisEngine.FILTER_KEY_SCAN_LIMIT) {
+					return rows
 				}
 			}
-		}
+		} while (cursor !== '0')
 
 		return rows
 	}
