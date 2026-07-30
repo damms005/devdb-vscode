@@ -145,9 +145,46 @@ describe('ClickHouse Tests', () => {
 		assert.strictEqual(response?.rows.length, 2);
 
 		const john = response?.rows.find(row => row.name === 'John');
-		assert.strictEqual(john?.id, 1);
+		assert.strictEqual(john?.id, '1');
 		assert.strictEqual(john?.age, 30);
 		assert.strictEqual(john?.tags, JSON.stringify(['a', 'b']));
+	});
+
+	it('round-trips a UInt64 value above 2^53 exactly as a string', async () => {
+		const bigId = '18446744073709551615';
+
+		await client.insert({
+			table: 'users',
+			values: [{ id: bigId, name: 'Big', age: 1, tags: [] }],
+			format: 'JSONEachRow',
+		});
+
+		const columns = await engine.getColumns('users');
+		const response = await engine.getRows('users', columns, 10, 0);
+
+		const row = response?.rows.find(candidate => candidate.name === 'Big');
+		assert.strictEqual(typeof row?.id, 'string');
+		assert.strictEqual(row?.id, bigId);
+	});
+
+	it('populates query stats on getRows', async () => {
+		await client.insert({
+			table: 'users',
+			values: [
+				{ id: 1, name: 'John', age: 30, tags: [] },
+				{ id: 2, name: 'Jane', age: 25, tags: [] },
+			],
+			format: 'JSONEachRow',
+		});
+
+		const columns = await engine.getColumns('users');
+		const response = await engine.getRows('users', columns, 10, 0);
+
+		assert.ok(response?.stats, 'expected stats to be populated');
+		assert.strictEqual(typeof response?.stats?.rowsRead, 'number');
+		assert.strictEqual(typeof response?.stats?.bytesRead, 'number');
+		assert.strictEqual(typeof response?.stats?.elapsedSeconds, 'number');
+		assert.ok((response?.stats?.bytesRead ?? 0) > 0);
 	});
 
 	it('should return total rows', async () => {
@@ -217,6 +254,62 @@ describe('ClickHouse Tests', () => {
 		const columns = await engine.getColumns('users');
 		const rows = await engine.getRows('users', columns, 1, 0);
 		assert.strictEqual(Number(rows?.rows[0].age), 31);
+	});
+
+	it('commits type-aware updates on Decimal and DateTime columns', async () => {
+		await client.command({ query: 'DROP TABLE IF EXISTS products' });
+		await client.command({
+			query: `CREATE TABLE products (
+				id UInt64,
+				price Decimal(10, 2),
+				created_at DateTime,
+				note Nullable(String)
+			) ENGINE = MergeTree ORDER BY id`,
+		});
+
+		await client.insert({
+			table: 'products',
+			values: [{ id: 1, price: '1.00', created_at: '2020-01-01 00:00:00', note: 'x' }],
+			format: 'JSONEachRow',
+		});
+
+		const columns = await engine.getColumns('products');
+		const priceColumn = columns.find(column => column.name === 'price')!;
+		const createdAtColumn = columns.find(column => column.name === 'created_at')!;
+		const noteColumn = columns.find(column => column.name === 'note')!;
+
+		const decimalMutation: SerializedMutation = {
+			type: 'cell-update', id: '1', tabId: 'abc', column: priceColumn,
+			newValue: '1234.56', primaryKey: 1, primaryKeyColumn: 'id', table: 'products',
+		};
+		await engine.commitChange(decimalMutation, undefined as any);
+
+		const dateMutation: SerializedMutation = {
+			type: 'cell-update', id: '1', tabId: 'abc', column: createdAtColumn,
+			newValue: '2024-06-15 12:34:56', primaryKey: 1, primaryKeyColumn: 'id', table: 'products',
+		};
+		await engine.commitChange(dateMutation, undefined as any);
+
+		const nullMutation: SerializedMutation = {
+			type: 'cell-update', id: '1', tabId: 'abc', column: noteColumn,
+			newValue: null, primaryKey: 1, primaryKeyColumn: 'id', table: 'products',
+		};
+		await engine.commitChange(nullMutation, undefined as any);
+
+		const rows = await engine.getRows('products', columns, 1, 0);
+		const row = rows?.rows[0];
+		assert.strictEqual(Number(row?.price), 1234.56);
+		assert.strictEqual(row?.created_at, '2024-06-15 12:34:56');
+		assert.strictEqual(row?.note, null);
+	});
+
+	it('caps rawQuery results to protect the host from unbounded scans', async () => {
+		const raw = await engine.rawQuery('SELECT number FROM numbers(50000)');
+		const parsed = JSON.parse(raw);
+
+		assert.ok(Array.isArray(parsed));
+		assert.ok(parsed.length <= 10000, `expected <= 10000 rows, got ${parsed.length}`);
+		assert.strictEqual(parsed.length, 10000);
 	});
 
 	after(async function () {

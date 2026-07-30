@@ -122,9 +122,26 @@ export interface DatabaseEngine {
 	rawQuery(code: string): Promise<any>
 }
 
+/**
+ * Optional server-side execution statistics for a query. Populated by engines
+ * that expose them (e.g. ClickHouse). All fields are optional because not every
+ * engine reports every metric.
+ */
+export type QueryStats = {
+	/** Number of rows the server actually read/scanned to produce the result. */
+	rowsRead?: number
+	/** Number of bytes the server read/scanned to produce the result. */
+	bytesRead?: number
+	/** Server-side elapsed execution time, in seconds. */
+	elapsedSeconds?: number
+	/** Lower bound on the number of matching rows before any `LIMIT` was applied. */
+	rowsBeforeLimitAtLeast?: number
+}
+
 export type QueryResponse = {
 	rows: any[]
 	sql?: string
+	stats?: QueryStats
 }
 
 export interface PaginatedTableQueryResponse {
