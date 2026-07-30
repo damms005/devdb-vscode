@@ -8,8 +8,22 @@ import {
 	buildNeonConnectionFromString,
 	extractDatabaseUrlFromEnv,
 	findNeonConnectionStringIn,
+	isNeonConnectionString,
 } from './neon-connection-helper';
 import { readFileSync } from 'fs';
+
+/**
+ * `.env`-style files scanned for a Neon connection string, in priority order.
+ */
+const ENV_FILES_TO_SCAN = ['.env', '.env.local'] as const;
+
+/**
+ * Neon compute autosuspends when idle; the first query after a wake can fail
+ * while the endpoint resumes. These control a short retry-with-backoff on the
+ * initial health check so a cold start does not surface as a failed connection.
+ */
+const COLD_START_MAX_ATTEMPTS = 3;
+const COLD_START_BACKOFF_MS = 750;
 
 export const NeonPostgresProvider: DatabaseEngineProvider = {
 	name: 'Neon - PostgreSQL',
@@ -34,7 +48,7 @@ export const NeonPostgresProvider: DatabaseEngineProvider = {
 
 			this.engine = new PostgresEngine(connection);
 
-			return await this.engine.isOkay();
+			return await isEngineOkayWithColdStartRetry(this.engine);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to initialize Neon PostgreSQL engine: ${error instanceof Error ? error.message : String(error)}`);
 			return false;
@@ -51,14 +65,17 @@ export const NeonPostgresProvider: DatabaseEngineProvider = {
 };
 
 /**
- * Looks for a Neon connection string, preferring `.env` `DATABASE_URL`, then
- * falling back to any Neon endpoint referenced in the `.devdbrc` config file.
+ * Looks for a Neon connection string, preferring `.env`/`.env.local`
+ * `DATABASE_URL` (and related keys), then falling back to any Neon endpoint
+ * referenced in the `.devdbrc` config file.
  */
 function resolveNeonConnectionString(): string | undefined {
-	const envContents = getWorkspaceFileContent('.env')?.toString();
-	const fromEnv = extractDatabaseUrlFromEnv(envContents);
-	if (fromEnv && fromEnv.includes('neon.tech')) {
-		return fromEnv;
+	for (const envFile of ENV_FILES_TO_SCAN) {
+		const envContents = getWorkspaceFileContent(envFile)?.toString();
+		const fromEnv = extractDatabaseUrlFromEnv(envContents);
+		if (fromEnv && isNeonConnectionString(fromEnv)) {
+			return fromEnv;
+		}
 	}
 
 	const configFilePath = getConfigFilePath();
@@ -71,4 +88,27 @@ function resolveNeonConnectionString(): string | undefined {
 	}
 
 	return undefined;
+}
+
+/**
+ * Runs the engine health check, retrying with linear backoff to absorb a Neon
+ * cold-start stall on the first query after the compute resumes.
+ */
+async function isEngineOkayWithColdStartRetry(engine: DatabaseEngine): Promise<boolean> {
+	for (let attempt = 1; attempt <= COLD_START_MAX_ATTEMPTS; attempt++) {
+		if (await engine.isOkay()) {
+			return true;
+		}
+
+		if (attempt < COLD_START_MAX_ATTEMPTS) {
+			logToOutput(`Neon health check attempt ${attempt} failed; retrying (possible cold start)`, 'Neon Postgres');
+			await delay(COLD_START_BACKOFF_MS * attempt);
+		}
+	}
+
+	return false;
+}
+
+function delay(milliseconds: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

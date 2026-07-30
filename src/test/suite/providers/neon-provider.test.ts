@@ -5,11 +5,25 @@ import {
 	findNeonConnectionStringIn,
 	toPooledNeonHost,
 	parseNeonConnectionString,
+	buildNeonKnexConnection,
+	buildSslPostgresKnexConnection,
+	NEON_CONNECTION_TIMEOUT_MS,
+	NeonConnectionDetails,
 } from '../../../providers/postgres/neon-connection-helper';
 
 describe('Neon connection helper', () => {
-	const directUrl = 'postgresql://alice:s3cret@ep-cool-fire-123.us-east-2.aws.neon.tech/appdb?sslmode=require';
-	const pooledUrl = 'postgresql://alice:s3cret@ep-cool-fire-123-pooler.us-east-2.aws.neon.tech/appdb?sslmode=require';
+	const directHost = 'ep-cool-fire-123.us-east-2.aws.neon.tech';
+	const pooledHost = 'ep-cool-fire-123-pooler.us-east-2.aws.neon.tech';
+	const directUrl = `postgresql://alice:s3cret@${directHost}/appdb?sslmode=require`;
+	const pooledUrl = `postgresql://alice:s3cret@${pooledHost}/appdb?sslmode=require`;
+
+	const details: NeonConnectionDetails = {
+		host: directHost,
+		port: 5432,
+		user: 'alice',
+		password: 's3cret',
+		database: 'appdb',
+	};
 
 	describe('isNeonConnectionString', () => {
 		it('detects a Neon host', () => {
@@ -35,6 +49,16 @@ describe('Neon connection helper', () => {
 			assert.strictEqual(extractDatabaseUrlFromEnv(`DATABASE_URL=${directUrl}`), directUrl);
 		});
 
+		it('reads alternative Vercel/Neon keys when DATABASE_URL is absent', () => {
+			assert.strictEqual(extractDatabaseUrlFromEnv(`POSTGRES_URL=${directUrl}`), directUrl);
+			assert.strictEqual(extractDatabaseUrlFromEnv(`DATABASE_URL_UNPOOLED=${directUrl}`), directUrl);
+		});
+
+		it('prefers a Neon value over a non-Neon one', () => {
+			const env = `DATABASE_URL=postgresql://u:p@localhost:5432/db\nPOSTGRES_URL=${directUrl}`;
+			assert.strictEqual(extractDatabaseUrlFromEnv(env), directUrl);
+		});
+
 		it('returns undefined when absent', () => {
 			assert.strictEqual(extractDatabaseUrlFromEnv('APP_NAME=Demo'), undefined);
 		});
@@ -53,23 +77,19 @@ describe('Neon connection helper', () => {
 
 	describe('toPooledNeonHost', () => {
 		it('rewrites a direct host to its pooled variant', () => {
-			assert.strictEqual(
-				toPooledNeonHost('ep-cool-fire-123.us-east-2.aws.neon.tech'),
-				'ep-cool-fire-123-pooler.us-east-2.aws.neon.tech'
-			);
+			assert.strictEqual(toPooledNeonHost(directHost), pooledHost);
 		});
 
 		it('leaves an already-pooled host unchanged', () => {
-			const host = 'ep-cool-fire-123-pooler.us-east-2.aws.neon.tech';
-			assert.strictEqual(toPooledNeonHost(host), host);
+			assert.strictEqual(toPooledNeonHost(pooledHost), pooledHost);
 		});
 	});
 
 	describe('parseNeonConnectionString', () => {
-		it('parses details and enforces the pooled host on port 5432', () => {
-			const details = parseNeonConnectionString(directUrl);
-			assert.deepStrictEqual(details, {
-				host: 'ep-cool-fire-123-pooler.us-east-2.aws.neon.tech',
+		it('honours the host exactly as supplied (no silent pooler rewrite)', () => {
+			const parsed = parseNeonConnectionString(directUrl);
+			assert.deepStrictEqual(parsed, {
+				host: directHost,
 				port: 5432,
 				user: 'alice',
 				password: 's3cret',
@@ -78,7 +98,11 @@ describe('Neon connection helper', () => {
 		});
 
 		it('keeps an already-pooled host intact', () => {
-			assert.strictEqual(parseNeonConnectionString(pooledUrl)?.host, 'ep-cool-fire-123-pooler.us-east-2.aws.neon.tech');
+			assert.strictEqual(parseNeonConnectionString(pooledUrl)?.host, pooledHost);
+		});
+
+		it('rewrites to the pooled host only when explicitly opted in', () => {
+			assert.strictEqual(parseNeonConnectionString(directUrl, { usePooler: true })?.host, pooledHost);
 		});
 
 		it('returns undefined for a non-Neon URL', () => {
@@ -87,6 +111,42 @@ describe('Neon connection helper', () => {
 
 		it('returns undefined when no database is present', () => {
 			assert.strictEqual(parseNeonConnectionString('postgresql://u:p@ep-x.neon.tech/'), undefined);
+		});
+	});
+
+	describe('buildNeonKnexConnection', () => {
+		const connectionConfig = (knex: ReturnType<typeof buildNeonKnexConnection>): Record<string, any> =>
+			knex.client.config.connection as Record<string, any>;
+
+		it('defaults to verified TLS (rejectUnauthorized: true)', () => {
+			const knex = buildNeonKnexConnection(details);
+			assert.deepStrictEqual(connectionConfig(knex).ssl, { rejectUnauthorized: true });
+			knex.destroy();
+		});
+
+		it('relaxes TLS verification only on explicit opt-in', () => {
+			const knex = buildNeonKnexConnection(details, { allowUnauthorizedCertificate: true });
+			assert.deepStrictEqual(connectionConfig(knex).ssl, { rejectUnauthorized: false });
+			knex.destroy();
+		});
+
+		it('sets a cold-start connection timeout', () => {
+			const knex = buildNeonKnexConnection(details);
+			assert.strictEqual(connectionConfig(knex).connectionTimeoutMillis, NEON_CONNECTION_TIMEOUT_MS);
+			assert.ok(NEON_CONNECTION_TIMEOUT_MS >= 10000);
+			knex.destroy();
+		});
+
+		it('honours the supplied host by default', () => {
+			const knex = buildSslPostgresKnexConnection(details);
+			assert.strictEqual(connectionConfig(knex).host, directHost);
+			knex.destroy();
+		});
+
+		it('rewrites to the pooled host only when explicitly opted in', () => {
+			const knex = buildSslPostgresKnexConnection(details, { usePooler: true });
+			assert.strictEqual(connectionConfig(knex).host, pooledHost);
+			knex.destroy();
 		});
 	});
 });

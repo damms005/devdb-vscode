@@ -6,9 +6,28 @@ import knexlib from "knex";
 export const NEON_HOST_MARKER = 'neon.tech';
 
 /**
- * Default port used by Neon's pooled (PgBouncer) endpoint.
+ * Default Postgres port used by Neon endpoints.
  */
 export const NEON_DEFAULT_PORT = 5432;
+
+/**
+ * Connection timeout (ms) applied to Neon connections. Neon compute autosuspends
+ * after inactivity (~300s); the first query after a wake can stall while the
+ * endpoint resumes, so we allow generous headroom before failing.
+ */
+export const NEON_CONNECTION_TIMEOUT_MS = 10000;
+
+/**
+ * Environment variable keys, in priority order, that commonly hold a Postgres
+ * connection string for Neon / Vercel Postgres deployments.
+ */
+export const NEON_ENV_URL_KEYS: readonly string[] = [
+	'DATABASE_URL',
+	'POSTGRES_URL',
+	'DATABASE_URL_UNPOOLED',
+	'POSTGRES_URL_NON_POOLING',
+	'POSTGRES_PRISMA_URL',
+];
 
 export interface NeonConnectionDetails {
 	host: string;
@@ -16,6 +35,28 @@ export interface NeonConnectionDetails {
 	user: string;
 	password: string;
 	database: string;
+}
+
+/**
+ * Options controlling how a Neon/cloud-Postgres SSL connection is built.
+ */
+export interface NeonConnectionOptions {
+	/**
+	 * When true, TLS certificate verification is relaxed (`rejectUnauthorized:
+	 * false`). Defaults to false: Neon serves a valid public certificate, so the
+	 * connection is verified (authenticated) by default. Only opt out for hosts
+	 * with self-signed / proxied chains the user explicitly trusts.
+	 */
+	allowUnauthorizedCertificate?: boolean;
+
+	/**
+	 * When true, a direct Neon host is rewritten to its pooled (`-pooler`,
+	 * PgBouncer transaction-mode) variant. Defaults to false so the host the user
+	 * typed is honoured exactly — PgBouncer transaction pooling breaks core
+	 * DB-GUI SQL (SET/RESET, LISTEN/NOTIFY, PREPARE, temp tables, WITH HOLD
+	 * cursors, session state), so opt in only when you truly want pooling.
+	 */
+	usePooler?: boolean;
 }
 
 /**
@@ -30,28 +71,43 @@ export function isNeonConnectionString(url: string | undefined): boolean {
 }
 
 /**
- * Extracts a raw `DATABASE_URL` value from the contents of a `.env` file.
+ * Extracts a Postgres connection string from the contents of a `.env` file.
  *
- * Unlike Laravel's `getEnvFileValue`, this preserves the full connection string
- * (scheme, port, query string) which is required to build a Neon connection.
+ * Scans the supplied keys (defaulting to {@link NEON_ENV_URL_KEYS}) and, when
+ * several are present, prefers a value pointing at a Neon endpoint. Unlike
+ * Laravel's `getEnvFileValue`, this preserves the full connection string
+ * (scheme, port, query string) required to build a Neon connection.
  */
-export function extractDatabaseUrlFromEnv(envFileContents: string | undefined): string | undefined {
+export function extractDatabaseUrlFromEnv(
+	envFileContents: string | undefined,
+	keys: readonly string[] = NEON_ENV_URL_KEYS,
+): string | undefined {
 	if (!envFileContents) {
 		return undefined;
 	}
 
-	const line = envFileContents
+	const lines = envFileContents
 		.split('\n')
-		.map((entry) => entry.trim())
-		.find((entry) => entry.startsWith('DATABASE_URL='));
+		.map((entry) => entry.trim());
 
-	if (!line) {
+	const values: string[] = [];
+	for (const key of keys) {
+		const line = lines.find((entry) => entry.startsWith(`${key}=`));
+		if (!line) {
+			continue;
+		}
+
+		const rawValue = stripSurroundingQuotes(line.substring(line.indexOf('=') + 1).trim());
+		if (rawValue) {
+			values.push(rawValue);
+		}
+	}
+
+	if (values.length === 0) {
 		return undefined;
 	}
 
-	const rawValue = line.substring(line.indexOf('=') + 1).trim();
-
-	return stripSurroundingQuotes(rawValue);
+	return values.find((value) => value.includes(NEON_HOST_MARKER)) ?? values[0];
 }
 
 /**
@@ -72,6 +128,9 @@ export function findNeonConnectionStringIn(contents: string | undefined): string
  * Rewrites a Neon host to its pooled (`-pooler`) variant so connections go
  * through PgBouncer. Direct hosts look like `ep-xxx.region.aws.neon.tech`;
  * pooled hosts look like `ep-xxx-pooler.region.aws.neon.tech`.
+ *
+ * This is opt-in only ({@link NeonConnectionOptions.usePooler}); the default
+ * connection path honours the host exactly as supplied.
  */
 export function toPooledNeonHost(host: string): string {
 	if (host.includes('-pooler.')) {
@@ -82,10 +141,17 @@ export function toPooledNeonHost(host: string): string {
 }
 
 /**
- * Parses a Neon connection string into discrete, pooler-aware connection details.
- * Returns undefined when the string is not a Neon endpoint or cannot be parsed.
+ * Parses a Neon connection string into discrete connection details.
+ *
+ * The host is honoured exactly as supplied (a direct host stays direct, a
+ * `-pooler` host stays pooled). Pass `{ usePooler: true }` to explicitly opt
+ * into PgBouncer pooling. Returns undefined when the string is not a Neon
+ * endpoint or cannot be parsed.
  */
-export function parseNeonConnectionString(url: string | undefined): NeonConnectionDetails | undefined {
+export function parseNeonConnectionString(
+	url: string | undefined,
+	options: NeonConnectionOptions = {},
+): NeonConnectionDetails | undefined {
 	if (!isNeonConnectionString(url)) {
 		return undefined;
 	}
@@ -102,8 +168,10 @@ export function parseNeonConnectionString(url: string | undefined): NeonConnecti
 		return undefined;
 	}
 
+	const host = options.usePooler ? toPooledNeonHost(parsed.hostname) : parsed.hostname;
+
 	return {
-		host: toPooledNeonHost(parsed.hostname),
+		host,
 		port: parsed.port ? Number(parsed.port) : NEON_DEFAULT_PORT,
 		user: decodeURIComponent(parsed.username),
 		password: decodeURIComponent(parsed.password),
@@ -112,13 +180,18 @@ export function parseNeonConnectionString(url: string | undefined): NeonConnecti
 }
 
 /**
- * Builds a Knex Postgres connection for Neon with SSL enforced.
+ * Builds a Knex Postgres connection for Neon over verified TLS.
  *
- * Neon rejects non-TLS connections (`sslmode=require`), so SSL is always on.
- * `rejectUnauthorized` is disabled to tolerate proxies/self-signed chains the
- * same way GUI clients do; Neon itself serves a valid certificate.
+ * Neon rejects non-TLS connections (`sslmode=require`), so SSL is always on and,
+ * by default, its certificate is verified (`rejectUnauthorized: true`) — Neon
+ * serves a valid public certificate. Verification is only relaxed when the
+ * caller passes {@link NeonConnectionOptions.allowUnauthorizedCertificate}.
+ * A generous connection timeout tolerates cold-start compute wake-ups.
  */
-export function buildNeonKnexConnection(details: NeonConnectionDetails): knexlib.Knex {
+export function buildNeonKnexConnection(
+	details: NeonConnectionDetails,
+	options: NeonConnectionOptions = {},
+): knexlib.Knex {
 	return knexlib({
 		client: 'postgres',
 		connection: {
@@ -127,37 +200,49 @@ export function buildNeonKnexConnection(details: NeonConnectionDetails): knexlib
 			user: details.user,
 			password: details.password,
 			database: details.database,
-			ssl: { rejectUnauthorized: false },
+			ssl: { rejectUnauthorized: options.allowUnauthorizedCertificate !== true },
+			connectionTimeoutMillis: NEON_CONNECTION_TIMEOUT_MS,
+		},
+		pool: {
+			min: 0,
+			max: 5,
+			acquireTimeoutMillis: NEON_CONNECTION_TIMEOUT_MS,
 		},
 	});
 }
 
 /**
- * Builds an SSL-enforced Knex Postgres connection from discrete connection
- * details, applying Neon pooler-host rewriting.
+ * Builds a verified-TLS Knex Postgres connection from discrete connection
+ * details.
  *
  * Reuses {@link buildNeonKnexConnection} so any cloud Postgres that requires TLS
- * (Neon, Supabase, etc.) can connect. Non-Neon hosts pass through
- * {@link toPooledNeonHost} unchanged.
+ * (Neon, Supabase, etc.) can connect. The host is honoured exactly as supplied;
+ * pass `{ usePooler: true }` to explicitly rewrite a Neon host to its pooled
+ * variant.
  */
-export function buildSslPostgresKnexConnection(details: NeonConnectionDetails): knexlib.Knex {
-	return buildNeonKnexConnection({
-		...details,
-		host: toPooledNeonHost(details.host),
-	});
+export function buildSslPostgresKnexConnection(
+	details: NeonConnectionDetails,
+	options: NeonConnectionOptions = {},
+): knexlib.Knex {
+	const host = options.usePooler ? toPooledNeonHost(details.host) : details.host;
+
+	return buildNeonKnexConnection({ ...details, host }, options);
 }
 
 /**
  * Resolves a Neon connection string straight into a Knex connection.
  * Returns undefined when the string is not a parseable Neon endpoint.
  */
-export function buildNeonConnectionFromString(url: string | undefined): knexlib.Knex | undefined {
-	const details = parseNeonConnectionString(url);
+export function buildNeonConnectionFromString(
+	url: string | undefined,
+	options: NeonConnectionOptions = {},
+): knexlib.Knex | undefined {
+	const details = parseNeonConnectionString(url, options);
 	if (!details) {
 		return undefined;
 	}
 
-	return buildNeonKnexConnection(details);
+	return buildNeonKnexConnection(details, options);
 }
 
 function stripSurroundingQuotes(value: string): string {
