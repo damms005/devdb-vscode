@@ -129,7 +129,7 @@ jobs:
         with:
           name: ${{ env.target || 'universal' }}
           path: '*.vsix'
-          retention-days: 7
+          retention-days: 1
 
   publish:
     runs-on: ubuntu-latest
