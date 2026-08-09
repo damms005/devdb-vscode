@@ -292,7 +292,7 @@
 		"@duckdb/node-api": "^1.5.5-r.2",
 		"@modelcontextprotocol/sdk": "^1.28.0",
 		"@vscode/sqlite3": "^5.1.12-vscode",
-		"axios": "^1.13.6",
+		"axios": "^1.18.0",
 		"case": "^1.6.3",
 		"cosmiconfig": "^9.0.1",
 		"dotenv": "^17.4.2",
