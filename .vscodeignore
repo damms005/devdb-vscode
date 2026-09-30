@@ -9,6 +9,7 @@
 # Include compiled files (esbuild bundles everything into dist/)
 !dist/**/*.js
 !dist/**/*.node
+!dist/**/*.wasm
 !ui-shell/dist/**
 
 # Include icons

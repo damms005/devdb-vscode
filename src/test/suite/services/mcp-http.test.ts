@@ -88,6 +88,15 @@ describe('MCP HTTP server security', () => {
 		assert.strictEqual((server.address() as AddressInfo).address, '127.0.0.1');
 	});
 
+	it('moves to the next port when the port is in use', async () => {
+		const next = await startServerOnAvailablePort(createMcpApp({ token, getDatabase: () => undefined, allowWrites: () => false, confirmDestructive: async () => false } as McpAppDeps), port);
+		try {
+			assert.ok(next.port > port);
+		} finally {
+			next.server.close();
+		}
+	});
+
 	it('returns 401 when the token is missing', async () => {
 		const res = await request(port, '/tables');
 		assert.strictEqual(res.status, 401);

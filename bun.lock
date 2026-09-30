@@ -23,6 +23,7 @@
         "mysql": "^2.18.1",
         "mysql2": "^3.23.2",
         "node-machine-id": "^1.1.12",
+        "node-sqlite3-wasm": "^0.8.60",
         "npm-run-all": "^4.1.5",
         "oci-common": "^2.139.0",
         "oci-objectstorage": "^2.139.0",
@@ -1087,6 +1088,8 @@
     "node-gyp": ["node-gyp@12.3.0", "", { "dependencies": { "env-paths": "^2.2.0", "exponential-backoff": "^3.1.1", "graceful-fs": "^4.2.6", "nopt": "^9.0.0", "proc-log": "^6.0.0", "semver": "^7.3.5", "tar": "^7.5.4", "tinyglobby": "^0.2.12", "undici": "^6.25.0", "which": "^6.0.0" }, "bin": "bin/node-gyp.js" }, "sha512-QNcUWM+HgJplcPzBvFBZ9VXacyGZ4+VTOb80PwWR+TlVzoHbRKULNEzpRsnaoxG3Wzr7Qh7BYxGDU3CbKib2Yg=="],
 
     "node-machine-id": ["node-machine-id@1.1.12", "", {}, "sha512-QNABxbrPa3qEIfrE6GOJ7BYIuignnJw7iQ2YPbc3Nla1HzRJjXzZOiikfF8m7eAMfichLt3M4VgLOetqgDmgGQ=="],
+
+    "node-sqlite3-wasm": ["node-sqlite3-wasm@0.8.60", "", {}, "sha512-woDEJy/Df0EBFKJ2N7HSL4SiH5UL1GDwxvBeBjaKvqmUApgTKapcoQiAgZKrLSUmrWU6VYyHz41Sz58Hi6YPmg=="],
 
     "nopt": ["nopt@9.0.0", "", { "dependencies": { "abbrev": "^4.0.0" }, "bin": "bin/nopt.js" }, "sha512-Zhq3a+yFKrYwSBluL4H9XP3m3y5uvQkB/09CwDruCiRmR/UJYnn9W4R48ry0uGC70aeTPKLynBtscP9efFFcPw=="],
 

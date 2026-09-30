@@ -1,5 +1,6 @@
 import { stat } from 'fs/promises';
-import { Database } from '@vscode/sqlite3';
+import type { Database } from '@vscode/sqlite3';
+import { getSqliteBackend, SqliteBackendName } from './sqlite-backend';
 import { reportError } from '../services/initialization-error-service';
 import { Column, CustomSqliteEngine, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
 import { assertReadOnlySql, buildWhereClause } from '../services/sql';
@@ -22,13 +23,17 @@ export class SqliteEngine implements DatabaseEngine {
     return this.dbPath;
   }
 
+  getBackend(): SqliteBackendName {
+    return getSqliteBackend().name;
+  }
+
   getConnection(): CustomSqliteEngine | null {
     if (this.db) {
       return this.db as any as CustomSqliteEngine;
     }
 
     try {
-      this.db = new Database(this.dbPath, (err) => {
+      this.db = new (getSqliteBackend().Database)(this.dbPath, (err) => {
         if (err) {
           throw new Error(String(err));
         }

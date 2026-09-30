@@ -43,6 +43,25 @@ const nativeNodeModulesPlugin = {
 	}
 };
 
+/**
+ * node-sqlite3-wasm (SQLite fallback when @vscode/sqlite3 cannot load) reads its .wasm from
+ * the directory of the bundle that includes it: copy the .wasm next to each such bundle.
+ * @type {import('esbuild').Plugin}
+ */
+const sqliteWasmPlugin = {
+	name: 'sqlite-wasm',
+	setup(build) {
+		build.onEnd((result) => {
+			const wasm = require.resolve('node-sqlite3-wasm/dist/node-sqlite3-wasm.wasm');
+			for (const [output, { inputs }] of Object.entries(result.metafile?.outputs ?? {})) {
+				if (Object.keys(inputs).some((input) => input.includes('node-sqlite3-wasm'))) {
+					fs.copyFileSync(wasm, path.join(path.dirname(output), path.basename(wasm)));
+				}
+			}
+		});
+	}
+};
+
 async function main () {
 	const ctx = await esbuild.context({
 		entryPoints: ['src/extension.ts', 'src/services/mcp/no-vscode/server.ts'],
@@ -75,6 +94,7 @@ async function main () {
 		logLevel: 'warning',
 		plugins: [
 			nativeNodeModulesPlugin,
+			sqliteWasmPlugin,
 			esbuildProblemMatcherPlugin
 		]
 	});

@@ -1,3 +1,9 @@
+## 4.0.0
+
+### Fixed
+
+- SQLite works when the native driver cannot load (the universal Open VSX package on macOS, Windows or ARM, or Linux with glibc older than 2.29). DevDb then uses a WebAssembly SQLite; WAL-mode databases open read-only in that mode. Also, DevDb no longer fails to start when another window uses the MCP port.
+
 ## 3.2.0
 
 ### Added

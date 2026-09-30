@@ -149,8 +149,11 @@ export async function startServerOnAvailablePort(app: express.Express, startPort
 	for (let attempt = 0; attempt < 100; attempt++) {
 		try {
 			return await new Promise((resolve, reject) => {
-				const srv = app.listen(currentPort, MCP_HOST, () => {
-					resolve({ server: srv, port: (srv.address() as AddressInfo).port });
+				// Express 5 also calls this callback on error (e.g. EADDRINUSE): the 'error' handler rejects.
+				const srv = app.listen(currentPort, MCP_HOST, (error?: Error) => {
+					if (!error) {
+						resolve({ server: srv, port: (srv.address() as AddressInfo).port });
+					}
 				});
 				srv.on('error', (err: NodeJS.ErrnoException) => {
 					srv.close();

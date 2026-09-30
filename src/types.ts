@@ -1,4 +1,4 @@
-import { Database } from '@vscode/sqlite3';
+import type { Database } from '@vscode/sqlite3';
 import { MysqlEngine } from "./database-engines/mysql-engine"
 import { PaginationData } from "./services/pagination"
 import knexlib from "knex";
