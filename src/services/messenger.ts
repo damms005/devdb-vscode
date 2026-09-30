@@ -19,6 +19,13 @@ import { DdevPostgresProvider } from '../providers/postgres/ddev-postgres-provid
 import { AdonisMysqlProvider } from '../providers/mysql/adonis-mysql-provider';
 import { AdonisPostgresProvider } from '../providers/postgres/adonis-postgres-provider';
 import { SupabasePostgresProvider } from '../providers/postgres/supabase-postgres-provider';
+import { LaravelDatastoresSource } from '../providers/laravel/laravel-datastores-source';
+import { PrismaSource } from '../providers/prisma/prisma-source';
+import { DrizzleSource } from '../providers/drizzle/drizzle-source';
+import { DatabaseUrlSource } from '../providers/env/database-url-source';
+import { DockerComposeSource } from '../providers/docker-compose/compose-source';
+import { detectZeroConfigProviders, getKnownZeroConfigProviders } from '../providers/zero-config/zero-config-provider';
+import { ZeroConfigSource } from '../providers/zero-config/detected-datastore';
 import { exportTableData } from './export-table-data';
 import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
@@ -100,6 +107,27 @@ const providers: DatabaseEngineProvider[] = [
 	SupabasePostgresProvider,
 	NeonPostgresProvider,
 ]
+
+/**
+ * Zero-config sources. Each detected datastore becomes its own provider row. When several
+ * sources point at the same database, the first source in this list names the row.
+ */
+const zeroConfigSources: ZeroConfigSource[] = [
+	LaravelDatastoresSource,
+	PrismaSource,
+	DrizzleSource,
+	DatabaseUrlSource,
+	DockerComposeSource,
+]
+
+function findProvider(providerId: string): DatabaseEngineProvider | undefined {
+	return providers.find(provider => provider.id === providerId)
+		?? getKnownZeroConfigProviders().find(provider => provider.id === providerId)
+}
+
+function isProProvider(provider: DatabaseEngineProvider): boolean {
+	return PRO_PROVIDER_IDS.includes(provider.id) || PRO_ENGINE_TYPES.includes(provider.type)
+}
 
 let database: DatabaseEngine | null = null;
 
@@ -211,15 +239,32 @@ export async function getAvailableProviders(): Promise<FilteredDatabaseEnginePro
 	}))
 
 	const filteredProviders = availableProviders.filter((provider) => provider) as DatabaseEngineProvider[];
-	log('Init', `Available providers: ${filteredProviders.map(provider => provider.name).join(', ')}`);
 
-	return filteredProviders
-		.map((provider) => ({
+	const zeroConfigProviders = await Promise.all(detectZeroConfigProviders(zeroConfigSources).map(async (provider) => {
+		if (provider.isProLocked()) {
+			log('Init', `${provider.name} needs DevDb Pro; listed as locked`);
+			return { provider, proLocked: true }
+		}
+
+		const canBeUsed = await provider.canBeUsedInCurrentWorkspace()
+		log('Init', `${provider.name} useable in workspace: ${canBeUsed ? 'yes' : 'no'}`);
+		return canBeUsed ? { provider, proLocked: false } : null
+	}))
+
+	const usableZeroConfigProviders = zeroConfigProviders.filter((entry) => entry) as { provider: DatabaseEngineProvider, proLocked: boolean }[]
+	log('Init', `Available providers: ${[...filteredProviders, ...usableZeroConfigProviders.map(entry => entry.provider)].map(provider => provider.name).join(', ')}`);
+
+	return [
+		...filteredProviders.map((provider) => ({ provider, proLocked: false })),
+		...usableZeroConfigProviders,
+	]
+		.map(({ provider, proLocked }) => ({
 			name: provider.name,
 			type: provider.type,
 			id: provider.id,
 			description: provider.description,
 			isDefault: Boolean(provider.isDefault),
+			...(proLocked ? { proLocked: true } : {}),
 			options: provider.cache
 				? provider.cache.map((cache: EngineProviderCache) => ({
 					id: cache.id,
@@ -256,14 +301,14 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 	selectedProvider = data
 	const thisConnectionId = ++connectionId
 
-	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === providerId))
+	const provider = findProvider(providerId)
 
 	if (!provider) {
 		vscode.window.showErrorMessage(`Could not find provider with id ${providerId}`)
 		return false
 	}
 
-	if (PRO_PROVIDER_IDS.includes(provider.id) && !hasProLicense()) {
+	if (isProProvider(provider) && !hasProLicense()) {
 		vscode.window.showErrorMessage(proRequiredMessage(provider.name))
 		return false
 	}
@@ -289,14 +334,14 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 
 async function selectProviderOption(option: EngineProviderOption): Promise<boolean> {
 	const thisConnectionId = ++connectionId
-	const provider = (providers.find((provider: DatabaseEngineProvider) => provider.id === option.provider))
+	const provider = findProvider(option.provider)
 
 	if (!provider) {
 		vscode.window.showErrorMessage(`Could not find provider with id ${option}`)
 		return false
 	}
 
-	if (PRO_PROVIDER_IDS.includes(provider.id) && !hasProLicense()) {
+	if (isProProvider(provider) && !hasProLicense()) {
 		vscode.window.showErrorMessage(proRequiredMessage(provider.name))
 		return false
 	}

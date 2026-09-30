@@ -1,0 +1,9 @@
+services:
+  redis:
+    image: bitnami/redis:7.2
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports: ["6390:6379"]
+  db:
+    environment:
+      POSTGRES_PASSWORD: overridden

@@ -46,7 +46,7 @@ export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' 
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb'
+	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb' | 'mongodb' | 'redis' | 'clickhouse'
 	id: string
 	ddev?: boolean
 	description: string
@@ -73,6 +73,10 @@ export type DatabaseEngineProvider = {
 
 export interface FilteredDatabaseEngineProvider extends Pick<DatabaseEngineProvider, 'name' | 'type' | 'id' | 'description'> {
 	isDefault: boolean
+	/**
+	 * A detected Pro datastore without a DevDb Pro license: shown as a locked row, never contacted.
+	 */
+	proLocked?: boolean
 	options: Array<{
 		id: string
 		type: KnexClient
