@@ -6,8 +6,7 @@
 !package.json
 !LICENSE*
 
-# Include source and compiled files
-!*.js
+# Include compiled files (esbuild bundles everything into dist/)
 !dist/**/*.js
 !dist/**/*.node
 !ui-shell/dist/**
@@ -22,3 +21,13 @@
 
 # @vscode/sqlite3: uses node-gyp-build with complex dynamic requires that can't be bundled by esbuild
 !node_modules/@vscode/sqlite3/**
+
+# @duckdb/node-api: externalized in esbuild.js. The per-platform binding package is
+# selected in CI by .github/scripts/prepare-native-deps.js (only one ships per VSIX).
+!node_modules/@duckdb/node-api/**
+!node_modules/@duckdb/node-bindings/**
+!node_modules/@duckdb/node-bindings-*/**
+!node_modules/detect-libc/**
+
+# Never ship local test profiles
+.vscode-test/**
