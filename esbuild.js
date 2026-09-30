@@ -67,7 +67,7 @@ async function main () {
 			'process.env.DEVDB_LICENSE_API_BASE': JSON.stringify(
 				production
 					? 'https://devdbpro.com/api/license'
-					: 'https://devdbpro.test/api/license'
+					: (process.env.DEVDB_LICENSE_API_BASE || 'https://devdbpro.test/api/license')
 			),
 		},
 
