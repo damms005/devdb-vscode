@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { join } from 'path';
 import * as vscode from 'vscode';
 
@@ -72,11 +73,14 @@ export async function getVueAssets(context: vscode.ExtensionContext): Promise<Vu
 /**
  * Generates a random nonce for webview Content Security Policy
  */
-function getNonce() {
-	let text = '';
-	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	for (let i = 0; i < 32; i++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-	return text;
+export function getNonce(): string {
+	return randomBytes(16).toString('base64');
+}
+
+/**
+ * Strict CSP for the promo notice webviews: nonce'd inline script and style
+ * only, https images.
+ */
+export function buildNoticeCsp(cspSource: string, nonce: string): string {
+	return `default-src 'none'; img-src https: ${cspSource}; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
 }

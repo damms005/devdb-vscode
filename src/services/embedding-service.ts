@@ -33,6 +33,8 @@ interface EmbeddingConfigStored {
 	url: string
 	model: string
 	hasApiKey: boolean
+	/** Origin (scheme+host+port) the API key was saved for. Absent on configs saved before 3.2. */
+	keyOrigin?: string
 }
 
 interface ResolvedEmbeddingConfig extends EmbeddingConfigStored {
@@ -40,6 +42,53 @@ interface ResolvedEmbeddingConfig extends EmbeddingConfigStored {
 }
 
 const STORAGE_KEY = 'embedding.configs'
+export const EMBEDDING_REQUEST_TIMEOUT_MS = 30_000
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+/**
+ * Parses and validates an embedding endpoint URL: https is required, except
+ * for loopback hosts (e.g. a local Ollama) where http is allowed.
+ */
+export function validateEndpointUrl(rawUrl: string): URL {
+	let url: URL
+	try {
+		url = new URL(rawUrl.trim())
+	} catch {
+		throw new Error(`Invalid embedding endpoint URL: ${rawUrl}`)
+	}
+
+	if (url.protocol === 'https:') {
+		return url
+	}
+
+	if (url.protocol === 'http:' && isLoopbackHost(url.hostname)) {
+		return url
+	}
+
+	if (url.protocol === 'http:') {
+		throw new Error('Embedding endpoint must use https (http is allowed only for localhost, 127.0.0.1 or ::1)')
+	}
+
+	throw new Error(`Unsupported embedding endpoint protocol: ${url.protocol}`)
+}
+
+function isLoopbackHost(hostname: string): boolean {
+	return LOOPBACK_HOSTS.has(hostname.toLowerCase())
+}
+
+function originOf(rawUrl: string): string | undefined {
+	try {
+		return new URL(rawUrl.trim()).origin
+	} catch {
+		return undefined
+	}
+}
+
+/** Origin the stored key is bound to; legacy configs are bound to their saved URL. */
+function keyOriginOf(config: EmbeddingConfigStored): string | undefined {
+	return config.keyOrigin ?? originOf(config.url)
+}
 
 /**
  * Stores embedding-endpoint configurations (in `globalState`) and their API keys
@@ -85,15 +134,25 @@ export class EmbeddingService {
 			throw new Error('Extension context not set')
 		}
 
+		const origin = validateEndpointUrl(input.url).origin
 		const configs = this.getStored()
 		const id = input.id ?? generateEmbeddingId()
 		const existingIndex = configs.findIndex(config => config.id === id)
+		const existing = existingIndex >= 0 ? configs[existingIndex] : undefined
 		const providedKey = typeof input.apiKey === 'string' ? input.apiKey.trim() : undefined
 
-		let hasApiKey = existingIndex >= 0 ? configs[existingIndex].hasApiKey : false
+		let hasApiKey = existing?.hasApiKey ?? false
+		let keyOrigin = existing?.hasApiKey ? keyOriginOf(existing) : undefined
+
 		if (providedKey !== undefined && providedKey.length > 0) {
 			await this.context.secrets.store(this.secretKey(id), providedKey)
 			hasApiKey = true
+			keyOrigin = origin
+		} else if (hasApiKey && keyOrigin !== origin) {
+			// The key was saved for another origin: never send it elsewhere. Require re-entry.
+			await this.context.secrets.delete(this.secretKey(id))
+			hasApiKey = false
+			keyOrigin = undefined
 		}
 
 		const stored: EmbeddingConfigStored = {
@@ -103,6 +162,7 @@ export class EmbeddingService {
 			url: input.url.trim(),
 			model: input.model.trim(),
 			hasApiKey,
+			...(keyOrigin ? { keyOrigin } : {}),
 		}
 
 		if (existingIndex >= 0) {
@@ -132,7 +192,8 @@ export class EmbeddingService {
 			return undefined
 		}
 
-		const apiKey = config.hasApiKey && this.context ? await this.context.secrets.get(this.secretKey(id)) : undefined
+		const keyBoundToUrl = keyOriginOf(config) === originOf(config.url)
+		const apiKey = config.hasApiKey && keyBoundToUrl && this.context ? await this.context.secrets.get(this.secretKey(id)) : undefined
 		return { ...config, apiKey }
 	}
 
@@ -143,6 +204,11 @@ export class EmbeddingService {
 		if (!apiKey && input.id && this.context) {
 			const existing = this.getStored().find(candidate => candidate.id === input.id)
 			if (existing?.hasApiKey) {
+				const storedOrigin = keyOriginOf(existing)
+				const requestedOrigin = originOf(input.url)
+				if (storedOrigin !== requestedOrigin) {
+					throw new Error(`The saved API key is bound to ${storedOrigin}. Re-enter the API key to use ${requestedOrigin ?? 'this URL'}.`)
+				}
 				apiKey = await this.context.secrets.get(this.secretKey(input.id))
 			}
 		}
@@ -218,11 +284,7 @@ async function embedViaOpenAiCompatible(config: ResolvedEmbeddingConfig, text: s
 		headers['Authorization'] = `Bearer ${config.apiKey}`
 	}
 
-	const response = await fetch(config.url, {
-		method: 'POST',
-		headers,
-		body: JSON.stringify({ input: text, model: config.model }),
-	})
+	const response = await postJson(config.url, headers, { input: text, model: config.model })
 
 	if (!response.ok) {
 		throw new Error(await describeHttpError(response))
@@ -238,11 +300,7 @@ async function embedViaOpenAiCompatible(config: ResolvedEmbeddingConfig, text: s
 }
 
 async function embedViaOllama(config: ResolvedEmbeddingConfig, text: string): Promise<number[]> {
-	const response = await fetch(config.url, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ model: config.model, prompt: text }),
-	})
+	const response = await postJson(config.url, { 'Content-Type': 'application/json' }, { model: config.model, prompt: text })
 
 	if (!response.ok) {
 		throw new Error(await describeHttpError(response))
@@ -254,6 +312,28 @@ async function embedViaOllama(config: ResolvedEmbeddingConfig, text: string): Pr
 	}
 
 	return json.embedding
+}
+
+/**
+ * POSTs JSON to a validated endpoint URL with a request timeout.
+ */
+async function postJson(rawUrl: string, headers: Record<string, string>, body: unknown): Promise<Response> {
+	const url = validateEndpointUrl(rawUrl)
+
+	try {
+		return await fetch(rawUrl.trim(), {
+			method: 'POST',
+			headers,
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(EMBEDDING_REQUEST_TIMEOUT_MS),
+		})
+	} catch (error) {
+		const name = (error as { name?: string } | undefined)?.name
+		if (name === 'TimeoutError' || name === 'AbortError') {
+			throw new Error(`Embedding request timed out after ${EMBEDDING_REQUEST_TIMEOUT_MS / 1000} s (${url.origin})`)
+		}
+		throw error
+	}
 }
 
 async function describeHttpError(response: Response): Promise<string> {
