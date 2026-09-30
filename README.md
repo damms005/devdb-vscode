@@ -103,6 +103,8 @@ We are genuinely grateful to the following sponsors of DevDb:
 - macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
 - Windows (Win32-x64)
 
+SQLite works on every platform: when the native SQLite driver cannot load (for example the universal package from Open VSX in Cursor, Windsurf or VSCodium), DevDb uses a WebAssembly SQLite. The DevDb output channel shows `SQLite backend: native` or `SQLite backend: wasm`. In WASM mode, WAL-mode databases (Rails 7.1+ default) open read-only, and DevDb does not share file locks with other processes: do not write from DevDb while your app writes to the same file.
+
 ---
 
 <small>

@@ -32,7 +32,7 @@ export function getSqliteBackend(): { name: SqliteBackendName, Database: SqliteD
 			logBackend('SQLite backend: native');
 			return backend;
 		} catch (error) {
-			reason = `native binary failed to load: ${error instanceof Error ? error.message : String(error)}`;
+			reason = `native binary failed to load: ${(error instanceof Error ? error.message : String(error)).split('\n')[0]}`;
 		}
 	}
 
