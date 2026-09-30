@@ -45,6 +45,27 @@ describe('DuckDB Tests', () => {
 		assert.deepStrictEqual(tables.sort(), ['products', 'users']);
 	});
 
+	it('lists and reads tables outside the main schema as schema.table', async () => {
+		await engine.raw(`CREATE TABLE users (id INTEGER PRIMARY KEY, name VARCHAR)`);
+		await engine.raw(`CREATE SCHEMA IF NOT EXISTS analytics`);
+		await engine.raw(`CREATE TABLE analytics.daily (id INTEGER PRIMARY KEY, total INTEGER)`);
+		await engine.raw(`INSERT INTO analytics.daily VALUES (1, 10), (2, 20)`);
+
+		try {
+			assert.deepStrictEqual(await engine.getTables(), ['users', 'analytics.daily']);
+
+			const columns = await engine.getColumns('analytics.daily');
+			assert.deepStrictEqual(columns.map((column) => column.name), ['id', 'total']);
+			assert.strictEqual(await engine.getTotalRows('analytics.daily', columns, []), 2);
+
+			const result = await engine.getRows('analytics.daily', columns, 10, 0, []);
+			assert.deepStrictEqual(result?.rows.map((row) => row.total), [10, 20]);
+			assert.ok((await engine.getTableCreationSql('analytics.daily')).includes('daily'));
+		} finally {
+			await engine.raw(`DROP SCHEMA analytics CASCADE`);
+		}
+	});
+
 	it('should return column definitions including a LIST column', async () => {
 		await engine.raw(`
 			CREATE TABLE items (

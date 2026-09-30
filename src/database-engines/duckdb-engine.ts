@@ -121,6 +121,12 @@ export class DuckDbEngine implements DatabaseEngine {
 	private readonly dataFile?: DuckDbDataFile;
 
 	/**
+	 * Tables outside the default `main` schema are listed as `schema.table`. This maps
+	 * each listed name to its parts, so a dot inside a `main` table name stays literal.
+	 */
+	private tableParts = new Map<string, { schema: string, name: string }>();
+
+	/**
 	 * Row counts of the data-file view, keyed by filter. A CSV/JSON view
 	 * re-parses the whole file for each COUNT(*), so the count is kept for the
 	 * session.
@@ -354,11 +360,18 @@ export class DuckDbEngine implements DatabaseEngine {
 	async getTables(): Promise<string[]> {
 		try {
 			const rows = await this.query(
-				`SELECT table_name FROM information_schema.tables
+				`SELECT table_schema, table_name FROM information_schema.tables
 				 WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
-				 ORDER BY table_name`
+				 ORDER BY table_schema <> 'main', table_schema, table_name`
 			);
-			return rows.map((row) => String(row.table_name));
+			this.tableParts.clear();
+			return rows.map((row) => {
+				const schema = String(row.table_schema);
+				const name = String(row.table_name);
+				const listed = schema === 'main' ? name : `${schema}.${name}`;
+				this.tableParts.set(listed, { schema, name });
+				return listed;
+			});
 		} catch (err) {
 			reportError(`DuckDB get tables error: ${err}`);
 			return [];
@@ -368,8 +381,8 @@ export class DuckDbEngine implements DatabaseEngine {
 	async getTableCreationSql(table: string): Promise<string> {
 		try {
 			const rows = await this.query(
-				`SELECT sql FROM duckdb_tables() WHERE table_name = $1`,
-				[table]
+				`SELECT sql FROM duckdb_tables() WHERE schema_name = $1 AND table_name = $2`,
+				[this.partsOf(table).schema, this.partsOf(table).name]
 			);
 
 			const sql = rows[0]?.sql ? String(rows[0].sql) : '';
@@ -394,7 +407,7 @@ export class DuckDbEngine implements DatabaseEngine {
 		try {
 			type TableColumn = { name: string; type: string; notnull: number | boolean; pk: number | boolean };
 
-			const rawColumns = await this.query(`PRAGMA table_info(${this.escapeIdentifier(table)})`) as unknown as TableColumn[];
+			const rawColumns = await this.query(`PRAGMA table_info(${this.tableRef(table)})`) as unknown as TableColumn[];
 
 			const foreignKeys = await this.getForeignKeys(table);
 			const editableColumnTypeNamesLowercase = this.getEditableColumnTypeNamesLowercase();
@@ -431,8 +444,8 @@ export class DuckDbEngine implements DatabaseEngine {
 			const rows = await this.query(
 				`SELECT constraint_column_names, referenced_table, referenced_column_names
 				 FROM duckdb_constraints()
-				 WHERE table_name = $1 AND constraint_type = 'FOREIGN KEY'`,
-				[table]
+				 WHERE schema_name = $1 AND table_name = $2 AND constraint_type = 'FOREIGN KEY'`,
+				[this.partsOf(table).schema, this.partsOf(table).name]
 			);
 
 			const foreignKeys: { from: string; table: string; to: string }[] = [];
@@ -474,7 +487,7 @@ export class DuckDbEngine implements DatabaseEngine {
 
 	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>, signal?: AbortSignal): Promise<number> {
 		try {
-			let sql = `SELECT COUNT(*) AS count FROM ${this.escapeIdentifier(table)}`;
+			let sql = `SELECT COUNT(*) AS count FROM ${this.tableRef(table)}`;
 			const params: any[] = [];
 
 			if (whereClause && Object.keys(whereClause).length > 0) {
@@ -507,7 +520,7 @@ export class DuckDbEngine implements DatabaseEngine {
 	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>, signal?: AbortSignal): Promise<QueryResponse | undefined> {
 		try {
 			const columnNames = columns.map((col) => this.escapeIdentifier(col.name)).join(', ');
-			let sql = `SELECT ${columnNames} FROM ${this.escapeIdentifier(table)}`;
+			let sql = `SELECT ${columnNames} FROM ${this.tableRef(table)}`;
 			const params: any[] = [];
 
 			if (whereClause && Object.keys(whereClause).length > 0) {
@@ -546,8 +559,8 @@ export class DuckDbEngine implements DatabaseEngine {
 		const rowCount = await this.getTotalRows(table, [], undefined, signal);
 		const sampled = rowCount > SUMMARIZE_SAMPLE_THRESHOLD;
 		const source = sampled
-			? `(SELECT * FROM ${this.escapeIdentifier(table)} USING SAMPLE ${Math.min(100, Math.ceil((SUMMARIZE_SAMPLE_ROWS / rowCount) * 100))}% (system))`
-			: this.escapeIdentifier(table);
+			? `(SELECT * FROM ${this.tableRef(table)} USING SAMPLE ${Math.min(100, Math.ceil((SUMMARIZE_SAMPLE_ROWS / rowCount) * 100))}% (system))`
+			: this.tableRef(table);
 		const sampleNote = sampled ? `Sampled about ${SUMMARIZE_SAMPLE_ROWS.toLocaleString('en-US')} of ${rowCount.toLocaleString('en-US')} rows` : '';
 
 		try {
@@ -642,12 +655,12 @@ export class DuckDbEngine implements DatabaseEngine {
 		let params: any[];
 
 		if (type === 'cell-update') {
-			sql = `UPDATE ${this.escapeIdentifier(table)}
+			sql = `UPDATE ${this.tableRef(table)}
 			       SET ${this.escapeIdentifier(mutation.column.name)} = $1
 			       WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $2`;
 			params = [this.transformValueForDuckDb(mutation.newValue), primaryKey];
 		} else if (type === 'row-delete') {
-			sql = `DELETE FROM ${this.escapeIdentifier(table)} WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $1`;
+			sql = `DELETE FROM ${this.tableRef(table)} WHERE ${this.escapeIdentifier(primaryKeyColumn)} = $1`;
 			params = [primaryKey];
 		} else {
 			throw new Error(`Unsupported mutation type: ${type}`);
@@ -902,6 +915,16 @@ export class DuckDbEngine implements DatabaseEngine {
 
 	private toBoolean(value: number | boolean): boolean {
 		return value === true || value === 1;
+	}
+
+	private partsOf(table: string): { schema: string, name: string } {
+		return this.tableParts.get(table) ?? { schema: 'main', name: table };
+	}
+
+	/** Quoted, schema-qualified reference for a table name returned by getTables(). */
+	private tableRef(table: string): string {
+		const { schema, name } = this.partsOf(table);
+		return `${this.escapeIdentifier(schema)}.${this.escapeIdentifier(name)}`;
 	}
 
 	private escapeIdentifier(identifier: string): string {
