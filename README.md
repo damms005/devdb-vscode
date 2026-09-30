@@ -299,6 +299,19 @@ These datastores need a DevDb Pro license. Add a connection from the DevDb panel
   - Ollama (`/api/embeddings`, for example `http://localhost:11434`)
 - API keys are kept in VS Code secret storage and are not sent to the webview.
 
+### 5. Cloudflare D1 and Turso
+
+| Database | Where DevDb finds it | License |
+|---|---|---|
+| Cloudflare D1 (local) | `wrangler.json`, `wrangler.jsonc` or `wrangler.toml` with `d1_databases` | Free |
+| Cloudflare D1 (remote) | Remote connection: account ID, database ID, API token | Pro |
+| Turso / libSQL | `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`, `drizzle.config` with `dialect: 'turso'`, or a remote connection | Pro |
+
+- **D1 (local)**: DevDb opens the SQLite file that `wrangler dev` and `wrangler d1 ... --local` write to `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<id>.sqlite`. Each binding shows as "Cloudflare D1 (local) — `<binding>` binding". DevDb also reads `--persist-to` from your `package.json` scripts. When a binding has no local file yet, run `wrangler d1 migrations apply <database> --local` or `wrangler dev` first. Files that no binding maps to are listed with their table names.
+- **D1 (remote)**: uses the Cloudflare REST API. Use an API token with the "D1 Read" permission for read-only access, or "D1 Edit" to change data. The token is kept in VS Code SecretStorage. The dialog offers the `database_id` values from your wrangler config.
+- **Turso / libSQL**: `libsql://`, `https://` and `http://` URLs (for example a local `sqld`). The auth token is kept in VS Code SecretStorage.
+- MCP queries on D1 and libSQL are read-only unless `Devdb.mcp.allowWrites` is on.
+
 ## Troubleshooting Remote Connections
 
 ### SSH Tunnels

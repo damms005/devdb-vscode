@@ -1,3 +1,11 @@
+## 4.0.0
+
+### Added
+
+- Cloudflare D1 (local), free: DevDb finds `d1_databases` in `wrangler.json`/`wrangler.jsonc`/`wrangler.toml` and opens the local SQLite file of each binding (`.wrangler/state`, or `--persist-to` from `package.json` scripts).
+- Cloudflare D1 (remote), Pro: connect with account ID, database ID and API token over the Cloudflare REST API.
+- Turso / libSQL, Pro: detected from `TURSO_DATABASE_URL` in `.env` or a `drizzle.config` with `dialect: 'turso'`, or added as a remote connection.
+
 ## 3.2.0
 
 ### Added
