@@ -378,7 +378,9 @@ async function run(ctx, cmd, arg) {
 			return "OK";
 		}
 		case "webview-fill": {
-			const [target, value] = Array.isArray(arg) ? arg : [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)];
+			// Interactive mode: `target=value`, or a JSON pair `["target","value"]` when the target itself contains "=".
+			const pair = Array.isArray(arg) ? arg : arg.trimStart().startsWith("[") ? JSON.parse(arg) : null;
+			const [target, value] = pair ?? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)];
 			const frame = await webviewFrame(ctx);
 			const field = target.startsWith("css:") ? frame.locator(target.slice(4)).first() : frame.getByPlaceholder(target, { exact: true }).or(frame.getByLabel(target)).first();
 			await field.fill(value, { timeout: 10_000 });

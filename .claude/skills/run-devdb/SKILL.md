@@ -77,7 +77,7 @@ When the test is done, close every VS Code that you started with the driver, bef
 | `webview-click` | visible text | Clicks the element with that text (exact, then prefix) |
 | `webview-click-css` | CSS selector | DOM click on the first match (toasts cannot block it), e.g. `[data-testid=connect-button]` |
 | `webview-hover` | CSS selector | Real mouse hover on the first match (hover-only UI, e.g. the cell actions popover) |
-| `webview-fill` | `<placeholder or label>=<value>`; in a batch also `["webview-fill", "<target>", "<value>"]`; target `css:<selector>` for CSS (Playwright `>> nth=1` works) | Fills an input (Vue `v-model` sees it) |
+| `webview-fill` | `<placeholder or label>=<value>`; in interactive mode use a JSON pair `["<target>","<value>"]` when the target contains `=` (CSS attribute selectors, placeholders such as `?sslmode=require`); in a batch also `["webview-fill", "<target>", "<value>"]`; target `css:<selector>` for CSS (Playwright `>> nth=1` works) | Fills an input (Vue `v-model` sees it) |
 | `webview-type` / `webview-key` | text / key | Types into / presses a key on the focused webview element |
 | `webview-wait` / `webview-assert` | text | Waits up to 60 s for / fails when not: the text in the webview |
 | `webview-eval` | JS expression | Runs JS in the webview document |
