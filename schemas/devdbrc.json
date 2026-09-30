@@ -56,6 +56,7 @@
         "title": "MySQL/MariaDB Configuration",
         "required": [
           "type",
+          "name",
           "username",
           "password",
           "database"
@@ -94,11 +95,6 @@
           "database": {
             "type": "string",
             "description": "Database name"
-          },
-          "options": {
-            "type": "object",
-            "description": "Driver-specific options for MSSQL, e.g. trustServerCertificate",
-            "additionalProperties": true
           }
         }
       },
@@ -106,6 +102,7 @@
         "title": "PostgreSQL Configuration",
         "required": [
           "type",
+          "name",
           "username",
           "password",
           "database"
@@ -150,6 +147,7 @@
         "title": "Microsoft SQL Server Configuration",
         "required": [
           "type",
+          "name",
           "username",
           "password",
           "database"
@@ -187,6 +185,11 @@
           "database": {
             "type": "string",
             "description": "Database name"
+          },
+          "options": {
+            "type": "object",
+            "description": "Driver-specific options for MSSQL, e.g. trustServerCertificate",
+            "additionalProperties": true
           }
         }
       },
@@ -282,7 +285,7 @@
               "http",
               "https"
             ],
-            "description": "HTTP protocol. Defaults to https on port 8443, else http."
+            "description": "HTTP protocol. Defaults to http for localhost, https for any other host or port 8443/9440."
           },
           "username": {
             "type": "string",

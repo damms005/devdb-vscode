@@ -332,7 +332,7 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 	if (thisConnectionId !== connectionId) return false
 
 	if (!engine) {
-		vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
+		if (!provider.reportsOwnErrors) vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
 		return false
 	}
 
@@ -361,7 +361,7 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	if (thisConnectionId !== connectionId) return false
 
 	if (!engine) {
-		vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
+		if (!provider.reportsOwnErrors) vscode.window.showErrorMessage(`Provider option error: Could not get database engine for ${option.provider}`)
 		return false
 	}
 

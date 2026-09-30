@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { existsSync } from 'fs';
+import { dirname, isAbsolute, resolve } from 'path';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
-import { getConfigFileContent } from '../services/config-service';
+import { getConfigFileContent, getConfigFilePath } from '../services/config-service';
 import { brief } from '../services/string';
 import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig, DuckDbConfig, RedisConfig, ClickhouseConfig } from '../types';
 import { MysqlEngine } from '../database-engines/mysql-engine';
@@ -222,7 +223,17 @@ async function mssqlConfigResolver(mssqlConfig: MssqlConfig): Promise<EngineProv
 	}
 }
 
+/**
+ * A relative `path` in .devdbrc is relative to the folder of the .devdbrc file.
+ */
+function resolveConfigPath(path: string): string {
+	const configFile = getConfigFilePath()
+	return isAbsolute(path) || !configFile ? path : resolve(dirname(configFile), path)
+}
+
 async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<EngineProviderCache | undefined> {
+
+	sqliteConnection = { ...sqliteConnection, path: resolveConfigPath(sqliteConnection.path) }
 
 	if (!existsSync(sqliteConnection.path)) {
 		await showErrorWithConfigFileButton(
@@ -254,6 +265,8 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 async function duckdbConfigResolver(duckdbConfig: DuckDbConfig): Promise<EngineProviderCache | undefined> {
 
 	if (!allowProConfigEntry('DuckDB', duckdbConfig.path)) return
+
+	duckdbConfig = { ...duckdbConfig, path: resolveConfigPath(duckdbConfig.path) }
 
 	if (!existsSync(duckdbConfig.path)) {
 		await showErrorWithConfigFileButton(

@@ -95,7 +95,7 @@ async function getSuccessfulConnectionOrPort(dialect: KnexClientType, host: stri
 	}
 
 	const portInEnvFile = await getEnvFileValue('DB_PORT')
-	return parseInt(portInEnvFile || '3306')
+	return parseInt(portInEnvFile || (dialect === 'postgres' ? '5432' : '3306'))
 }
 
 async function tryGetConnection(dialect: KnexClientType, host: string, port: number, username: string, password: string, database: string): Promise<knexlib.Knex | undefined> {

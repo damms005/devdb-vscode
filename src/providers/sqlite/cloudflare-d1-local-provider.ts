@@ -126,6 +126,8 @@ export const CloudflareD1LocalProvider: DatabaseEngineProvider = {
 		return this.canBeUsedInCurrentWorkspace();
 	},
 
+	reportsOwnErrors: true,
+
 	async getDatabaseEngine(option?: EngineProviderOption): Promise<DatabaseEngine | undefined> {
 		if (!option) return this.engine;
 

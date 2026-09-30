@@ -45,6 +45,11 @@ export type EngineProviderCache = {
 export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse' | 'd1' | 'libsql' | 'dynamodb'
 
 export type DatabaseEngineProvider = {
+	/**
+	 * True when getDatabaseEngine() shows its own message before it returns no engine,
+	 * so the caller does not add a second, generic error.
+	 */
+	reportsOwnErrors?: boolean
 	name: string
 	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb' | 'dynamodb' | 'mongodb' | 'redis' | 'clickhouse'
 	id: string

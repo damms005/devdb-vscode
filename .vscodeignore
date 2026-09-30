@@ -25,6 +25,11 @@
 
 # @vscode/sqlite3: uses node-gyp-build with complex dynamic requires that can't be bundled by esbuild
 !node_modules/@vscode/sqlite3/**
+# ...but not its C sources and intermediate build output (only build/Release/vscode-sqlite3.node loads)
+node_modules/@vscode/sqlite3/deps/**
+node_modules/@vscode/sqlite3/src/**
+node_modules/@vscode/sqlite3/build/**
+!node_modules/@vscode/sqlite3/build/Release/vscode-sqlite3.node
 
 # @duckdb/node-api: externalized in esbuild.js. The per-platform binding package is
 # selected in CI by .github/scripts/prepare-native-deps.js (only one ships per VSIX).

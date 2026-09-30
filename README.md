@@ -94,7 +94,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 ## Requirements
 
-- VS Code 1.83 or newer
+- VS Code 1.90 or newer
 - A VS Code project using any of the [supported databases](#supported-databases)
 
 ## OS/Platform Support
@@ -442,29 +442,11 @@ Your AI assistant can now access your database schema and run queries.
 #### MCP Security
 
 - The MCP server listens on `localhost` only. Connections from other hosts are rejected.
-- Each request must send the access token that is included in the copied MCP configuration. Do not share it.
+- Each request must send a per-session access token. DevDb writes the token and port to `~/.devdb/mcp.json` (readable only by you), and the DevDb MCP server script reads it from there. Restart VS Code after you update DevDb so that MCP clients get the new token.
 - Queries are **read-only by default**. The database engine enforces this (for example, a read-only transaction in PostgreSQL and MySQL).
 - To let MCP clients run write queries, enable `Devdb.mcp.allowWrites` in your user settings. DevDb then asks you to confirm each write query. This setting has machine scope, so a workspace cannot enable it.
 - To turn off the MCP server, set `Devdb.enableMcpServer` to `false`.
 
-## URI Handler
-
-DevDb provides a custom URI handler that allows you to open specific database tables directly from external applications or links. This is useful for integrating DevDb with other tools or creating shortcuts to frequently accessed tables.
-
-### URI Format
-
-The URI format follows this pattern:
-
-```
-vscode://devdb/open/table?connectionId=123&database=main&table=users&workspace=...
-```
-
-Parameters:
-
-- `connectionId`: The ID of the database connection
-- `database`: The database name
-- `table`: The table name to open
-- `workspace`: (Optional) The workspace path
 
 ## Support
 

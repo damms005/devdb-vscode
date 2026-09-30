@@ -1,7 +1,7 @@
 import { createFakeExtensionContext } from '../vscode-stub';
 import * as assert from 'assert';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { basename, join } from 'path';
 import { rmSync } from 'fs';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';
@@ -191,6 +191,19 @@ describe('Remote connection tester', () => {
 			await ConfigFileProvider.resolveConfiguration!({ type: 'duckdb', path: dbPath })
 			const engine = ConfigFileProvider.cache![0].engine
 			await assert.rejects(() => engine.rawQuery('INSERT INTO t VALUES (1)'))
+		})
+
+		it('resolves a relative path against the .devdbrc folder', async () => {
+			const vscodeModule = require('vscode')
+			const previous = vscodeModule.workspace.workspaceFolders
+			vscodeModule.workspace.workspaceFolders = [{ uri: { fsPath: tmpdir() } }]
+			try {
+				await ConfigFileProvider.resolveConfiguration!({ type: 'duckdb', path: basename(dbPath) })
+				assert.strictEqual(ConfigFileProvider.cache?.length, 1)
+				assert.strictEqual(ConfigFileProvider.cache![0].id, dbPath)
+			} finally {
+				vscodeModule.workspace.workspaceFolders = previous
+			}
 		})
 
 		it('opens writable with readOnly: false', async () => {
