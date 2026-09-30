@@ -172,6 +172,13 @@ export class DuckDbEngine implements DatabaseEngine {
 			// @ts-ignore - '@duckdb/node-api' is an optional dependency resolved at runtime
 			return (await import('@duckdb/node-api')) as unknown as DuckDbModule;
 		} catch (err) {
+			/**
+			 * Platform VSIX files ship one native binding. linux-armhf and the
+			 * universal VSIX ship none, so the binding lookup fails there.
+			 */
+			if (/unsupported arch|node-bindings-[\w-]+\/duckdb\.node/.test(String(err))) {
+				throw new Error(`DuckDB is not supported on this platform (${process.platform}-${process.arch}). Install the DevDb build for your platform from the VS Code Marketplace.`);
+			}
 			throw new Error(
 				`The '@duckdb/node-api' package is required for DuckDB support but could not be loaded: ${String(err)}`
 			);

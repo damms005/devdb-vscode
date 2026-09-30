@@ -129,7 +129,7 @@ describe('MCP HTTP server security', () => {
 		assert.deepStrictEqual(calls, [{ query: 'SELECT 1', options: { readOnly: true } }]);
 	});
 
-	it('blocks writes with 403 when devdb.mcp.allowWrites is false', async () => {
+	it('blocks writes with 403 when Devdb.mcp.allowWrites is false', async () => {
 		const res = await request(port, '/query', { method: 'POST', headers: auth, body: { query: 'DELETE FROM users WHERE id = 1' } });
 		assert.strictEqual(res.status, 403);
 		assert.strictEqual(calls.length, 0);

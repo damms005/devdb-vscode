@@ -27,7 +27,7 @@ export function getProjectRoot(): string {
 }
 
 function mcpAllowsWrites(): boolean {
-	return vscode.workspace.getConfiguration('devdb').get<boolean>('mcp.allowWrites', false) === true;
+	return vscode.workspace.getConfiguration('Devdb').get<boolean>('mcp.allowWrites', false) === true;
 }
 
 async function confirmDestructiveQuery(warning: string): Promise<boolean> {

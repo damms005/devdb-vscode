@@ -173,7 +173,7 @@ server.registerTool(
 	'run-query',
 	{
 		title: 'Run a query',
-		description: 'Run a read-only query (SQL, or a Redis command for Redis). Writes are blocked unless the user enables devdb.mcp.allowWrites.',
+		description: 'Run a read-only query (SQL, or a Redis command for Redis). Writes are blocked unless the user enables Devdb.mcp.allowWrites.',
 		inputSchema: {
 			projectRoot: z.string().describe('Absolute path to the root of the project. e.g. /Users/path/to/project'),
 			query: z.string().describe('SQL query to run')

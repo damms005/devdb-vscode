@@ -12,7 +12,7 @@ export type McpAppDeps = {
 	/** Per-session bearer token clients must send. */
 	token: string;
 	getDatabase: () => DatabaseEngine | null | undefined;
-	/** Value of the `devdb.mcp.allowWrites` setting. */
+	/** Value of the `Devdb.mcp.allowWrites` setting. */
 	allowWrites: () => boolean;
 	/** Asks the user to confirm a destructive query. Resolves true to run it. */
 	confirmDestructive: (warning: string) => Promise<boolean>;

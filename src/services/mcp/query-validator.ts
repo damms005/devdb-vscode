@@ -194,7 +194,7 @@ function validateRedis(query: string, allowWrites: boolean): QueryValidationResu
 		return { allowed: true };
 	}
 	if (!allowWrites) {
-		return { allowed: false, destructive: true, warning: `Query blocked: ${verb} writes data and MCP is read-only (enable devdb.mcp.allowWrites)` };
+		return { allowed: false, destructive: true, warning: `Query blocked: ${verb} writes data and MCP is read-only (enable Devdb.mcp.allowWrites)` };
 	}
 	return { allowed: true, destructive: true, warning: `Warning: ${verb} writes data` };
 }
@@ -260,7 +260,7 @@ function validateSqlInMode(query: string, allowWrites: boolean, mode: LexerMode)
 
 	const what = destructive?.label ?? `${firstKeyword} statement`;
 	if (!allowWrites) {
-		return { allowed: false, destructive: true, warning: `Query blocked: ${what} is not allowed because MCP is read-only (enable devdb.mcp.allowWrites)` };
+		return { allowed: false, destructive: true, warning: `Query blocked: ${what} is not allowed because MCP is read-only (enable Devdb.mcp.allowWrites)` };
 	}
 	return { allowed: true, destructive: true, warning: `Warning: ${what} detected` };
 }

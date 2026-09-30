@@ -54,8 +54,7 @@
 		"workspaceContains:**/.devdbrc",
 		"onLanguage:php",
 		"onLanguage:javascript",
-		"onLanguage:typescript",
-		"onUri"
+		"onLanguage:typescript"
 	],
 	"capabilities": {
 		"untrustedWorkspaces": {
@@ -97,6 +96,12 @@
 			{
 				"command": "devdb.dev.previewNewDatastoresNotice",
 				"title": "Preview New Datastores Notice",
+				"category": "DevDb (Dev)",
+				"enablement": "devdb.isDevelopment"
+			},
+			{
+				"command": "devdb.dev.previewDevWorkspaceProNotice",
+				"title": "Preview DevWorkspace Pro Notice",
 				"category": "DevDb (Dev)",
 				"enablement": "devdb.isDevelopment"
 			}
@@ -173,6 +178,10 @@
 				},
 				{
 					"command": "devdb.dev.previewNewDatastoresNotice",
+					"when": "devdb.isDevelopment"
+				},
+				{
+					"command": "devdb.dev.previewDevWorkspaceProNotice",
 					"when": "devdb.isDevelopment"
 				}
 			],
@@ -253,7 +262,7 @@
 					"default": true,
 					"description": "Enable DevDb's local MCP server."
 				},
-				"devdb.mcp.allowWrites": {
+				"Devdb.mcp.allowWrites": {
 					"type": "boolean",
 					"default": false,
 					"scope": "machine",
