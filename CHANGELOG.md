@@ -1,3 +1,9 @@
+## 4.0.0
+
+### Changed
+
+- New DevDb 4 launch notice (once, 4.x only; Pro users get a toast) and a refreshed DevWorkspace Pro showcase with the app's real UI mocks (once per showcase version, DDEV workspaces only). Both follow the VS Code theme and use a strict CSP.
+
 ## 3.2.0
 
 ### Added
@@ -14,7 +20,6 @@
 - Redis fails fast with the real error on a wrong password or a closed port. ClickHouse rejects a wrong password on connect.
 - ClickHouse keeps Decimal precision. Cancel stops the query on the server, and queries have time and memory limits.
 - DuckDB shows DECIMAL, UUID, DATE, TIMESTAMPTZ, MAP and BLOB values as readable text. SUMMARIZE works when one column fails. Raw queries stop at 10,000 rows. Cancel works.
-- The new-datastores notice shows once, on 3.2.x only. Pro users get a short toast.
 - `npm test` runs the Mocha suite.
 - SQLite loads on linux-arm64, linux-armhf and Alpine. New win32-arm64 and alpine-arm64 packages.
 

@@ -1,6 +1,6 @@
 ---
 name: run-devdb
-description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the new-datastores promo, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB).
+description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the promo notices, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB).
 ---
 
 # Run and drive DevDb
@@ -145,19 +145,20 @@ Build first (see **Build**). Each recipe is a batch; add `["shot","<name>"]` whe
 
 Pro prefix used below (call it `PRO`): `["exec","workbench.action.closeAllEditors"],["panel","max"],["webview-wait","Config File"],["license"],["sleep","2500"],["webview","view"]`
 
-### New-datastores promo
+### Promo notices
 
-The automatic notice shows once, on a 3.2.x version only (`package.json` stays at the last release until `publish.sh` bumps it). Use the dev command to preview both copies:
+The DevDb 4 notice shows once, on a 4.x version only (`package.json` stays at the last release until `publish.sh` bumps it). The DevWorkspace Pro showcase shows once per `NOTICE_CONTENT_VERSION`, in DDEV workspaces only. When both qualify, the DevDb 4 notice shows first. Preview them with the dev commands (tabs: `webview-click-css` on `[data-tab=focus-pad|voice|github|scratchpad|recipes]`):
 
 ```json
-[["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":false}"],["sleep","2500"],["webview","editor"],
- ["webview-wait","5 New Databases"],["webview-assert","Unlock with DevDb Pro"],["shot","promo-free"],
- ["exec","workbench.action.closeAllEditors"],["exec","notifications.clearAll"],
- ["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":true}"],["sleep","2500"],
- ["notifications"],["editor-tabs"],["shot","promo-pro"]]
+[["exec","notifications.clearAll"],["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":false}"],["sleep","2500"],["webview","editor"],
+ ["webview-wait","Unlock with DevDb Pro"],["shot","promo-free"],
+ ["exec","workbench.action.closeAllEditors"],
+ ["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":true}"],["sleep","2500"],["notifications"],["editor-tabs"],["shot","promo-pro"],
+ ["exec","devdb.dev.previewDevWorkspaceProNotice {\"newInstall\":false}"],["sleep","2500"],["webview","editor"],
+ ["webview-wait","DevWorkspace Pro"],["shot","dwp"]]
 ```
 
-Expected: Free = full-page tab "New in DevDb — 5 New Databases". Pro = toast "5 new datastores are in your Pro plan" and no tab.
+Expected: Free = full-page tab "What's new in DevDb 4". Pro = toast "DevDb 4 is here: …" and no tab. Themes: `["host-eval","await vscode.workspace.getConfiguration().update('workbench.colorTheme','Default Light Modern',true); return 1"]`. Rebuild the DevWorkspace Pro mocks with `scripts/build-dwp-notice-mocks.mjs`.
 
 ### Redis / Valkey
 
