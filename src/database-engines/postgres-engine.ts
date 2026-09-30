@@ -1,6 +1,6 @@
 import knexlib from "knex";
-import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
-import { SqlService, sanitizeIdentifier } from '../services/sql';
+import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
+import { SqlService, assertReadOnlySql, sanitizeIdentifier, stripSqlCommentsAndLiterals } from '../services/sql';
 import { reportError } from "../services/initialization-error-service";
 
 export class PostgresEngine implements DatabaseEngine {
@@ -122,7 +122,8 @@ export class PostgresEngine implements DatabaseEngine {
 		for (const column of columns) {
 			const foreignKey = await getForeignKeyFor(table, column.name, this.connection);
 
-			const isVector = column.udt_name?.toLowerCase() === 'vector';
+			const udtName = column.udt_name?.toLowerCase();
+			const isVector = udtName === 'vector';
 
 			if (isVector) {
 				const dimension = vectorDimensions[column.name.toLowerCase()];
@@ -145,10 +146,16 @@ export class PostgresEngine implements DatabaseEngine {
 				continue;
 			}
 
+			// Surface opaque extension types (halfvec, sparsevec, PostGIS) by their real
+			// name instead of 'USER-DEFINED', so filters and editors can recognise them.
+			const type = column.type === 'USER-DEFINED' && udtName && OPAQUE_USER_DEFINED_TYPES.includes(udtName)
+				? udtName
+				: column.type;
+
 			computedColumns.push({
 				...{
 					name: column.name,
-					type: column.type,
+					type,
 					isPrimaryKey: primaryKeySet.has(column.name.toLowerCase()),
 					isNumeric: this.getNumericColumnTypeNamesLowercase().includes(column.type.toLowerCase()),
 					isPlainTextType: this.getPlainStringTypes().includes(column.type.toLowerCase()),
@@ -202,10 +209,38 @@ export class PostgresEngine implements DatabaseEngine {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction, '"');
 	}
 
-	async rawQuery(code: string): Promise<string | undefined> {
+	/**
+	 * Runs arbitrary SQL and returns the result rows. With `readOnly`, the statement must
+	 * pass {@link assertReadOnlySql} and runs inside `BEGIN TRANSACTION READ ONLY` over the
+	 * extended protocol (which rejects stacked statements server-side), then rolls back.
+	 */
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.connection) throw new Error('Connection not initialized');
 
-		return (await this.connection.raw(code)).toString();
+		if (!options?.readOnly) {
+			const result = await this.connection.raw(code) as any;
+			// several statements yield one result per statement
+			return Array.isArray(result) ? result.map(entry => entry.rows) : result.rows;
+		}
+
+		assertReadOnlySql(code, 'postgres', POSTGRES_READ_ONLY_KEYWORDS, POSTGRES_READ_ONLY_DENIED_PATTERNS);
+
+		return this.runReadOnly(async (trx) => (await trx.raw(code).options({ queryMode: 'extended' }) as any).rows);
+	}
+
+	/**
+	 * Runs `work` inside a `READ ONLY` transaction that is always rolled back, so nothing it
+	 * does can persist even if a write slipped past validation.
+	 */
+	private async runReadOnly<T>(work: (trx: knexlib.Knex.Transaction) => Promise<T>): Promise<T> {
+		if (!this.connection) throw new Error('Connection not initialized');
+
+		const trx = await this.connection.transaction({ readOnly: true });
+		try {
+			return await work(trx);
+		} finally {
+			await trx.rollback();
+		}
 	}
 
 	/**
@@ -276,7 +311,7 @@ export class PostgresEngine implements DatabaseEngine {
 		const quotedTable = `${sanitizeIdentifier(schemaName, '"', '"')}.${sanitizeIdentifier(tableName, '"', '"')}`;
 		const quotedColumn = sanitizeIdentifier(options.column, '"', '"');
 		const safeLimit = Math.max(1, Math.min(1000, Math.trunc(Number(options.limit) || 10)));
-		const whereClause = options.where && options.where.trim().length > 0 ? `WHERE ${options.where.trim()}` : '';
+		const whereClause = options.where && options.where.trim().length > 0 ? `WHERE ${assertSafeWhereFragment(options.where)}` : '';
 
 		const metric: VectorMetric = options.metric ?? (await this.getVectorIndexOpclass(options.table, options.column)) ?? 'cosine';
 		const { operator, scoreLabel } = getMetricDefinition(metric);
@@ -350,26 +385,20 @@ export class PostgresEngine implements DatabaseEngine {
 	}
 
 	/**
-	 * Executes the search SQL, wrapping it in a transaction and issuing
-	 * `SET LOCAL hnsw.ef_search` first when an efSearch value is supplied
-	 * (SET LOCAL only takes effect inside a transaction).
+	 * Executes the search SQL inside a READ ONLY transaction (the SQL embeds a
+	 * user-supplied `where` fragment), issuing `SET LOCAL hnsw.ef_search` first when an
+	 * efSearch value is supplied (SET LOCAL only takes effect inside a transaction).
 	 */
 	private async runSearch(sql: string, bindings: any[], efSearch?: number): Promise<any[]> {
-		if (!this.connection) {
-			throw new Error('Not connected to the database');
-		}
-
 		const efInt = Math.trunc(Number(efSearch) || 0);
-		if (efInt > 0) {
-			return this.connection.transaction(async (trx) => {
-				await trx.raw(`SET LOCAL hnsw.ef_search = ${efInt}`);
-				const result = await trx.raw(sql, bindings) as any;
-				return result.rows;
-			});
-		}
 
-		const result = await this.connection.raw(sql, bindings) as any;
-		return result.rows;
+		return this.runReadOnly(async (trx) => {
+			if (efInt > 0) {
+				await trx.raw(`SET LOCAL hnsw.ef_search = ${efInt}`);
+			}
+			const result = await trx.raw(sql, bindings) as any;
+			return result.rows;
+		});
 	}
 
 	/**
@@ -386,7 +415,7 @@ export class PostgresEngine implements DatabaseEngine {
 			const annIndexes = await this.getVectorIndexes(table, column);
 			const annIndexByName = new Map(annIndexes.map(index => [index.indexName, index.indexType]));
 
-			const explain = await this.connection.raw(`EXPLAIN (FORMAT JSON) ${sql}`, bindings) as any;
+			const explain = await this.runReadOnly(async (trx) => await trx.raw(`EXPLAIN (FORMAT JSON) ${sql}`, bindings) as any);
 			const plan = explain.rows[0]['QUERY PLAN'];
 			const rootPlan = Array.isArray(plan) ? plan[0]?.Plan : plan?.Plan;
 
@@ -469,6 +498,41 @@ export class PostgresEngine implements DatabaseEngine {
 			return [];
 		}
 	}
+}
+
+const OPAQUE_USER_DEFINED_TYPES = ['halfvec', 'sparsevec', 'geometry', 'geography'];
+
+const POSTGRES_READ_ONLY_KEYWORDS = ['SELECT', 'WITH', 'EXPLAIN', 'SHOW', 'TABLE', 'VALUES'];
+
+/**
+ * Functions with side effects outside the transaction (server files, other sessions,
+ * remote servers, config) that a READ ONLY transaction does not stop.
+ */
+const POSTGRES_READ_ONLY_DENIED_PATTERNS = [
+	/\b(lo_import|lo_export|lo_unlink|lo_from_bytea|lo_put|pg_terminate_backend|pg_cancel_backend|pg_reload_conf|pg_rotate_logfile|pg_promote|pg_switch_wal|pg_create_restore_point|pg_file_write|pg_file_rename|pg_file_unlink|pg_notify|set_config|dblink\w*|pg_advisory\w*|pg_try_advisory\w*)\s*\(/i,
+];
+
+/**
+ * Validates a user-supplied SQL `WHERE` fragment for similarity search: no statement
+ * separators and no comments that could hide a second statement. The fragment still
+ * runs inside a READ ONLY transaction.
+ */
+function assertSafeWhereFragment(where: string): string {
+	const trimmed = where.trim();
+	const stripped = stripSqlCommentsAndLiterals(trimmed, 'postgres');
+
+	if (stripped.includes(';')) {
+		throw new Error('The similarity search filter must not contain ";"');
+	}
+
+	for (const pattern of POSTGRES_READ_ONLY_DENIED_PATTERNS) {
+		const match = stripped.match(pattern);
+		if (match) {
+			throw new Error(`The similarity search filter must not use "${match[0].trim()}"`);
+		}
+	}
+
+	return trimmed;
 }
 
 function getTableName(table: { schemaname: string, tablename: string }) {

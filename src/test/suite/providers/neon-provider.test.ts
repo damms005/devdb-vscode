@@ -37,6 +37,14 @@ describe('Neon connection helper', () => {
 		it('rejects undefined', () => {
 			assert.strictEqual(isNeonConnectionString(undefined), false);
 		});
+
+		it('requires the hostname itself to end with .neon.tech', () => {
+			assert.strictEqual(isNeonConnectionString('postgresql://u:p@evil.example.com/db?host=neon.tech'), false);
+			assert.strictEqual(isNeonConnectionString('postgresql://neon.tech:p@evil.example.com/db'), false);
+			assert.strictEqual(isNeonConnectionString('postgresql://u:p@ep-x.neon.tech.evil.com/db'), false);
+			assert.strictEqual(isNeonConnectionString('postgresql://u:p@myneon.tech/db'), false);
+			assert.strictEqual(isNeonConnectionString('postgresql://u:p@EP-X.US-EAST-2.AWS.NEON.TECH/db'), true);
+		});
 	});
 
 	describe('extractDatabaseUrlFromEnv', () => {
@@ -72,6 +80,11 @@ describe('Neon connection helper', () => {
 
 		it('returns undefined when no Neon URL present', () => {
 			assert.strictEqual(findNeonConnectionStringIn('{"type":"sqlite"}'), undefined);
+		});
+
+		it('skips URLs that only mention neon.tech outside the hostname', () => {
+			const rc = `[{ "url": "postgresql://u:p@evil.example.com/neon.tech" }, { "url": "${directUrl}" }]`;
+			assert.strictEqual(findNeonConnectionStringIn(rc), directUrl);
 		});
 	});
 

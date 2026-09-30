@@ -1,6 +1,6 @@
 import { createClient, ClickHouseClient, ClickHouseSettings, ResponseJSON } from '@clickhouse/client'
 import knexlib from 'knex'
-import { Column, ClickhouseConfig, DatabaseEngine, KnexClient, QueryResponse, QueryStats, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
+import { Column, ClickhouseConfig, DatabaseEngine, KnexClient, QueryResponse, QueryStats, RawQueryOptions, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
 import { SQLiteTransaction } from './sqlite-engine'
 import { reportError } from '../services/initialization-error-service'
 
@@ -304,14 +304,14 @@ export class ClickhouseEngine implements DatabaseEngine {
 		}
 	}
 
-	async rawQuery(code: string, signal?: AbortSignal): Promise<any> {
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.client) {
 			throw new Error('Connection not initialized')
 		}
 
 		const response = await this.runJson<Record<string, any>>(code, undefined, {
 			settings: RAW_QUERY_PROTECTIVE_SETTINGS,
-			signal,
+			signal: options?.signal,
 		})
 
 		const rows = response.data

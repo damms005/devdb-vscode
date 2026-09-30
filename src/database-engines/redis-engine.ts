@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from 'redis'
 import knexlib from 'knex'
-import { Column, DatabaseEngine, KnexClient, QueryResponse, RedisConfig, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
+import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, RedisConfig, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
 import { SQLiteTransaction } from './sqlite-engine'
 
 type RedisDataType = 'string' | 'hash' | 'list' | 'set' | 'zset' | 'stream'
@@ -62,40 +62,118 @@ export class RedisEngine implements DatabaseEngine {
 	 */
 	private static readonly FILTER_KEY_SCAN_LIMIT = 10_000
 
+	/**
+	 * Socket connect timeout and attempt budget for the initial connect, so a wrong
+	 * host/port fails in seconds instead of retrying forever.
+	 */
+	private static readonly CONNECT_TIMEOUT_MS = 10_000
+	private static readonly INITIAL_CONNECT_ATTEMPTS = 3
+
+	/**
+	 * Keys expanded concurrently (node-redis pipelines commands issued in the same tick).
+	 */
+	private static readonly PIPELINE_BATCH = 100
+
 	private readonly pageCache = new Map<string, PageCursorState>()
+	private lastError: Error | null = null
 
 	constructor(config: RedisConfig) {
 		this.config = config
 	}
 
+	/**
+	 * Opens the connection, failing fast: a 10 s socket connect timeout, at most
+	 * {@link RedisEngine.INITIAL_CONNECT_ATTEMPTS} attempts while connecting, and no retry at
+	 * all on an authentication error. Rejects with the real (password-redacted) cause. After
+	 * the first successful connect, dropped connections reconnect with backoff.
+	 */
 	async connect(): Promise<boolean> {
-		try {
-			if (this.config.connectionString) {
-				this.client = createClient({ url: this.config.connectionString }) as RedisClientType
-			} else {
-				const socket: Record<string, any> = {
-					host: this.config.host ?? 'localhost',
-					port: this.config.port ?? 6379,
+		let initialConnectDone = false
+		const socketOptions: Record<string, any> = {
+			connectTimeout: RedisEngine.CONNECT_TIMEOUT_MS,
+			reconnectStrategy: (retries: number, cause: Error) => {
+				if (!initialConnectDone && (isRedisAuthError(cause) || retries + 1 >= RedisEngine.INITIAL_CONNECT_ATTEMPTS)) {
+					return cause
 				}
-				if (this.config.tls === true) {
-					socket.tls = true
-				}
-				this.client = createClient({
-					socket,
-					username: this.config.username,
-					password: this.config.password,
-					database: this.config.database ?? 0,
-				}) as RedisClientType
-			}
-
-			this.client.on('error', () => { })
-			await this.client.connect()
-			await this.client.ping()
-			return true
-		} catch {
-			this.client = null
-			return false
+				return Math.min(2 ** retries * 100, 5000)
+			},
 		}
+
+		let client: RedisClientType
+		if (this.config.connectionString) {
+			client = createClient({ url: this.config.connectionString, socket: socketOptions }) as RedisClientType
+		} else {
+			socketOptions.host = this.config.host ?? 'localhost'
+			socketOptions.port = this.config.port ?? 6379
+			if (this.config.tls === true) {
+				socketOptions.tls = true
+			}
+			client = createClient({
+				socket: socketOptions as any,
+				username: this.config.username,
+				password: this.config.password,
+				database: this.config.database ?? 0,
+			}) as RedisClientType
+		}
+
+		// node-redis requires an error listener; keep the last error so callers can surface it.
+		client.on('error', (error: Error) => {
+			this.lastError = error
+		})
+
+		try {
+			await client.connect()
+			initialConnectDone = true
+			await client.ping()
+			this.client = client
+			return true
+		} catch (error) {
+			this.client = null
+			try {
+				client.destroy()
+			} catch {
+				// already closed
+			}
+			const cause = (error as any)?.socketError instanceof Error ? (error as any).socketError : error
+			throw new Error(`Redis connection to ${this.describeTarget()} failed: ${this.redact(cause instanceof Error ? cause.message : String(cause))}`)
+		}
+	}
+
+	/**
+	 * Last error the client emitted (password-redacted), for diagnostics.
+	 */
+	getLastError(): string | undefined {
+		return this.lastError ? this.redact(this.lastError.message) : undefined
+	}
+
+	private describeTarget(): string {
+		if (this.config.connectionString) {
+			try {
+				const url = new URL(this.config.connectionString)
+				return `${url.hostname}:${url.port || 6379}`
+			} catch {
+				return 'the configured URL'
+			}
+		}
+		return `${this.config.host ?? 'localhost'}:${this.config.port ?? 6379}`
+	}
+
+	private redact(message: string): string {
+		let redacted = message.replace(/(\w+:\/\/[^:/@\s]*:)[^@\s]*@/g, '$1***@')
+		const secrets = [this.config.password]
+		if (this.config.connectionString) {
+			try {
+				secrets.push(decodeURIComponent(new URL(this.config.connectionString).password))
+			} catch {
+				// not a URL
+			}
+		}
+		for (const secret of secrets) {
+			if (secret) {
+				redacted = redacted.split(secret).join('***')
+			}
+		}
+		return redacted
 	}
 
 	getType(): KnexClient {
@@ -118,21 +196,38 @@ export class RedisEngine implements DatabaseEngine {
 		}
 	}
 
+	/**
+	 * Lists the data types present. Keys are SCANned in batches and their TYPEs fetched
+	 * pipelined per batch; the walk stops once every type is found or after
+	 * {@link RedisEngine.TOTAL_KEY_SCAN_LIMIT} keys, so a type that only appears past the
+	 * limit is not listed. An empty database (DBSIZE 0) returns at once.
+	 */
 	async getTables(): Promise<string[]> {
 		if (!this.client) {
 			return []
 		}
 
-		const presentTypes = new Set<string>()
-		for await (const key of this.scanKeys()) {
-			const type = await this.client.type(key)
-			if (RedisEngine.DATA_TYPES.includes(type as RedisDataType)) {
-				presentTypes.add(type)
-			}
-			if (presentTypes.size === RedisEngine.DATA_TYPES.length) {
-				break
-			}
+		if (!this.config.keyPrefix && await this.client.dbSize() === 0) {
+			return []
 		}
+
+		const client = this.client
+		const match = this.config.keyPrefix ? `${this.config.keyPrefix}*` : '*'
+		const count = this.config.scanCount ?? 500
+		const presentTypes = new Set<string>()
+		let scanned = 0
+		let cursor = '0'
+		do {
+			const reply = await client.scan(cursor, { MATCH: match, COUNT: count })
+			cursor = String(reply.cursor)
+			const types = await Promise.all(reply.keys.map(key => client.type(key)))
+			for (const type of types) {
+				if (RedisEngine.DATA_TYPES.includes(type as RedisDataType)) {
+					presentTypes.add(type)
+				}
+			}
+			scanned += reply.keys.length
+		} while (cursor !== '0' && presentTypes.size < RedisEngine.DATA_TYPES.length && scanned < RedisEngine.TOTAL_KEY_SCAN_LIMIT)
 
 		return [...presentTypes].sort()
 	}
@@ -325,7 +420,7 @@ export class RedisEngine implements DatabaseEngine {
 	 * Executes a raw Redis command. Accepts a JSON array of arguments (e.g. `["GET", "foo"]`)
 	 * or a plain command string (e.g. `GET foo`).
 	 */
-	async rawQuery(code: string | string[]): Promise<any> {
+	async rawQuery(code: string | string[], options?: RawQueryOptions): Promise<any> {
 		if (!this.client) {
 			throw new Error('Not connected')
 		}
@@ -333,6 +428,10 @@ export class RedisEngine implements DatabaseEngine {
 		const args = this.parseCommandArguments(code)
 		if (args.length === 0) {
 			throw new Error('Empty command')
+		}
+
+		if (options?.readOnly) {
+			assertReadOnlyRedisCommand(args)
 		}
 
 		return this.client.sendCommand(args)
@@ -417,10 +516,10 @@ export class RedisEngine implements DatabaseEngine {
 		const nextCursor = String(reply.cursor)
 
 		const keys = [...reply.keys].sort((a, b) => this.naturalCompare(a, b))
-		const metas: KeyMeta[] = []
-		for (const key of keys) {
-			metas.push({ key, card: await this.rowCardOf(type, key) })
-		}
+		const cards = type === 'string'
+			? keys.map(() => 1)
+			: await Promise.all(keys.map(key => this.rowCardOf(type, key)))
+		const metas: KeyMeta[] = keys.map((key, index) => ({ key, card: cards[index] }))
 
 		return { metas, cursor: nextCursor }
 	}
@@ -628,7 +727,14 @@ export class RedisEngine implements DatabaseEngine {
 
 		this.pageCache.set(type, { endOffset: offset + rows.length, cursor, scanDone, buffer, bufferSkip: skipInFirst })
 
+		// Keys are naturally sorted per SCAN batch; a page that spans two batches is re-sorted
+		// by key here (stable, so a key's elements keep their order). Order across pages
+		// still follows SCAN order.
+		const rowKey = (row: Record<string, any>) => String(row.key ?? row._id)
 		return rows
+			.map((row, index) => ({ row, index }))
+			.sort((a, b) => this.naturalCompare(rowKey(a.row), rowKey(b.row)) || a.index - b.index)
+			.map(({ row }) => row)
 	}
 
 	/**
@@ -675,13 +781,17 @@ export class RedisEngine implements DatabaseEngine {
 		do {
 			const batch = await this.scanTypeBatch(type, cursor)
 			cursor = batch.cursor
-			for (const meta of batch.metas) {
-				const expanded = await this.expandKey(type, meta.key)
-				rows.push(...expanded.rows)
-				scanned++
-				if (scanned >= RedisEngine.FILTER_KEY_SCAN_LIMIT) {
-					return rows
+			const metas = batch.metas.slice(0, RedisEngine.FILTER_KEY_SCAN_LIMIT - scanned)
+			for (let start = 0; start < metas.length; start += RedisEngine.PIPELINE_BATCH) {
+				const chunk = metas.slice(start, start + RedisEngine.PIPELINE_BATCH)
+				const expanded = await Promise.all(chunk.map(meta => this.expandKey(type, meta.key)))
+				for (const entry of expanded) {
+					rows.push(...entry.rows)
 				}
+			}
+			scanned += metas.length
+			if (scanned >= RedisEngine.FILTER_KEY_SCAN_LIMIT) {
+				return rows
 			}
 		} while (cursor !== '0')
 
@@ -712,4 +822,51 @@ export class RedisEngine implements DatabaseEngine {
 		}
 		return [id.slice(0, separatorIndex), id.slice(separatorIndex + RedisEngine.ID_SEPARATOR.length)]
 	}
+}
+
+function isRedisAuthError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error)
+	return /WRONGPASS|NOAUTH|invalid password|invalid username-password|AUTH failed|NOPERM/i.test(message)
+}
+
+/**
+ * Commands that only read data. Anything else is refused in read-only mode.
+ */
+const REDIS_READ_ONLY_COMMANDS = new Set([
+	'GET', 'MGET', 'GETRANGE', 'SUBSTR', 'STRLEN', 'LCS', 'EXISTS', 'TYPE', 'TTL', 'PTTL', 'EXPIRETIME', 'PEXPIRETIME',
+	'SCAN', 'DBSIZE', 'RANDOMKEY', 'PING', 'ECHO', 'TIME', 'INFO', 'LASTSAVE', 'ROLE',
+	'HGET', 'HMGET', 'HGETALL', 'HKEYS', 'HVALS', 'HLEN', 'HEXISTS', 'HSTRLEN', 'HSCAN', 'HRANDFIELD', 'HTTL', 'HPTTL',
+	'LRANGE', 'LINDEX', 'LLEN', 'LPOS',
+	'SMEMBERS', 'SISMEMBER', 'SMISMEMBER', 'SCARD', 'SSCAN', 'SRANDMEMBER', 'SINTER', 'SINTERCARD', 'SUNION', 'SDIFF',
+	'ZRANGE', 'ZRANGEBYSCORE', 'ZREVRANGE', 'ZREVRANGEBYSCORE', 'ZRANGEBYLEX', 'ZREVRANGEBYLEX', 'ZSCORE', 'ZMSCORE',
+	'ZCARD', 'ZCOUNT', 'ZLEXCOUNT', 'ZRANK', 'ZREVRANK', 'ZSCAN', 'ZRANDMEMBER', 'ZINTER', 'ZINTERCARD', 'ZUNION', 'ZDIFF',
+	'XRANGE', 'XREVRANGE', 'XLEN',
+	'BITCOUNT', 'BITPOS', 'GETBIT', 'BITFIELD_RO', 'PFCOUNT',
+	'GEOPOS', 'GEODIST', 'GEOHASH', 'GEOSEARCH', 'GEORADIUS_RO', 'GEORADIUSBYMEMBER_RO',
+	'SORT_RO',
+])
+
+/**
+ * Container commands where only some subcommands are reads.
+ */
+const REDIS_READ_ONLY_SUBCOMMANDS: Record<string, string[]> = {
+	OBJECT: ['ENCODING', 'FREQ', 'IDLETIME', 'REFCOUNT', 'HELP'],
+	MEMORY: ['USAGE', 'STATS', 'DOCTOR', 'HELP'],
+	XINFO: ['STREAM', 'GROUPS', 'CONSUMERS', 'HELP'],
+	COMMAND: ['COUNT', 'INFO', 'DOCS', 'LIST', 'GETKEYS', 'HELP'],
+}
+
+function assertReadOnlyRedisCommand(args: string[]): void {
+	const verb = args[0].toUpperCase()
+	if (REDIS_READ_ONLY_COMMANDS.has(verb)) {
+		return
+	}
+
+	const subcommand = (args[1] ?? '').toUpperCase()
+	if (REDIS_READ_ONLY_SUBCOMMANDS[verb]?.includes(subcommand)) {
+		return
+	}
+
+	const name = REDIS_READ_ONLY_SUBCOMMANDS[verb] ? `${verb} ${subcommand}`.trim() : verb
+	throw new Error(`Read-only mode does not allow the Redis command ${name}`)
 }

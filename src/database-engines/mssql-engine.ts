@@ -1,6 +1,6 @@
 import knexlib from "knex";
-import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
-import { SqlService } from '../services/sql';
+import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
+import { SqlService, assertReadOnlySql } from '../services/sql';
 import { reportError } from "../services/initialization-error-service";
 
 export type MssqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
@@ -116,7 +116,9 @@ export class MssqlEngine implements DatabaseEngine {
 
 		const where = whereClause ? `WHERE ${Object.keys(whereClause).map(key => `?? = ?`).join(' AND ')}` : '';
 
-		const sql = `SELECT * FROM ?? ${where} ORDER BY id OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`
+		const safeOffset = Math.max(0, Math.trunc(Number(offset) || 0));
+		const safeLimit = Math.max(1, Math.trunc(Number(limit) || 1));
+		const sql = `SELECT * FROM ?? ${where} ORDER BY id OFFSET ${safeOffset} ROWS FETCH NEXT ${safeLimit} ROWS ONLY`
 
 		const replacements = whereClause
 			? [table, ...Object.keys(whereClause).flatMap(key => [key, whereClause[key]])]
@@ -135,12 +137,34 @@ export class MssqlEngine implements DatabaseEngine {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction, '[');
 	}
 
-	async rawQuery(code: string): Promise<string | undefined> {
+	/**
+	 * Runs arbitrary T-SQL and returns the result rows. With `readOnly` (best effort: SQL
+	 * Server has no read-only transaction mode), the batch must start with SELECT/WITH,
+	 * must not contain any write/exec keyword anywhere (T-SQL runs several statements
+	 * without `;`), and runs in a transaction that is always rolled back.
+	 */
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.connection) throw new Error('Connection not initialized');
 
-		return (await this.connection.raw(code)).toString();
+		if (!options?.readOnly) {
+			return await this.connection.raw(code);
+		}
+
+		assertReadOnlySql(code, 'mssql', ['SELECT', 'WITH'], MSSQL_READ_ONLY_DENIED_PATTERNS);
+
+		const trx = await this.connection.transaction();
+		try {
+			return await trx.raw(code);
+		} finally {
+			await trx.rollback();
+		}
 	}
 }
+
+const MSSQL_READ_ONLY_DENIED_PATTERNS = [
+	/\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|GRANT|REVOKE|DENY|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC|BULK|INTO|RECONFIGURE|USE|SET|DECLARE|WAITFOR|OPENROWSET|OPENQUERY|OPENDATASOURCE|OPENXML|BEGIN|COMMIT|ROLLBACK|SAVE|GO)\b/i,
+	/\b(xp_|sp_)\w*/i,
+];
 
 async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<{ table: string, column: string } | undefined> {
 	const foreignKeys = await connection.raw(`

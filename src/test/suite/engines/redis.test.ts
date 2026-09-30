@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as net from 'net';
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';
 import { RedisEngine } from '../../../database-engines/redis-engine';
 import { RedisConfig } from '../../../types';
@@ -293,6 +294,74 @@ describe('Redis Tests', () => {
 		}, undefined as any);
 
 		assert.strictEqual(await engine.rawQuery(['EXISTS', 'todelete']), 0);
+	})
+
+	it('should reject connect fast with the real error when the port is closed', async () => {
+		const closedPort = await new Promise<number>((resolve) => {
+			const server = net.createServer().listen(0, '127.0.0.1', () => {
+				const port = (server.address() as net.AddressInfo).port;
+				server.close(() => resolve(port));
+			});
+		});
+
+		const started = Date.now();
+		const failing = new RedisEngine({ name: 'closed', type: 'redis', host: '127.0.0.1', port: closedPort, password: 'secret-pass' });
+		await assert.rejects(failing.connect(), (error: Error) => {
+			assert.match(error.message, /ECONNREFUSED/);
+			assert.ok(!error.message.includes('secret-pass'), 'password must be redacted');
+			return true;
+		});
+		assert.ok(Date.now() - started < 5000, `took ${Date.now() - started} ms`);
+	})
+
+	it('should reject connect at once with a redacted error on a wrong password', async () => {
+		await engine.rawQuery(['ACL', 'SETUSER', 'devdbprobe', 'on', '>right-pass', '~*', '+@all']);
+
+		try {
+			const url = new URL(container.getConnectionUrl());
+			const started = Date.now();
+			const failing = new RedisEngine({ name: 'wrongpass', type: 'redis', host: url.hostname, port: Number(url.port), username: 'devdbprobe', password: 'wrong-pass' });
+			await assert.rejects(failing.connect(), (error: Error) => {
+				assert.match(error.message, /WRONGPASS/);
+				assert.ok(!error.message.includes('wrong-pass'), 'password must be redacted');
+				return true;
+			});
+			assert.ok(Date.now() - started < 2000, `took ${Date.now() - started} ms`);
+		} finally {
+			await engine.rawQuery(['ACL', 'DELUSER', 'devdbprobe']);
+		}
+	})
+
+	it('should allow only read commands in read-only mode', async () => {
+		assert.strictEqual(await engine.rawQuery('GET greeting', { readOnly: true }), 'hello world');
+		assert.deepStrictEqual(await engine.rawQuery(['HGET', 'user:1', 'name'], { readOnly: true }), 'John');
+		assert.ok(await engine.rawQuery(['OBJECT', 'ENCODING', 'queue'], { readOnly: true }));
+
+		for (const command of ['SET greeting x', 'DEL greeting', 'FLUSHALL', 'EVAL "return 1" 0', 'CONFIG GET requirepass', 'KEYS *', 'MULTI']) {
+			await assert.rejects(engine.rawQuery(command, { readOnly: true }), /Read-only mode/, command);
+		}
+
+		assert.strictEqual(await engine.rawQuery(['GET', 'greeting']), 'hello world');
+	})
+
+	it('should sort rows by key within a page that spans scan batches', async () => {
+		await engine.rawQuery('FLUSHALL');
+		const keys = Array.from({ length: 30 }, (_, index) => `item:${index + 1}`);
+		for (const key of keys) {
+			await engine.rawQuery(['SET', key, 'v']);
+		}
+
+		const smallBatches = new RedisEngine({ name: 'batches', type: 'redis', connectionString: container.getConnectionUrl(), scanCount: 3 });
+		await smallBatches.connect();
+		try {
+			const page = await smallBatches.getRows('string', await smallBatches.getColumns('string'), 30, 0);
+			const pageKeys = page!.rows.map(row => row._id);
+			const sorted = [...pageKeys].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+			assert.deepStrictEqual(pageKeys, sorted);
+			assert.strictEqual(pageKeys.length, 30);
+		} finally {
+			await smallBatches.disconnect();
+		}
 	})
 
 	after(async function () {

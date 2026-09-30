@@ -1,8 +1,9 @@
 import knexlib from 'knex'
-import { Column, DatabaseEngine, KnexClient, MysqlSshConfigFile, QueryResponse, SerializedMutation } from '../types'
+import { Column, DatabaseEngine, KnexClient, MysqlSshConfigFile, QueryResponse, RawQueryOptions, SerializedMutation } from '../types'
 import { MysqlEngine } from './mysql-engine'
 import { SQLiteTransaction } from './sqlite-engine'
-import { createSshTunnel, SshTunnel } from '../services/ssh-tunnel-service'
+import { createSshTunnel, SshHostKeyVerifier, SshTunnel } from '../services/ssh-tunnel-service'
+import { promptToTrustSshHostKey } from '../services/ssh-host-key-prompt'
 import { RemoteCredentialService } from '../services/remote-credential-service'
 import { getConnectionFor } from '../services/connector'
 import * as fs from 'fs'
@@ -13,10 +14,15 @@ export class MysqlSshEngine implements DatabaseEngine {
 	private wrappedEngine: MysqlEngine | null = null
 	private config: MysqlSshConfigFile
 	private credentialService: RemoteCredentialService
+	private verifyHostKey: SshHostKeyVerifier
 
-	constructor(config: MysqlSshConfigFile, credentialService: RemoteCredentialService) {
+	/**
+	 * @param verifyHostKey asked to trust a host key that is not in known_hosts; defaults to a VS Code modal.
+	 */
+	constructor(config: MysqlSshConfigFile, credentialService: RemoteCredentialService, verifyHostKey: SshHostKeyVerifier = promptToTrustSshHostKey) {
 		this.config = config
 		this.credentialService = credentialService
+		this.verifyHostKey = verifyHostKey
 	}
 
 	async connect(dbPassword?: string): Promise<boolean> {
@@ -39,32 +45,42 @@ export class MysqlSshEngine implements DatabaseEngine {
 			sshAuth = { password: sshPassword ?? undefined }
 		}
 
-		this.tunnel = await createSshTunnel({
-			sshHost: this.config.sshHost,
-			sshPort: this.config.sshPort ?? 22,
-			sshUsername: this.config.sshUsername,
-			sshPassword: sshAuth.password,
-			sshPrivateKeyPath: this.config.sshPrivateKeyPath,
-			sshPassphrase: sshAuth.passphrase,
-			remoteHost: this.config.host ?? '127.0.0.1',
-			remotePort: this.config.port ?? 3306,
-		})
+		const sshTarget = `${this.config.sshUsername}@${this.config.sshHost}:${this.config.sshPort ?? 22}`
+		const dbTarget = `${this.config.host ?? '127.0.0.1'}:${this.config.port ?? 3306}`
 
-		const connection = await getConnectionFor(
-			this.config.name, 'mysql2',
-			'127.0.0.1', this.tunnel.localPort,
-			this.config.username ?? 'root', password ?? '',
-			this.config.database, false
-		)
-
-		if (!connection) throw new Error('Failed to establish database connection through SSH tunnel')
-
-		this.wrappedEngine = new MysqlEngine(connection)
 		try {
+			this.tunnel = await createSshTunnel({
+				sshHost: this.config.sshHost,
+				sshPort: this.config.sshPort ?? 22,
+				sshUsername: this.config.sshUsername,
+				sshPassword: sshAuth.password,
+				sshPrivateKeyPath: this.config.sshPrivateKeyPath,
+				sshPassphrase: sshAuth.passphrase,
+				remoteHost: this.config.host ?? '127.0.0.1',
+				remotePort: this.config.port ?? 3306,
+				verifyHostKey: this.verifyHostKey,
+			})
+		} catch (err) {
+			throw new Error(`SSH tunnel failed: ${err instanceof Error ? err.message : String(err)}`)
+		}
+
+		try {
+			const connection = await getConnectionFor(
+				this.config.name, 'mysql2',
+				'127.0.0.1', this.tunnel.localPort,
+				this.config.username ?? 'root', password ?? '',
+				this.config.database, false
+			)
+
+			if (!connection) throw new Error('could not create the database client')
+
+			this.wrappedEngine = new MysqlEngine(connection)
 			await this.wrappedEngine.getConnection()!.raw('SELECT VERSION()')
 		} catch (err) {
-			throw new Error(`Database query through SSH tunnel failed: ${err instanceof Error ? err.message : String(err)}`)
+			await this.disconnect()
+			throw new Error(`SSH tunnel ${sshTarget} is open, but MySQL at ${dbTarget} (seen from the SSH host) refused the connection: ${err instanceof Error ? err.message : String(err)}`)
 		}
+
 		return true
 	}
 
@@ -95,6 +111,7 @@ export class MysqlSshEngine implements DatabaseEngine {
 	async disconnect(): Promise<void> {
 		if (this.wrappedEngine) {
 			await this.wrappedEngine.disconnect()
+			this.wrappedEngine = null
 		}
 		if (this.tunnel) {
 			this.tunnel.close()
@@ -155,9 +172,9 @@ export class MysqlSshEngine implements DatabaseEngine {
 		return this.wrappedEngine?.getVersion()
 	}
 
-	async rawQuery(code: string): Promise<any> {
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		await this.ensureConnected()
 		if (!this.wrappedEngine) throw new Error('Not connected')
-		return this.wrappedEngine.rawQuery(code)
+		return this.wrappedEngine.rawQuery(code, options)
 	}
 }

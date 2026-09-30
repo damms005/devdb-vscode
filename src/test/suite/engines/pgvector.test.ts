@@ -141,6 +141,30 @@ describe('pgvector Tests', () => {
 		assert.strictEqual(result!.rows[0].label, 'c');
 	});
 
+	it('rejects a WHERE filter that contains a statement separator', async () => {
+		await assert.rejects(
+			engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', where: "label = 'a'; DELETE FROM embeddings; --", limit: 10 }),
+			/must not contain ";"/
+		);
+
+		const result = await engine.connection!.raw('SELECT COUNT(*)::int AS total FROM embeddings');
+		assert.strictEqual(result.rows[0].total, 4);
+	});
+
+	it('runs the WHERE filter inside a READ ONLY transaction', async () => {
+		await engine.connection?.raw(`DROP SEQUENCE IF EXISTS devdb_probe_seq`);
+		await engine.connection?.raw(`CREATE SEQUENCE devdb_probe_seq`);
+
+		// nextval() writes; a READ ONLY transaction refuses it, so the search fails
+		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0]', where: "nextval('devdb_probe_seq') > 0", limit: 10 });
+		assert.strictEqual(result, undefined);
+
+		const sequence = await engine.connection!.raw('SELECT last_value, is_called FROM devdb_probe_seq');
+		assert.strictEqual(sequence.rows[0].is_called, false);
+
+		await engine.connection?.raw(`DROP SEQUENCE IF EXISTS devdb_probe_seq`);
+	});
+
 	it('blocks a dimension-mismatched query vector with a warning and no rows', async () => {
 		const result = await engine.vectorSimilaritySearch({ table: 'embeddings', column: 'embedding', reference: '[1, 0, 0, 0]', limit: 10 });
 

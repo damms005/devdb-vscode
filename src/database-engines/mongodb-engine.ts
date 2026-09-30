@@ -1,5 +1,5 @@
 import { MongoClient, Db, ObjectId } from 'mongodb'
-import { Column, DatabaseEngine, KnexClient, MongodbConfig, QueryResponse, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
+import { Column, DatabaseEngine, KnexClient, MongodbConfig, QueryResponse, RawQueryOptions, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
 import knexlib from 'knex'
 import { SQLiteTransaction } from './sqlite-engine'
 
@@ -204,11 +204,27 @@ export class MongodbEngine implements DatabaseEngine {
 		}
 	}
 
-	async rawQuery(code: string): Promise<any> {
+	/**
+	 * Runs a JSON-described operation (`find`, `aggregate`, `count`). With `readOnly`,
+	 * any `$out`/`$merge` stage (at any depth) and any server-side JavaScript
+	 * (`$where`, `$function`, `$accumulator`) is rejected.
+	 */
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.db) throw new Error('Not connected')
 
 		const parsed = JSON.parse(code)
 		const { collection, operation, query } = parsed
+
+		if (options?.readOnly) {
+			if (!MONGODB_READ_OPERATIONS.includes(operation)) {
+				throw new Error(`Read-only mode does not allow the "${operation}" operation`)
+			}
+			const writeOperator = findOperator(query, MONGODB_READ_ONLY_DENIED_OPERATORS)
+			if (writeOperator) {
+				throw new Error(`Read-only mode does not allow ${writeOperator}`)
+			}
+		}
+
 		const coll = this.db.collection(collection)
 
 		switch (operation) {
@@ -244,4 +260,32 @@ export class MongodbEngine implements DatabaseEngine {
 		}
 		return filter
 	}
+}
+
+const MONGODB_READ_OPERATIONS = ['find', 'aggregate', 'count']
+
+const MONGODB_READ_ONLY_DENIED_OPERATORS = ['$out', '$merge', '$where', '$function', '$accumulator']
+
+/**
+ * Returns the first key in `operators` found anywhere in `value` (objects and arrays,
+ * recursively), or undefined.
+ */
+function findOperator(value: unknown, operators: string[]): string | undefined {
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			const found = findOperator(item, operators)
+			if (found) return found
+		}
+		return undefined
+	}
+
+	if (value && typeof value === 'object') {
+		for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+			if (operators.includes(key)) return key
+			const found = findOperator(nested, operators)
+			if (found) return found
+		}
+	}
+
+	return undefined
 }
