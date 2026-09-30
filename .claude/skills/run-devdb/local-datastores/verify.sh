@@ -21,4 +21,8 @@ echo "== neon-tls (cert chain vs system trust store => must NOT verify)"
 openssl s_client -starttls postgres -connect localhost:5432 -servername localhost </dev/null 2>/dev/null | grep -E "Verify return code"
 echo "== neon-tls (cert chain vs private CA => must verify)"
 openssl s_client -starttls postgres -connect localhost:5432 -servername localhost -CAfile certs/ca.crt </dev/null 2>/dev/null | grep -E "Verify return code"
+echo "== libsql (sqld)"
+curl -s -X POST http://127.0.0.1:8081/ -d '{"statements":["SELECT id, title, views FROM posts ORDER BY id"]}'; echo
+echo "== d1 local (workspace-edge)"
+sqlite3 workspace-edge/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/285ec869a673db37f488aefade4a3953aa3e4724a48cf491d78235a55d3c762a.sqlite "SELECT id, name, plan FROM customers ORDER BY id"
 echo "== duckdb"; ls -1 data

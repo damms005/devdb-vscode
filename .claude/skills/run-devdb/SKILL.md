@@ -1,6 +1,6 @@
 ---
 name: run-devdb
-description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the new-datastores promo, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB).
+description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the new-datastores promo, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB, Cloudflare D1 local, Turso/libSQL sqld).
 ---
 
 # Run and drive DevDb
@@ -136,6 +136,8 @@ When the test is done, close every VS Code that you started with the driver, bef
 | pgvector (Postgres 16) | 5433 | `devdb` / `devdb`, database `vectors` |
 | Neon-like TLS Postgres | 5432 | `neondb_owner` / `npg_localpass`, database `neondb`, TLS only, private CA `certs/ca.crt` |
 | DuckDB | files | `data/sample.duckdb`, `data/*.parquet|csv|json|ndjson|tsv` |
+| libSQL server (sqld, Turso) | 8081 | no auth (any token works), tables `authors`, `posts` (`libsql/seed.sh`) |
+| Cloudflare D1 (local) | file | `workspace-edge/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/285ec869….sqlite`, created by `d1/gen-d1.sh` (`wrangler d1 migrations apply --local`, offline) |
 
 Container names are fixed (`devdb-local-*`), so only one copy of the stack runs at a time. Check first: `docker ps --filter name=devdb-local`. When `workspace/.devdbrc` is missing, the driver writes it from `.devdbrc.template` (DuckDB path in this folder).
 
@@ -235,6 +237,22 @@ Real Neon behaviour (cold start after autosuspend, the `-pooler` host, the publi
 
 Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list.
 
+### Cloudflare D1 (local) and Turso / libSQL (`workspace-edge`)
+
+Needs `libsql` running (`docker compose up -d --wait libsql && ./libsql/seed.sh` in `local-datastores/`) and the D1 file (`./d1/gen-d1.sh`). `workspace-edge/wrangler.jsonc` has two bindings: `DB` (file exists) and `CACHE` (no file, shows the wrangler hint). `.env` points `TURSO_DATABASE_URL` at the local sqld. Use `DEVDB_WORKSPACE=$PWD/.claude/skills/run-devdb/local-datastores/workspace-edge`:
+
+```json
+[["panel","max"],["sleep","4000"],["webview","view"],["webview-wait","Cloudflare D1"],["exec","notifications.clearAll"],
+ ["webview-click","Cloudflare D1 (local) — CACHE binding"],["sleep","2000"],["notifications"],["exec","notifications.clearAll"],
+ ["webview-click","Cloudflare D1 (local) — DB binding"],["webview-wait","customers"],["webview-click","customers"],["sleep","2500"],
+ ["webview-assert","Ada Lovelace"],["shot","d1-customers"],
+ ["license"],["sleep","2500"],["webview","view"],["exec","workbench.action.closeAllEditors"],["webview-wait","Turso"],
+ ["webview-click","Turso / libSQL"],["webview-wait","posts"],["webview-click","posts"],["sleep","2500"],
+ ["webview-assert","Things Fall Apart"],["shot","turso-posts"]]
+```
+
+Expected: CACHE shows "Cloudflare D1 (local) — CACHE binding has no local database yet. Run `wrangler d1 migrations apply edge-cache-db --local` or `wrangler dev` first". D1 local works without a license. Turso without a license is refused ("DevDb Pro required: Turso / libSQL"). Remote Turso dialog: URL `http://127.0.0.1:8081`, any token. Remote Cloudflare D1 needs a real account; the mocha suite covers it with a mock of the D1 API (`src/test/suite/engines/d1-mock-server.ts`).
+
 ## Gotchas
 
 - **Secrets do not survive a launch:** `--use-inmemory-secretstorage` drops saved passwords when VS Code closes. A saved Redis/Mongo connection with a password then shows "The saved password for … was not found". Add the connection again in the same batch that uses it.
@@ -251,4 +269,5 @@ Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a 
 - **Focus:** the Dock icon can bounce and the app can get focus for a moment at launch, before the driver hides it. Use `DEVDB_FOREGROUND=1` to watch.
 - **Do not pass `-ApplePersistenceIgnoreState`:** the VS Code CLI reads it as short flags (`-s` = `--status`) and quits at once.
 - **Parallel runs:** give each session its own `DEVDB_DRIVER_DIR`. The license mock port 47181 is shared (`license_mock=shared`), which is safe because the answers are the same.
+- **VS Code version:** `stable` downloads a new build when one ships (about 860 MB, minutes). Pin the cached one with `DEVDB_VSCODE_VERSION=<version in .vscode-test>` to skip it.
 - **Linux without a display:** start the driver under `xvfb-run`.

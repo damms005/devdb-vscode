@@ -36,6 +36,17 @@ const SQL_ALWAYS_BLOCKED: { pattern: RegExp, label: string }[] = [
 	{ pattern: /\b(read_text|read_blob|read_csv\w*|read_json\w*|read_ndjson\w*|read_parquet|parquet_scan)\s*\(/i, label: 'file read function' },
 ];
 
+/** SQLite-dialect engines: local SQLite (incl. local D1 files), Cloudflare D1 (remote), Turso / libSQL. */
+const SQLITE_FAMILY = new Set(['sqlite', 'd1', 'libsql']);
+
+/** Always blocked for SQLite-dialect engines, also when writes are allowed. */
+const SQLITE_ALWAYS_BLOCKED: { pattern: RegExp, label: string }[] = [
+	{ pattern: /^VACUUM\b/i, label: 'VACUUM' },
+	{ pattern: /^REINDEX\b/i, label: 'REINDEX' },
+	{ pattern: /\b(load_extension|readfile|writefile|edit|fts3_tokenizer)\s*\(/i, label: 'file or extension function' },
+	{ pattern: /\b_cf_\w+/i, label: 'Cloudflare internal table' },
+];
+
 /** Blocked when writes are disallowed; flagged destructive when they are allowed. */
 const SQL_DESTRUCTIVE: { pattern: RegExp, label: string }[] = [
 	{ pattern: /^DROP\b/i, label: 'DROP' },
@@ -229,7 +240,7 @@ function validateMongo(query: string): QueryValidationResult {
 	return { allowed: true };
 }
 
-function validateSqlInMode(query: string, allowWrites: boolean, mode: LexerMode): QueryValidationResult {
+function validateSqlInMode(query: string, allowWrites: boolean, mode: LexerMode, engineType?: string): QueryValidationResult {
 	const normalized = normalizeSql(query, mode);
 	if (!normalized) {
 		return { allowed: false, warning: 'Query blocked: empty query' };
@@ -241,7 +252,8 @@ function validateSqlInMode(query: string, allowWrites: boolean, mode: LexerMode)
 
 	const code = normalized.replace(/[\s;]+$/, '');
 
-	for (const { pattern, label } of SQL_ALWAYS_BLOCKED) {
+	const alwaysBlocked = engineType && SQLITE_FAMILY.has(engineType) ? [...SQL_ALWAYS_BLOCKED, ...SQLITE_ALWAYS_BLOCKED] : SQL_ALWAYS_BLOCKED;
+	for (const { pattern, label } of alwaysBlocked) {
 		if (pattern.test(code)) {
 			return { allowed: false, warning: `Query blocked: ${label} is not allowed via MCP` };
 		}
@@ -272,13 +284,13 @@ function restrictiveness(result: QueryValidationResult): number {
 	return result.destructive ? 1 : 0;
 }
 
-function validateSql(query: string, allowWrites: boolean): QueryValidationResult {
-	let worst = validateSqlInMode(query, allowWrites, LEXER_MODES[0]);
+function validateSql(query: string, allowWrites: boolean, engineType?: string): QueryValidationResult {
+	let worst = validateSqlInMode(query, allowWrites, LEXER_MODES[0], engineType);
 	for (const mode of LEXER_MODES.slice(1)) {
 		if (!worst.allowed) {
 			break;
 		}
-		const result = validateSqlInMode(query, allowWrites, mode);
+		const result = validateSqlInMode(query, allowWrites, mode, engineType);
 		if (restrictiveness(result) > restrictiveness(worst)) {
 			worst = result;
 		}
@@ -308,7 +320,7 @@ export function validateQuery(query: string, engineType?: string, options: Query
 		}
 	}
 
-	return validateSql(query, allowWrites);
+	return validateSql(query, allowWrites, engineType);
 }
 
 export function getQueryType(query: string): string {

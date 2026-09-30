@@ -42,7 +42,7 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse' | 'd1' | 'libsql'
 
 export type DatabaseEngineProvider = {
 	name: string

@@ -323,6 +323,7 @@
 		"@azure/keyvault-secrets": "^4.11.2",
 		"@clickhouse/client": "^1.23.1",
 		"@duckdb/node-api": "^1.5.5-r.3",
+		"@libsql/client": "^0.18.0",
 		"@modelcontextprotocol/sdk": "^1.30.0",
 		"@vscode/sqlite3": "^5.1.12-vscode",
 		"axios": "^1.19.0",
