@@ -79,7 +79,7 @@ We are genuinely grateful to the following sponsors of DevDb:
 
 - **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements copied to your clipboard or saved to file.
 
-- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, MongoDB, Redis/Valkey, ClickHouse, DuckDB, and Neon, plus PostgreSQL vector search (pgvector). Connect to remote databases securely via SSH tunnels.
+- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, MongoDB, Redis/Valkey, ClickHouse, DuckDB, and Neon, plus PostgreSQL vector search (pgvector). Connect to remote MySQL/MariaDB and PostgreSQL databases securely via SSH tunnels.
 
 - **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
 
@@ -253,6 +253,52 @@ Connect to your Supabase cloud project using the **Direct Connection** type. Use
 - **Password**: Your database password
 - **Database**: `postgres`
 
+### 4. Pro Datastores [Pro]
+
+These datastores need a DevDb Pro license. Add a connection from the DevDb panel, or use `.devdbrc` where shown. SSH tunnels are not available for these datastores.
+
+#### Redis / Valkey
+
+- Enter host, port, optional username (ACL user) and password, database index (default `0`), and TLS on/off. You can also paste a `redis://` or `rediss://` connection string.
+- DevDb shows keys by namespace (prefix before `:`) and includes a command console.
+
+#### ClickHouse
+
+- Enter host, port, username, password, database, and protocol: `http` (default, port `8123`) or `https` (usually port `8443`, for example ClickHouse Cloud).
+
+#### DuckDB
+
+- Open a `.duckdb`/`.ddb`/`.db` file, or a Parquet, CSV, TSV, JSON, or NDJSON file. DevDb reads data files as tables.
+- Files open **read-only** by default, so DevDb does not lock them. Select read-write only when you must change data.
+- External access (network, `INSTALL`/`LOAD` of extensions, `ATTACH`, `COPY`) is disabled.
+- Config-based loading:
+
+```json
+[
+	{
+		"type": "duckdb",
+		"path": "data/analytics.duckdb",
+		"readOnly": true
+	}
+]
+```
+
+- DuckDB is available on Windows (x64, arm64), macOS (x64, arm64), Linux (x64, arm64) and Alpine (x64, arm64). It is not available on Linux ARMv7 (`armhf`). There, DevDb shows "DuckDB is not supported on this platform".
+
+#### Neon
+
+- DevDb detects a Neon connection string (`*.neon.tech`) in `.env` or `.env.local` and offers to connect. You can also add one manually.
+- TLS is always on and the server certificate is verified. DevDb retries the first query to let a suspended Neon compute start.
+
+#### PostgreSQL vector search (pgvector)
+
+- DevDb detects `vector` columns in any PostgreSQL or Neon database and shows embeddings in a readable form.
+- **Find similar rows**: select a cell to run a similarity search (cosine, L2, L1, or inner product) against that row's vector.
+- **Search by text**: add an embedding endpoint, then type text to find the nearest rows. Supported endpoints:
+  - OpenAI-compatible `/v1/embeddings` (OpenAI, Azure OpenAI, LM Studio, Together, and similar)
+  - Ollama (`/api/embeddings`, for example `http://localhost:11434`)
+- API keys are kept in VS Code secret storage and are not sent to the webview.
+
 ## Troubleshooting Remote Connections
 
 ### SSH Tunnels
@@ -344,6 +390,14 @@ Your AI assistant can now access your database schema and run queries.
 
 > [!NOTE]
 > You should update the config when you update to a new version of DevDb because the version number may change.
+
+#### MCP Security
+
+- The MCP server listens on `localhost` only. Connections from other hosts are rejected.
+- Each request must send the access token that is included in the copied MCP configuration. Do not share it.
+- Queries are **read-only by default**. The database engine enforces this (for example, a read-only transaction in PostgreSQL and MySQL).
+- To let MCP clients run write queries, enable `devdb.mcp.allowWrites` in your user settings. DevDb then asks you to confirm each write query. This setting has machine scope, so a workspace cannot enable it.
+- To turn off the MCP server, set `Devdb.enableMcpServer` to `false`.
 
 ## URI Handler
 
