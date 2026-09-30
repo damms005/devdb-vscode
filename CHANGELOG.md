@@ -1,3 +1,9 @@
+## 4.0.0
+
+### Added
+
+- Zero-config detection from `DATABASE_URL` (and similar variables), Prisma, Drizzle, docker-compose services, and Laravel SQL Server/Redis/MongoDB. Detected Redis and ClickHouse show as locked Pro rows without a license.
+
 ## 3.2.0
 
 ### Added

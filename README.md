@@ -175,6 +175,23 @@ No [configuration file](#2-config-based-database-loading) is needed when the wor
 1. Laravel with default .env config for MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server
 1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
 
+#### More zero-config sources (4.0)
+
+DevDb reads these files in each workspace folder. It never runs them. Each database gets its own row, named after its source, e.g. `Postgres (Prisma)` or `Redis (docker-compose: cache)`. When several sources point at the same database, DevDb shows one row and lists the other sources under it.
+
+| Source | Files | Engines |
+|---|---|---|
+| Connection URL | `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`, `REDIS_URL`, `CLICKHOUSE_URL` in `.env`, `.env.local`, `.env.development` (the first file that sets a variable wins) | PostgreSQL, MySQL/MariaDB, SQL Server (URL or `Server=...;` string), MongoDB, Redis/Valkey, ClickHouse (`http(s)://` only in `CLICKHOUSE_URL`), SQLite (`file:`) |
+| Prisma | `prisma/schema.prisma`, `schema.prisma`, `prisma/schema/*.prisma`, `prisma.config.ts` (Prisma 7) | PostgreSQL, CockroachDB, MySQL, SQL Server, MongoDB, SQLite (path relative to the schema) |
+| Drizzle | `drizzle.config.ts`/`.js`/`.mjs` (`dbCredentials.url` or `host`/`port`/`user`/`password`/`database`, literals or `process.env.X`) | PostgreSQL, MySQL, SingleStore, SQLite |
+| docker-compose | `compose.yaml`/`.yml`, `docker-compose.yaml`/`.yml` and the `.override` file. Services with a published port. Credentials from `environment` and `${VAR:-default}` from `.env` | postgres/pgvector/postgis/timescaledb, mysql/mariadb/percona, SQL Server, mongo, redis/valkey/redis-stack/keydb/dragonfly, clickhouse |
+| Laravel | `.env`: `DB_CONNECTION=sqlsrv`; `REDIS_*` when a cache/session/queue/broadcast driver is `redis`; `mongodb/laravel-mongodb` with `DB_CONNECTION=mongodb` or `MONGODB_URI` | SQL Server, Redis, MongoDB |
+
+- `sslmode=require` turns on TLS without certificate checks (as in libpq). `verify-full` checks the certificate.
+- Neon (`*.neon.tech`) and Supabase (`*.supabase.co`) hosts stay with their own providers. libSQL/Turso and Cloudflare D1 are not detected here.
+- Laravel MySQL/PostgreSQL compose services stay with the Laravel provider.
+- Redis and ClickHouse need DevDb Pro. Without a license, DevDb shows them as locked rows and does not connect to them.
+
 ### 2. Config-based Database Loading
 
 If [zero-config](#1-zero-config-automatic-database-loading) support isn't available for your environment, create a `.devdbrc` file in your project root with your database connection details.
