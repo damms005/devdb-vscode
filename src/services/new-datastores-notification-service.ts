@@ -1,34 +1,117 @@
 import * as vscode from 'vscode';
+import { buildNoticeCsp, getNonce } from './html';
+import { parseVersion } from './welcome-message-service';
 
-const NOTICE_SHOWN_KEY = 'newDatastores.notice.shownForVersion';
-const NOTICE_DISMISSED_KEY = 'newDatastores.notice.dismissed';
+export const NOTICE_SHOWN_KEY = 'newDatastores.notice.shown';
+/** Keys used by earlier builds; cleared by the dev preview command. */
+export const LEGACY_NOTICE_KEYS = ['newDatastores.notice.shownForVersion', 'newDatastores.notice.dismissed'];
 
-export function showNewDatastoresNotice(
-	context: vscode.ExtensionContext,
-	version: string,
-	isNewInstall: boolean = false,
-	hasLicense: boolean = false,
-) {
-	const isDismissed = context.globalState.get<boolean>(NOTICE_DISMISSED_KEY, false);
-	if (isDismissed) {
-		return;
-	}
+/** The notice announces datastores added in this release line only. */
+const NOTICE_RELEASE_LINE: [number, number] = [3, 2];
+const DELAY_MS = 1200;
 
-	if (!isNewInstall) {
-		const shownForVersion = context.globalState.get<string>(NOTICE_SHOWN_KEY);
-		if (shownForVersion === version) {
-			return;
-		}
-	}
+export const PRO_TOAST_MESSAGE = '5 new datastores are in your Pro plan';
+const LEARN_MORE_URL = 'https://devdbpro.com/?ref=ide#features';
+const PRICING_URL = 'https://devdbpro.com/?ref=ide#pricing';
 
-	context.globalState.update(NOTICE_SHOWN_KEY, version);
+export type NewDatastoresNoticeAction = 'none' | 'webview' | 'toast';
 
-	setTimeout(() => {
-		createNewDatastoresWebview(context, hasLicense);
-	}, 1200);
+export interface NewDatastoresNoticeOptions {
+	hasLicense?: boolean;
+	/** A full-page promo was already shown on this launch: defer to a later launch. */
+	fullPagePromoShownThisLaunch?: boolean;
+	/** Dev preview: ignore the shown flag, release line and settings. */
+	forcePreview?: boolean;
 }
 
-function createNewDatastoresWebview(context: vscode.ExtensionContext, hasLicense: boolean) {
+export function isNoticeReleaseLine(version: string): boolean {
+	const parsed = parseVersion(version);
+	return !!parsed && parsed.core[0] === NOTICE_RELEASE_LINE[0] && parsed.core[1] === NOTICE_RELEASE_LINE[1];
+}
+
+export function userWantsFewerNotifications(): boolean {
+	const config = vscode.workspace.getConfiguration('Devdb');
+	return config.get<boolean>('showFewerUpdateNotificationActions', false)
+		|| config.get<boolean>('dontShowNewVersionMessage', false);
+}
+
+/**
+ * Decides what (if anything) to show. Reads `globalState` only.
+ */
+export function getNewDatastoresNoticeAction(
+	context: vscode.ExtensionContext,
+	version: string,
+	options: NewDatastoresNoticeOptions & { fewerNotifications?: boolean } = {},
+): NewDatastoresNoticeAction {
+	const kind: NewDatastoresNoticeAction = options.hasLicense ? 'toast' : 'webview';
+
+	if (options.forcePreview) {
+		return kind;
+	}
+
+	if (context.globalState.get<boolean>(NOTICE_SHOWN_KEY, false)) {
+		return 'none';
+	}
+
+	if (!isNoticeReleaseLine(version)) {
+		return 'none';
+	}
+
+	if (kind === 'webview' && (options.fewerNotifications || options.fullPagePromoShownThisLaunch)) {
+		return 'none';
+	}
+
+	return kind;
+}
+
+/**
+ * Shows the "5 new datastores" notice at most once, only on the 3.2.x line.
+ * Free users get a full-page webview, licensed users a short toast.
+ */
+export async function showNewDatastoresNotice(
+	context: vscode.ExtensionContext,
+	version: string,
+	options: NewDatastoresNoticeOptions = {},
+): Promise<NewDatastoresNoticeAction> {
+	const action = getNewDatastoresNoticeAction(context, version, {
+		...options,
+		fewerNotifications: options.forcePreview ? false : userWantsFewerNotifications(),
+	});
+
+	if (action === 'none') {
+		return action;
+	}
+
+	await context.globalState.update(NOTICE_SHOWN_KEY, true);
+
+	if (action === 'toast') {
+		showProToast();
+		return action;
+	}
+
+	setTimeout(() => {
+		createNewDatastoresWebview(context);
+	}, options.forcePreview ? 0 : DELAY_MS);
+
+	return action;
+}
+
+/** Clears the notice state so the dev preview command can show it again. */
+export async function resetNewDatastoresNotice(context: vscode.ExtensionContext): Promise<void> {
+	for (const key of [NOTICE_SHOWN_KEY, ...LEGACY_NOTICE_KEYS]) {
+		await context.globalState.update(key, undefined);
+	}
+}
+
+function showProToast() {
+	vscode.window.showInformationMessage(PRO_TOAST_MESSAGE, 'Learn More').then(choice => {
+		if (choice === 'Learn More') {
+			vscode.env.openExternal(vscode.Uri.parse(LEARN_MORE_URL));
+		}
+	});
+}
+
+function createNewDatastoresWebview(context: vscode.ExtensionContext) {
 	const panel = vscode.window.createWebviewPanel(
 		'devdb-new-datastores-notice',
 		'New in DevDb — 5 New Databases',
@@ -40,7 +123,7 @@ function createNewDatastoresWebview(context: vscode.ExtensionContext, hasLicense
 		},
 	);
 
-	panel.webview.html = getNoticeHtml(hasLicense);
+	panel.webview.html = getNoticeHtml(panel.webview.cspSource, getNonce());
 
 	panel.iconPath = {
 		light: vscode.Uri.file(context.asAbsolutePath('resources/devdb.png')),
@@ -51,15 +134,11 @@ function createNewDatastoresWebview(context: vscode.ExtensionContext, hasLicense
 		message => {
 			switch (message.command) {
 				case 'getLicense':
-					vscode.env.openExternal(vscode.Uri.parse('https://devdbpro.com/?ref=ide&pro=true#pricing'));
+					vscode.env.openExternal(vscode.Uri.parse(PRICING_URL));
 					panel.dispose();
 					break;
 				case 'learnMore':
-					vscode.env.openExternal(vscode.Uri.parse('https://devdbpro.com/?ref=ide#features'));
-					break;
-				case 'dontShowAgain':
-					context.globalState.update(NOTICE_DISMISSED_KEY, true);
-					panel.dispose();
+					vscode.env.openExternal(vscode.Uri.parse(LEARN_MORE_URL));
 					break;
 				case 'close':
 					panel.dispose();
@@ -71,21 +150,15 @@ function createNewDatastoresWebview(context: vscode.ExtensionContext, hasLicense
 	);
 }
 
-function getNoticeHtml(hasLicense: boolean): string {
-	const primaryLabel = hasLicense ? 'Start Exploring' : 'Unlock with DevDb Pro';
-	const primaryCommand = hasLicense ? 'close' : 'getLicense';
-	const bannerTitle = hasLicense ? '✨ Included in your DevDb Pro license' : '✨ Unlock all five with DevDb Pro';
-	const bannerBody = hasLicense
-		? 'These new databases are ready to use — open the DevDb panel and connect.'
-		: 'One-time payment · lifetime access · use on all your IDEs.';
-
+export function getNoticeHtml(cspSource: string, nonce: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="${buildNoticeCsp(cspSource, nonce)}">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>New in DevDb — 5 New Databases</title>
-	<style>
+	<style nonce="${nonce}">
 		* { margin: 0; padding: 0; box-sizing: border-box; }
 		body {
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -161,7 +234,7 @@ function getNoticeHtml(hasLicense: boolean): string {
 	</style>
 </head>
 <body>
-	<button class="close-btn" onclick="send('close')">×</button>
+	<button class="close-btn" data-command="close" aria-label="Close">×</button>
 
 	<div class="header">
 		<h1 class="title">5 New Databases in DevDb</h1>
@@ -213,20 +286,20 @@ function getNoticeHtml(hasLicense: boolean): string {
 	</div>
 
 	<div class="banner">
-		<h3>${bannerTitle}</h3>
-		<p>${bannerBody}</p>
+		<h3>✨ Unlock all five with DevDb Pro</h3>
+		<p>One license · use on all your IDEs.</p>
 	</div>
 
 	<div class="cta-section">
-		<button class="btn btn-primary" onclick="send('${primaryCommand}')">${primaryLabel}</button>
-		<button class="btn btn-secondary" onclick="send('learnMore')">Learn More</button>
-		<br><br>
-		<button class="btn-text" onclick="send('dontShowAgain')">Don't show this again</button>
+		<button class="btn btn-primary" data-command="getLicense">Unlock with DevDb Pro</button>
+		<button class="btn btn-secondary" data-command="learnMore">Learn More</button>
 	</div>
 
-	<script>
+	<script nonce="${nonce}">
 		const vscode = acquireVsCodeApi();
-		function send(command) { vscode.postMessage({ command }); }
+		document.querySelectorAll('[data-command]').forEach(button => {
+			button.addEventListener('click', () => vscode.postMessage({ command: button.dataset.command }));
+		});
 	</script>
 </body>
 </html>`;

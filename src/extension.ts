@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 import { DevDbViewProvider } from './devdb-view-provider';
 import { getVueAssets } from './services/html';
 import { LaravelCodelensProvider } from './services/codelens/code-lens-service';
-import { showWelcomeMessage } from './services/welcome-message-service';
+import { getCurrentVersion, showWelcomeMessage } from './services/welcome-message-service';
+import { resetNewDatastoresNotice, showNewDatastoresNotice } from './services/new-datastores-notification-service';
+import { previewDevWorkspaceProNotice } from './services/devworkspacepro-notification-service';
 import { LaravelFactoryGenerator } from './services/laravel/factory-generator';
 import { getDatabase, setLicenseChecker } from './services/messenger';
 import { SqlQueryCodeLensProvider, explainSelectedQuery } from './services/codelens/laravel/sql-query-explainer-provider';
 import { contextMenuQueryExplainer, contextMenuLaravelFactoryGenerator } from './services/context-menu-service';
-import { DevDbUriHandler } from './uri-handler';
 import { goToTable } from './services/go-to-table';
 import { startHttpServer, stopHttpServer } from './services/mcp/http-server';
 import { initializeDevWorkspaceProRecommendations } from './services/devworkspacepro-recommendation-service';
@@ -29,7 +30,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	remoteConnectionStorageService.setExtensionContext(context);
 	embeddingService.setExtensionContext(context);
 
-	showWelcomeMessage(context, licenseService.isValid());
+	showWelcomeMessage(context, licenseService.isValid())
+		.catch(error => logToOutput(`Could not show welcome message: ${String(error)}`));
+
+	registerDevCommands(context);
 
 	let assets;
 
@@ -117,15 +121,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
-	/**
-	 * Register URI handler for devdb:// protocol
-	 *
-	 * @see https://code.visualstudio.com/api/references/activation-events#onUri
-	 */
-	context.subscriptions.push(
-		vscode.window.registerUriHandler(new DevDbUriHandler())
-	);
-
 	context.subscriptions.push(
 		vscode.commands.registerCommand('devdb.goto-table', () => goToTable(devDbViewProvider))
 	);
@@ -142,6 +137,36 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	initializeDevWorkspaceProRecommendations(context);
 
+}
+
+/**
+ * Preview commands for promo notices. Registered only in Extension Development Host.
+ */
+function registerDevCommands(context: vscode.ExtensionContext) {
+	const isDevelopment = context.extensionMode === vscode.ExtensionMode.Development;
+	vscode.commands.executeCommand('setContext', 'devdb.isDevelopment', isDevelopment);
+
+	if (!isDevelopment) return;
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.dev.previewNewDatastoresNotice', async (args?: { licensed?: boolean }) => {
+			let licensed = args?.licensed;
+			if (licensed === undefined) {
+				const pick = await vscode.window.showQuickPick(['Free (full-page notice)', 'Pro (toast)'], { placeHolder: 'Preview which copy?' });
+				if (!pick) return;
+				licensed = pick.startsWith('Pro');
+			}
+
+			await resetNewDatastoresNotice(context);
+			await showNewDatastoresNotice(context, getCurrentVersion() ?? '0.0.0', { forcePreview: true, hasLicense: licensed });
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProNotice', (args?: { newInstall?: boolean }) => {
+			previewDevWorkspaceProNotice(context, args?.newInstall ?? false);
+		})
+	);
 }
 
 export function deactivate() {

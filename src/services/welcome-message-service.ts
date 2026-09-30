@@ -1,48 +1,55 @@
 import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
 import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-notification-service';
-import { showNewDatastoresNotice } from './new-datastores-notification-service';
+import { isNoticeReleaseLine, showNewDatastoresNotice, userWantsFewerNotifications } from './new-datastores-notification-service';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor"
 const BUTTON_GET_PRO = "🚀 Get Pro"
 
-export function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense = false) {
+export async function showWelcomeMessage(context: vscode.ExtensionContext, hasLicense = false) {
 	const previousVersion = getPreviousVersion(context);
 	const currentVersion = getCurrentVersion();
 
-	context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
+	await context.globalState.update(ExtensionConstants.globalVersionKey, currentVersion);
 
-	if (!previousVersion) {
-		if (currentVersion) {
-			showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion, true);
-			showNewDatastoresNotice(context, currentVersion, true, hasLicense);
-		}
+	const isNewInstall = !previousVersion;
+	const isVersionUpdate = !isNewInstall && !!currentVersion && currentVersion !== previousVersion
+		&& isUpdate(previousVersion, currentVersion);
 
+	// Max one full-page promo per launch: the DevWorkspace Pro notice goes first,
+	// the new-datastores notice is deferred to a later launch when it shows.
+	let fullPagePromoShown = false;
+	if (currentVersion && (isNewInstall || isVersionUpdate)) {
+		fullPagePromoShown = await showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion, isNewInstall);
+	}
+
+	if (currentVersion) {
+		await showNewDatastoresNotice(context, currentVersion, { hasLicense, fullPagePromoShownThisLaunch: fullPagePromoShown });
+	}
+
+	if (isNewInstall) {
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
 		return
 	}
 
-	const previousVersionArray = getVersionAsArray(previousVersion);
-	const currentVersionArray = getVersionAsArray(currentVersion || '1.0.0');
-
-	if (currentVersion === previousVersion || !isUpdate(previousVersionArray, currentVersionArray)) {
+	if (!isVersionUpdate || !currentVersion) {
 		return;
 	}
 
-	if (currentVersion) {
-		showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion);
-		showNewDatastoresNotice(context, currentVersion, false, hasLicense);
+	showMessageAndButtons(getUpdateMessage(currentVersion), context);
+}
+
+export function getUpdateMessage(currentVersion: string): string {
+	const lines = [`DevDb updated to ${currentVersion}.`];
+
+	if (isNoticeReleaseLine(currentVersion)) {
+		lines.push('✨ New in Pro: Vector search (pgvector), Redis/Valkey, ClickHouse, DuckDB & Neon.');
 	}
 
-	showMessageAndButtons(`
-					DevDb updated to ${currentVersion}.
-					✨ New in Pro: Vector search (pgvector), Redis/Valkey, ClickHouse, DuckDB & Neon.
-					✨ Gift DevDb Pro to your colleagues and friends!
-					${hasLicense
-			? ''
-			: `✨ Limited offer: *$9* one-time payment for *lifetime* DevDb Pro. Enjoy!`}
-			`, context);
+	lines.push('✨ Gift DevDb Pro to your colleagues and friends!');
+
+	return lines.join('\n');
 }
 
 function showMessageAndButtons(message: string, context: vscode.ExtensionContext) {
@@ -52,11 +59,7 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 		buttons.push(BUTTON_CONDITIONAL_SPONSOR);
 	}
 
-	const config = vscode.workspace.getConfiguration('Devdb');
-	const showAllNotifications = !config.get<boolean>('showFewerUpdateNotificationActions', false)
-		|| !config.get<boolean>('dontShowNewVersionMessage', false); // being deprecated
-
-	if (showAllNotifications) {
+	if (!userWantsFewerNotifications()) {
 		if (!hasUserClickedButton(context, ExtensionConstants.clickedGitHubStarring)) {
 			buttons.push(BUTTON_CONDITIONAL_STAR_GITHUB_REPO);
 		}
@@ -65,20 +68,20 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 	buttons.push(BUTTON_GET_PRO);
 
 	vscode.window.showInformationMessage(message, ...buttons)
-		.then((val: string | undefined) => {
+		.then(async (val: string | undefined) => {
 			switch (val) {
 				case BUTTON_CONDITIONAL_SPONSOR:
-					updateUserAction(context, ExtensionConstants.clickedToSponsor);
+					await updateUserAction(context, ExtensionConstants.clickedToSponsor);
 					openExternalLink('https://github.com/sponsors/damms005');
 					break;
 
 				case BUTTON_CONDITIONAL_STAR_GITHUB_REPO:
-					updateUserAction(context, ExtensionConstants.clickedGitHubStarring);
+					await updateUserAction(context, ExtensionConstants.clickedGitHubStarring);
 					openExternalLink('https://github.com/damms005/devdb-vscode');
 					break;
 
 				case BUTTON_GET_PRO:
-					openExternalLink('https://devdbpro.com/?from=ide');
+					openExternalLink('https://devdbpro.com/?ref=ide');
 					break;
 			}
 		});
@@ -88,8 +91,8 @@ function hasUserClickedButton(context: vscode.ExtensionContext, key: string): bo
 	return context.globalState.get<boolean>(key) || false;
 }
 
-function updateUserAction(context: vscode.ExtensionContext, key: string) {
-	context.globalState.update(key, true);
+async function updateUserAction(context: vscode.ExtensionContext, key: string) {
+	await context.globalState.update(key, true);
 }
 
 function openExternalLink(url: string) {
@@ -104,30 +107,62 @@ function getPreviousVersion(context: vscode.ExtensionContext): string | undefine
 	return context.globalState.get<string>(ExtensionConstants.globalVersionKey);
 }
 
-function getVersionAsArray(version: string): number[] {
-	try {
-		if (!/^\d+(\.\d+)*$/.test(version)) {
-			console.warn(`Invalid version format: ${version}`);
-			return [0, 0, 0];
-		}
-		return version.split(".").map(segment => {
-			const num = parseInt(segment, 10);
-			return isNaN(num) ? 0 : num;
-		});
-	} catch (error) {
-		console.error('Error parsing version:', error);
-		return [0, 0, 0];
-	}
+export interface ParsedVersion {
+	core: [number, number, number];
+	prerelease: string[];
 }
 
-function isUpdate(previousVersion: number[], currentVersion: number[]): boolean {
-	const maxLength = Math.max(previousVersion.length, currentVersion.length);
-	const normalizedPrev = [...previousVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
-	const normalizedCurr = [...currentVersion, ...Array(maxLength).fill(0)].slice(0, maxLength);
-
-	for (let i = 0; i < maxLength; i++) {
-		if (normalizedCurr[i] > normalizedPrev[i]) return true;
-		if (normalizedCurr[i] < normalizedPrev[i]) return false;
+/**
+ * Parses `major[.minor[.patch]][-prerelease][+build]`. Returns undefined for
+ * anything else.
+ */
+export function parseVersion(version: string): ParsedVersion | undefined {
+	const match = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(version.trim());
+	if (!match) {
+		return undefined;
 	}
-	return false;
+
+	return {
+		core: [Number(match[1]), Number(match[2] ?? 0), Number(match[3] ?? 0)],
+		prerelease: match[4] ? match[4].split('.') : [],
+	};
+}
+
+/**
+ * Semver-style compare: numeric core first, then a prerelease sorts before
+ * the release with the same core. Returns <0, 0 or >0.
+ */
+export function compareVersions(a: string, b: string): number {
+	const left = parseVersion(a) ?? { core: [0, 0, 0], prerelease: [] };
+	const right = parseVersion(b) ?? { core: [0, 0, 0], prerelease: [] };
+
+	for (let i = 0; i < 3; i++) {
+		if (left.core[i] !== right.core[i]) return left.core[i] - right.core[i];
+	}
+
+	if (!left.prerelease.length || !right.prerelease.length) {
+		return right.prerelease.length - left.prerelease.length;
+	}
+
+	const length = Math.max(left.prerelease.length, right.prerelease.length);
+	for (let i = 0; i < length; i++) {
+		const l = left.prerelease[i];
+		const r = right.prerelease[i];
+		if (l === undefined) return -1;
+		if (r === undefined) return 1;
+		if (l === r) continue;
+
+		const lNum = /^\d+$/.test(l);
+		const rNum = /^\d+$/.test(r);
+		if (lNum && rNum) return Number(l) - Number(r);
+		if (lNum) return -1;
+		if (rNum) return 1;
+		return l < r ? -1 : 1;
+	}
+
+	return 0;
+}
+
+export function isUpdate(previousVersion: string, currentVersion: string): boolean {
+	return compareVersions(currentVersion, previousVersion) > 0;
 }
