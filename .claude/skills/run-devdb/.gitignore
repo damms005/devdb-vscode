@@ -1,6 +1,6 @@
 node_modules/
 package-lock.json
-local-datastores/data/
+local-datastores/data
 local-datastores/certs/*.crt
 local-datastores/certs/*.key
 local-datastores/certs/*.csr

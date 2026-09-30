@@ -76,6 +76,7 @@ When the test is done, close every VS Code that you started with the driver, bef
 | `webview-text` | max chars (3000) | Text of the selected webview |
 | `webview-click` | visible text | Clicks the element with that text (exact, then prefix) |
 | `webview-click-css` | CSS selector | DOM click on the first match (toasts cannot block it), e.g. `[data-testid=connect-button]` |
+| `webview-hover` | CSS selector | Real mouse hover on the first match (hover-only UI, e.g. the cell actions popover) |
 | `webview-fill` | `<placeholder or label>=<value>`; in a batch also `["webview-fill", "<target>", "<value>"]`; target `css:<selector>` for CSS (Playwright `>> nth=1` works) | Fills an input (Vue `v-model` sees it) |
 | `webview-type` / `webview-key` | text / key | Types into / presses a key on the focused webview element |
 | `webview-wait` / `webview-assert` | text | Waits up to 60 s for / fails when not: the text in the webview |
@@ -135,105 +136,99 @@ Container names are fixed (`devdb-local-*`), so only one copy of the stack runs 
 
 ## Test recipes
 
-Build first (see **Build**). Each recipe is a batch; add `["shot","<name>"]` where you want evidence. Status: **works** = passes with the current code; **needs fix** = expected to fail until the named stream lands.
+Build first (see **Build**). Each recipe is a batch; add `["shot","<name>"]` where you want evidence. All recipes below passed on 2026-09-30 against the local datastores. After `license`, the webview reloads: always follow it with `["sleep","2500"],["webview","view"]`.
 
-### Smoke: panel + pgvector through `.devdbrc` (works, Free)
+Pro prefix used below (call it `PRO`): `["exec","workbench.action.closeAllEditors"],["panel","max"],["webview-wait","Config File"],["license"],["sleep","2500"],["webview","view"]`
 
-```json
-[["panel"],["webview-wait","pgvector-local"],["webview-click","pgvector-local"],
- ["webview-wait","documents"],["webview-click","documents"],["webview-wait","Resetting a password"],
- ["webview-assert","768d"],["shot","pgvector-documents"]]
-```
+### New-datastores promo
 
-### New-datastores promo on a fresh install (works)
-
-`DEVDB_FRESH_PROFILE=1`. The promo opens as an editor tab about 1.2 s after activation (Free copy, no license at activation):
+The automatic notice shows once, on a 3.2.x version only (`package.json` stays at the last release until `publish.sh` bumps it). Use the dev command to preview both copies:
 
 ```json
-[["sleep","3000"],["editor-tabs"],["webview","editor"],["webview-wait","5 New Databases in DevDb"],
- ["webview-assert","Unlock with DevDb Pro"],["shot","promo-fresh"],["notifications"]]
-```
-
-Second run without `DEVDB_FRESH_PROFILE`: the tab must not open again (`editor-tabs` is empty).
-
-### Promo preview, Free and Pro (needs the promo stream: `devdb.dev.previewNewDatastoresNotice`)
-
-The command exists only in a development build (`--extensionDevelopmentPath`, which the driver uses). Argument `{ "licensed": boolean }`; without it, it opens a quick pick.
-
-```json
-[["exec","workbench.action.closeAllEditors"],["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":false}"],
- ["webview","editor"],["webview-wait","5 New Databases in DevDb"],["shot","promo-free"],
+[["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":false}"],["sleep","2500"],["webview","editor"],
+ ["webview-wait","5 New Databases"],["webview-assert","Unlock with DevDb Pro"],["shot","promo-free"],
  ["exec","workbench.action.closeAllEditors"],["exec","notifications.clearAll"],
  ["exec","devdb.dev.previewNewDatastoresNotice {\"licensed\":true}"],["sleep","2500"],
  ["notifications"],["editor-tabs"],["shot","promo-pro"]]
 ```
 
-### Pro license (works, local mock only)
+Expected: Free = full-page tab "New in DevDb — 5 New Databases". Pro = toast "5 new datastores are in your Pro plan" and no tab.
+
+### Redis / Valkey
 
 ```json
-[["panel"],["webview-wait","Config File"],["license"],["webview-wait","Remote Connections"],["shot","pro"]]
+[PRO,["webview-wait","Remote Connections"],
+ ["webview-click-css","[data-testid=add-remote-connection-btn]"],["webview-click-css","[data-testid=connection-option-redis]"],
+ ["webview-fill","redis://user:pass@host:6379/0","redis://localhost:6379/0"],["webview-fill","My Production DB","local-redis"],
+ ["webview-click-css","[data-testid=test-connection-button]"],["sleep","2500"],["webview-assert","Connection successful"],
+ ["webview-click-css","[data-testid=connect-button]"],["sleep","2500"],["webview-click","local-redis"],
+ ["webview-wait","string"],["webview-click","string"],["sleep","2500"],["shot","redis-string"]]
 ```
 
-### DuckDB file through `.devdbrc` (connects; needs the DuckDB engine fix for value display)
+- Valkey: `redis://:valkeypass@localhost:6380/0`. A wrong password must fail at once with `WRONGPASS …`.
+- RESP console: `["webview-click-css","[data-testid=redis-console-button]"]`, then `["webview-fill","css:input[placeholder=command]","DBSIZE"],["webview-click-css","input[placeholder=command]"],["webview-key","Enter"]`. A write command (`FLUSHALL`) must show "… Run it?" with Cancel / Run command. Click Cancel and check `redis-cli dbsize` is unchanged.
 
-MAP, DECIMAL, HUGEINT, UUID, BLOB, TIMESTAMPTZ and DATE cells show raw driver objects (`{"micros":…}`, `{"days":…}`) with the current code.
-
-```json
-[["panel"],["webview-wait","sample.duckdb"],["license"],["webview-wait","sample.duckdb"],
- ["webview-click","/Users/damms005/Code/github-pl...-datastores/data/sample.duckdb"],
- ["webview-wait","measurements"],["webview-click","users"],["webview-wait","User 1"],["shot","duckdb-users"]]
-```
-
-The click text is the truncated path the panel shows; read it with `webview-text` first when the repo path differs. The DuckDB **file picker** opens a native OS dialog, which the driver cannot drive: use `.devdbrc`.
-
-### Neon-like TLS Postgres, direct connection (works)
-
-Start with `NODE_EXTRA_CA_CERTS=$PWD/.claude/skills/run-devdb/local-datastores/certs/ca.crt` (the CA of the running stack: when the stack runs from another folder, use that folder's `certs/ca.crt`). Without it, the connection fails with a certificate error, which is the correct result for a private CA.
+### ClickHouse
 
 ```json
-[["panel"],["webview-wait","Config File"],["license"],["webview-wait","Remote Connections"],
- ["webview-click","Add"],["webview-wait","Direct Connection"],["webview-click","Direct Connection"],
- ["webview-fill","postgres://user:pass@host:5432/db?sslmode=require","postgres://neondb_owner:npg_localpass@localhost:5432/neondb?sslmode=require"],
- ["webview-fill","My Production DB","neon-tls"],["webview-click-css","[data-testid=connect-button]"],
- ["sleep","3000"],["webview-click","neon-tls"],["webview-wait","customers"],["shot","neon-tls"]]
-```
-
-With the current UI, pasting the string fills only Host (port stays 3306, user empty), but the connection works. The `.devdbrc` entry `neon-tls-via-config-file` fails on purpose (no `ssl` option in the config file) and shows two error toasts at every start: **needs fix** if the config file gets an `ssl` option.
-
-Neon provider through `.env` (`DATABASE_URL` on `*.neon.tech`): use `DEVDB_WORKSPACE=.claude/skills/run-devdb/local-datastores/workspace-neon` and add `127.0.0.1 ep-local-devdb-123456.us-east-2.aws.neon.tech` to `/etc/hosts` first (ask the user: it needs sudo). The driver stops with `NEON_HOST_NOT_LOCAL` (exit 2) when the host is not mapped, because DevDb connects at startup and the test password would go to real Neon.
-
-### Redis 6379 / Valkey 6380 (needs fix: the extension saves the connection as MySQL)
-
-`saveRemoteConnection` in `src/services/messenger.ts` maps every non-SSH, non-MongoDB type to `mysql`/`postgres`, so the saved row shows `MYSQL` and connecting tries MySQL on port 6379. Run this after the fix:
-
-```json
-[["panel"],["webview-wait","Config File"],["license"],["webview-wait","Remote Connections"],
- ["webview-click","Add"],["webview-wait","Redis / Valkey"],["webview-click","Redis / Valkey"],
- ["webview-fill","redis://user:pass@host:6379/0","redis://localhost:6379/0"],
- ["webview-fill","My Production DB","local-redis"],["webview-click-css","[data-testid=connect-button]"],
- ["sleep","3000"],["webview-click","local-redis"],["webview-wait","greeting"],["shot","redis"]]
-```
-
-Valkey: connection string `redis://:valkeypass@localhost:6380/0` (or `redis://devdb:devdbpass@localhost:6380/0`), name `local-valkey`.
-
-### ClickHouse 8123 (needs fix: same MySQL mapping as Redis)
-
-```json
-[["panel"],["webview-wait","Config File"],["license"],["webview-wait","Remote Connections"],
- ["webview-click","Add"],["webview-wait","ClickHouse"],["webview-click","ClickHouse"],
+[PRO,["webview-wait","Remote Connections"],
+ ["webview-click-css","[data-testid=add-remote-connection-btn]"],["webview-click-css","[data-testid=connection-option-clickhouse]"],
  ["webview-fill","css:input[placeholder=localhost]","localhost"],
- ["webview-fill","css:input[placeholder=default] >> nth=0","default"],
- ["webview-fill","css:input[type=password]","devdb"],
- ["webview-fill","css:input[placeholder=default] >> nth=1","devdb"],
- ["webview-fill","My Production DB","local-clickhouse"],["webview-click-css","[data-testid=connect-button]"],
- ["sleep","3000"],["webview-click","local-clickhouse"],["webview-wait","events"],["shot","clickhouse"]]
+ ["webview-fill","css:input[placeholder=default] >> nth=0","default"],["webview-fill","css:input[type=password]","devdb"],
+ ["webview-fill","css:input[placeholder=default] >> nth=1","devdb"],["webview-fill","My Production DB","local-clickhouse"],
+ ["webview-click-css","[data-testid=test-connection-button]"],["sleep","2500"],["webview-assert","Connection successful"],
+ ["webview-click-css","[data-testid=connect-button]"],["sleep","2500"],["webview-click","local-clickhouse"],
+ ["webview-wait","events"],["webview-click","events"],["sleep","3500"],
+ ["webview-assert","18446744073709551615"],["webview-assert","99999999999999.9999"],["shot","clickhouse-events"]]
 ```
 
-Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list (it also shows the promo tab again: close it with `["exec","workbench.action.closeAllEditors"]`).
+Protocol defaults to `http` for localhost and `https` for port 8443 or a remote host.
+
+### DuckDB through `.devdbrc`
+
+```json
+[PRO,["webview-wait","sample.duckdb"],["webview-click","/Users/damms005/Code/github-pl...-datastores/data/sample.duckdb"],
+ ["webview-wait","users"],["webview-click","users"],["sleep","2500"],["webview-assert","0xDEADBEEF"],
+ ["webview-click-css","[data-testid=summarize-button]"],["sleep","3000"],["webview-assert","null_percentage"],["shot","duckdb-users"]]
+```
+
+The click text is the truncated path the panel shows; read it with `webview-text` first when the repo path differs. No cell may show a raw object (`{"micros":…}`, `{"days":…}`). The DuckDB **file picker** opens a native OS dialog, which the driver cannot drive.
+
+### pgvector similarity search
+
+The cell actions open from a hover-only icon. A DOM click on the icon's SVG opens the popover:
+
+```json
+[PRO,["webview-wait","pgvector-local"],["webview-click","pgvector-local"],["webview-wait","documents"],["webview-click","documents"],
+ ["webview-wait","Resetting a password"],
+ ["webview-eval","(()=>{const td=[...document.querySelectorAll('td')].filter(t=>/768d/.test(t.innerText)&&t.children.length<6)[1];td.querySelector('.tools button[aria-haspopup=dialog] svg').dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));return 'ok'})()"],
+ ["sleep","800"],["webview-click-css","[title=\"Find similar rows\"]"],["sleep","4000"],["webview-assert","cosine similarity"],["shot","pgvector-similar"]]
+```
+
+### Neon-like TLS Postgres, direct connection
+
+Start with `NODE_EXTRA_CA_CERTS=$PWD/.claude/skills/run-devdb/local-datastores/certs/ca.crt`. Without it, the connection fails with a certificate error, which is correct for a private CA. The paste parser runs on `paste` or `blur`, and `webview-fill` sends neither, so dispatch `blur`:
+
+```json
+[PRO,["webview-wait","Remote Connections"],
+ ["webview-click-css","[data-testid=add-remote-connection-btn]"],["webview-click-css","[data-testid=connection-option-direct]"],
+ ["webview-fill","postgres://user:pass@host:5432/db?sslmode=require","postgres://neondb_owner:npg_localpass@localhost:5432/neondb?sslmode=require"],
+ ["webview-eval","document.querySelector('input[placeholder^=postgres]').dispatchEvent(new Event('blur'))"],
+ ["webview-fill","My Production DB","neon-tls"],["webview-click-css","[data-testid=test-connection-button]"],["sleep","3000"],
+ ["webview-assert","Connection successful"],["webview-click-css","[data-testid=connect-button]"],["sleep","2500"],
+ ["webview-click","neon-tls"],["webview-wait","customers"],["shot","neon-tls"]]
+```
+
+The `.devdbrc` entry `neon-tls-via-config-file` fails on purpose (the config file has no `ssl` option). Neon through `.env` (`DATABASE_URL` on `*.neon.tech`): use `DEVDB_WORKSPACE=.claude/skills/run-devdb/local-datastores/workspace-neon` and add `127.0.0.1 ep-local-devdb-123456.us-east-2.aws.neon.tech` to `/etc/hosts` first (ask the user: it needs sudo). The driver stops with `NEON_HOST_NOT_LOCAL` (exit 2) when the host is not mapped, because DevDb would send the test password to real Neon.
+
+Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list.
 
 ## Gotchas
 
-- **Webview UI is the committed bundle** (`ui-shell/dist/assets`), not the `devdb-ui` source. Labels and `data-testid`s can differ from the source (for example, the bundle has no Postgres/MySQL engine toggle; port 5432 selects Postgres). List the real fields with `webview-eval` before you write a new recipe: `[...document.querySelectorAll("input,button")].filter(e=>e.getClientRects().length).map(e=>e.placeholder||e.dataset.testid||e.innerText)`.
+- **Secrets do not survive a launch:** `--use-inmemory-secretstorage` drops saved passwords when VS Code closes. A saved Redis/Mongo connection with a password then shows "The saved password for … was not found". Add the connection again in the same batch that uses it.
+- **Short work folder:** VS Code's IPC socket path must stay under 104 characters on macOS. Keep `DEVDB_DRIVER_DIR` short (the default `<tmpdir>/devdb-driver` works; a long scratchpad path fails with `listen EINVAL`).
+- **VS Code cache:** the first run downloads VS Code (about 860 MB) into `.vscode-test/`. A worktree has its own copy: `cp -cR <other>/.vscode-test/. .vscode-test/` saves the download.
+- **Webview UI is the committed bundle** (`ui-shell/dist/assets`), not the `devdb-ui` source. Labels and `data-testid`s can differ from the source after a `devdb-ui` change, rebuild `ui-shell` first (`cd ui-shell && bun install && npm run build`). List the real fields with `webview-eval` before you write a new recipe: `[...document.querySelectorAll("input,button")].filter(e=>e.getClientRects().length).map(e=>e.placeholder||e.dataset.testid||e.innerText)`.
 - **Same text twice:** `webview-click` takes the first exact match in the whole panel. "Connect" is on every local provider row: use `[data-testid=connect-button]` for the dialog button.
 - **Toasts** cover the lower right of the panel. `webview-click` and `webview-click-css` use DOM clicks, so toasts do not block them; `exec notifications.clearAll` removes them for screenshots.
 - **"All installed extensions are temporarily disabled"** toast comes from `--disable-extensions`. Ignore it. Never click its button: VS Code reloads with all extensions of the driver profile enabled.

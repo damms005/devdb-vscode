@@ -353,6 +353,13 @@ async function run(ctx, cmd, arg) {
 			await el.evaluate((node) => node.click());
 			return "OK";
 		}
+		case "webview-hover": {
+			// Real mouse hover: opens hover-only UI such as the cell actions popover.
+			const el = (await webviewFrame(ctx)).locator(arg).first();
+			await el.waitFor({ timeout: 10_000 });
+			await el.hover({ force: true });
+			return "OK";
+		}
 		case "webview-fill": {
 			const [target, value] = Array.isArray(arg) ? arg : [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)];
 			const frame = await webviewFrame(ctx);
