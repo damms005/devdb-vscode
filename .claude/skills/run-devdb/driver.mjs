@@ -36,6 +36,13 @@ const DRIVER_SETTINGS = {
 	"git.enabled": false,
 };
 
+const HOST_MAP = new Map(
+	(process.env.DEVDB_HOST_MAP ?? "")
+		.split(",")
+		.map((pair) => pair.trim().split("="))
+		.filter(([host, ip]) => host && ip)
+		.map(([host, ip]) => [host.toLowerCase(), ip]),
+);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function prepareProfile() {
@@ -57,13 +64,23 @@ function prepareWorkspace() {
 		fs.writeFileSync(target, fs.readFileSync(template, "utf8").replaceAll("__DATA_DIR__", path.join(STACK, "data")));
 	}
 	if (!fs.existsSync(WORKSPACE)) throw new Error(`workspace not found: ${WORKSPACE}`);
-	// The Neon provider connects to any *.neon.tech host in .env at startup. Without an /etc/hosts entry
-	// that host resolves to real Neon, so test credentials would leave this machine.
+	// The Neon provider connects to any *.neon.tech host in .env. Without a mapping that host resolves to
+	// real Neon, so test credentials would leave this machine. The driver maps each such host to 127.0.0.1
+	// inside the extension host (DEVDB_HOST_MAP, applied by the bridge), and checks it after launch.
 	const env = path.join(WORKSPACE, ".env");
-	const hosts = fs.existsSync("/etc/hosts") ? fs.readFileSync("/etc/hosts", "utf8") : "";
 	for (const host of fs.existsSync(env) ? (fs.readFileSync(env, "utf8").match(/[\w.-]+\.neon\.tech/g) ?? []) : []) {
-		if (!new RegExp(`^\\s*127\\.0\\.0\\.1\\s+.*\\b${host.replaceAll(".", "\\.")}\\b`, "m").test(hosts)) {
-			process.stdout.write(`NEON_HOST_NOT_LOCAL ${host} is not mapped to 127.0.0.1 in /etc/hosts. Stopped before launch.\n`);
+		if (!HOST_MAP.has(host.toLowerCase())) HOST_MAP.set(host.toLowerCase(), "127.0.0.1");
+	}
+}
+
+// Every mapped host must resolve locally in the extension host before any test step runs.
+async function checkHostMap(app) {
+	for (const [host, ip] of HOST_MAP) {
+		const code = `const r = await require('dns').promises.lookup(${JSON.stringify(host)}); return r.address;`;
+		const address = await bridge("/eval", { code }).catch((error) => String(error));
+		if (address !== ip) {
+			process.stdout.write(`HOST_MAP_FAILED ${host} resolves to ${address}, expected ${ip}. Stopped before any step.\n`);
+			await app.close().catch(() => {});
 			process.exit(2);
 		}
 	}
@@ -137,7 +154,7 @@ async function launch() {
 			// No "-ApplePersistenceIgnoreState YES" here: the VS Code CLI parser reads it as short flags (-s = --status) and quits.
 		],
 		cwd: WORKSPACE,
-		env: { ...process.env, DEVDB_DRIVER_BRIDGE_FILE: BRIDGE_FILE },
+		env: { ...process.env, DEVDB_DRIVER_BRIDGE_FILE: BRIDGE_FILE, DEVDB_HOST_MAP: [...HOST_MAP].map(([host, ip]) => `${host}=${ip}`).join(",") },
 		timeout: 90_000,
 	});
 	app.process().stdout.on("data", (d) => fs.appendFileSync(LOG, d));
@@ -433,6 +450,7 @@ function print(cmd, result) {
 }
 
 const ctx = await launch();
+await checkHostMap(ctx.app);
 process.stdout.write(
 	`READY window="${await ctx.page.title()}" workspace=${WORKSPACE} profile=${PROFILE} bridge=${fs.existsSync(BRIDGE_FILE) ? "yes" : "no"} license_api=${ctx.api} license_mock=${ctx.mock} shots=${SHOTS} log=${LOG}\n`,
 );

@@ -103,6 +103,7 @@ When the test is done, close every VS Code that you started with the driver, bef
 | `DEVDB_FRESH_PROFILE=1` | Deletes the profile first: VS Code and DevDb see a new install (promo tests). Otherwise the profile (globalState, saved remote connections) is kept between runs |
 | `DEVDB_FOREGROUND=1` | Shows the window normally and gives it focus |
 | `DEVDB_VSCODE_VERSION` | VS Code version to download (default `stable`, e.g. `1.90.0` for the minimum engine) |
+| `DEVDB_HOST_MAP` | `host=ip[,host=ip]`: resolves these hosts to the IP inside the extension host only (no `/etc/hosts`, no sudo). The driver adds each `*.neon.tech` host from the workspace `.env` itself |
 | `NODE_EXTRA_CA_CERTS` | Passed through to VS Code and the extension host. Needed for the Neon-like TLS Postgres |
 
 ## License
@@ -219,7 +220,14 @@ Start with `NODE_EXTRA_CA_CERTS=$PWD/.claude/skills/run-devdb/local-datastores/c
  ["webview-click","neon-tls"],["webview-wait","customers"],["shot","neon-tls"]]
 ```
 
-The `.devdbrc` entry `neon-tls-via-config-file` fails on purpose (the config file has no `ssl` option). Neon through `.env` (`DATABASE_URL` on `*.neon.tech`): use `DEVDB_WORKSPACE=.claude/skills/run-devdb/local-datastores/workspace-neon` and add `127.0.0.1 ep-local-devdb-123456.us-east-2.aws.neon.tech` to `/etc/hosts` first (ask the user: it needs sudo). The driver stops with `NEON_HOST_NOT_LOCAL` (exit 2) when the host is not mapped, because DevDb would send the test password to real Neon.
+The `.devdbrc` entry `neon-tls-via-config-file` fails on purpose (the config file has no `ssl` option). Neon through `.env` (`DATABASE_URL` on `*.neon.tech`), no sudo: use `DEVDB_WORKSPACE=$PWD/.claude/skills/run-devdb/local-datastores/workspace-neon`. The driver maps every `*.neon.tech` host in that `.env` to 127.0.0.1 inside the extension host only (`DEVDB_HOST_MAP`, applied by the bridge), and checks the mapping before the first step. `/etc/hosts` is not changed. If the check fails, the driver stops with `HOST_MAP_FAILED` (exit 2) before DevDb can send the test password to real Neon. The provider needs Pro, and this workspace has no `.devdbrc`, so the panel opens on the pricing page:
+
+```json
+[["panel","max"],["sleep","3000"],["license"],["sleep","4000"],["webview","view"],["webview-wait","Neon"],
+ ["webview-click","Neon - PostgreSQL"],["sleep","5000"],["webview-assert","customers"],["shot","neon-env"]]
+```
+
+Real Neon behaviour (cold start after autosuspend, the `-pooler` host, the public certificate) needs a free Neon branch: put its URL in a scratch workspace `.env` and run the same batch without a host map.
 
 Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list.
 

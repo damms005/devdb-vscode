@@ -5,6 +5,37 @@ const vscode = require('vscode');
 const http = require('http');
 const fs = require('fs');
 
+// DEVDB_HOST_MAP="host=ip,host2=ip" resolves those hosts to the given IP inside this extension host
+// only (DevDb runs in the same process). It replaces an /etc/hosts entry, so tests need no sudo.
+const hostMap = new Map(
+	(process.env.DEVDB_HOST_MAP ?? '')
+		.split(',')
+		.map((pair) => pair.trim().split('='))
+		.filter(([host, ip]) => host && ip)
+		.map(([host, ip]) => [host.toLowerCase(), ip]),
+);
+if (hostMap.size) {
+	const dns = require('dns');
+	const net = require('net');
+	const answer = (ip, options) => {
+		const family = net.isIPv6(ip) ? 6 : 4;
+		return options && options.all ? [{ address: ip, family }] : { address: ip, family };
+	};
+	const lookup = dns.lookup;
+	dns.lookup = function (hostname, options, callback) {
+		const ip = typeof hostname === 'string' && hostMap.get(hostname.toLowerCase());
+		if (!ip) return lookup.apply(this, arguments);
+		if (typeof options === 'function') [callback, options] = [options, undefined];
+		const result = answer(ip, typeof options === 'object' ? options : undefined);
+		process.nextTick(() => (Array.isArray(result) ? callback(null, result) : callback(null, result.address, result.family)));
+	};
+	const lookupPromise = dns.promises.lookup;
+	dns.promises.lookup = async function (hostname, options) {
+		const ip = typeof hostname === 'string' && hostMap.get(hostname.toLowerCase());
+		return ip ? answer(ip, typeof options === 'object' ? options : undefined) : lookupPromise.apply(this, arguments);
+	};
+}
+
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 function serialize(value) {
@@ -29,7 +60,7 @@ function activate(context) {
 				if (req.url === '/exec') {
 					result = await vscode.commands.executeCommand(input.command, ...(input.args ?? []));
 				} else if (req.url === '/eval') {
-					result = await new AsyncFunction('vscode', input.code)(vscode);
+					result = await new AsyncFunction('vscode', 'require', input.code)(vscode, require);
 				} else {
 					throw new Error(`unknown route ${req.url}`);
 				}
