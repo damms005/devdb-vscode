@@ -35,6 +35,9 @@ jobs:
       - name: Run service tests
         run: bun run test-services
 
+      - name: Run SQLite tests on the WASM backend
+        run: bun run test-services:wasm
+
   build:
     needs: test
     strategy:

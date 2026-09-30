@@ -273,7 +273,8 @@ function verify(target, vsixPath) {
 		failures++;
 	}
 
-	const required = ['extension/node_modules/@duckdb/node-api/package.json', 'extension/node_modules/@duckdb/node-bindings/duckdb.js'];
+	// dist/node-sqlite3-wasm.wasm: SQLite fallback when the native @vscode/sqlite3 binary cannot load.
+	const required = ['extension/node_modules/@duckdb/node-api/package.json', 'extension/node_modules/@duckdb/node-bindings/duckdb.js', 'extension/dist/node-sqlite3-wasm.wasm'];
 	if (pkgName) {
 		required.push('extension/node_modules/detect-libc/package.json');
 	}

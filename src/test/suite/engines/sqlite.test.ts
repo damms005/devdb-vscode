@@ -1,4 +1,7 @@
 import * as assert from 'assert';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { SqliteEngine } from '../../../database-engines/sqlite-engine';
 import { SerializedMutation } from '../../../types';
 
@@ -289,6 +292,44 @@ describe('Sqlite Tests', () => {
 
 		after(async function () {
 			engine?.destroy();
+		});
+	});
+
+	describe(`file database (${process.env.DEVDB_FORCE_SQLITE_WASM === '1' ? 'wasm' : 'native'} backend)`, () => {
+		const dir = mkdtempSync(join(tmpdir(), 'devdb-sqlite-'));
+
+		after(() => rmSync(dir, { recursive: true, force: true }));
+
+		it('should use the expected backend', () => {
+			assert.strictEqual(new SqliteEngine().getBackend(), process.env.DEVDB_FORCE_SQLITE_WASM === '1' ? 'wasm' : 'native');
+		});
+
+		it('should persist edits to the database file', async () => {
+			const file = join(dir, 'app.sqlite');
+			const writer = new SqliteEngine(file);
+			await writer.raw(`CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT, data BLOB, big INTEGER)`);
+			assert.deepStrictEqual(await writer.rawQuery(`INSERT INTO notes (body, data, big) VALUES ('a', x'0102', 9007199254740993)`), { changes: 1, lastID: 1 });
+
+			const columns = await writer.getColumns('notes');
+			const transaction = await writer.transaction();
+			await writer.commitChange({ type: 'cell-update', table: 'notes', column: columns[1], newValue: 'edited', primaryKeyColumn: 'id', primaryKey: 1 } as SerializedMutation, transaction);
+			await transaction.commit();
+			await writer.disconnect();
+
+			const reader = new SqliteEngine(file);
+			assert.strictEqual(await reader.isOkay(), true);
+			const [row] = (await reader.getRows('notes', await reader.getColumns('notes'), 10, 0))!.rows;
+			assert.strictEqual(row.body, 'edited');
+			assert.ok(Buffer.isBuffer(row.data));
+			assert.deepStrictEqual([...row.data], [1, 2]);
+			assert.strictEqual(typeof row.big, 'number');
+			await reader.disconnect();
+		});
+
+		it('should report SQL errors', async () => {
+			const engine = new SqliteEngine(join(dir, 'errors.sqlite'));
+			await assert.rejects(engine.rawQuery('SELECT * FROM missing_table'), /no such table/);
+			await engine.disconnect();
 		});
 	});
 });
