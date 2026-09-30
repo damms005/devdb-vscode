@@ -62,6 +62,10 @@ When the test is done, close every VS Code that you started with the driver, bef
 - Stop only processes that you started. Another session can use the driver at the same time (give it its own `DEVDB_DRIVER_DIR`). If you cannot tell who started a process, ask the user.
 - The same rule applies to the local datastores: stop them with `down.sh` only when you started them.
 
+## Playground (manual testing)
+
+`.claude/skills/run-devdb/playground.sh` builds DevDb with the local license mock, opens a visible window with Pro active, and adds connections to Redis, Valkey, ClickHouse and the Neon-like TLS Postgres (the workspace `.devdbrc` adds DuckDB and pgvector). The window stays open. `playground.sh stop` closes it. Use it when the user wants to try DevDb by hand; tell them the password secrets exist only in that window.
+
 ## Commands
 
 | Command | Argument | Does |
