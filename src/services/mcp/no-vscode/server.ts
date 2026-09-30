@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { getPort } from "./port-manager";
+import { getServerEntry } from "./port-manager";
 import logger from './logger';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -173,7 +173,7 @@ server.registerTool(
 	'run-query',
 	{
 		title: 'Run a query',
-		description: 'Run a SQL query',
+		description: 'Run a read-only query (SQL, or a Redis command for Redis). Writes are blocked unless the user enables devdb.mcp.allowWrites.',
 		inputSchema: {
 			projectRoot: z.string().describe('Absolute path to the root of the project. e.g. /Users/path/to/project'),
 			query: z.string().describe('SQL query to run')
@@ -200,9 +200,19 @@ server.registerTool(
 			};
 		}
 
-		const validation = validateQuery(query);
+		let engine: { type: string, allowWrites: boolean };
+		try {
+			engine = await fetchEngineInfo(projectRoot);
+		} catch (error) {
+			return {
+				content: [{ type: 'text', text: String(error) }],
+				isError: true,
+			};
+		}
+
+		const validation = validateQuery(query, engine.type, { allowWrites: engine.allowWrites });
 		if (!validation.allowed) {
-			logger.warn('Blocked destructive query via MCP stdio', { queryType: getQueryType(query) });
+			logger.warn('Blocked query via MCP stdio', { queryType: getQueryType(query) });
 			return {
 				content: [{ type: 'text', text: validation.warning || 'Query blocked' }],
 				isError: true,
@@ -213,7 +223,6 @@ server.registerTool(
 		}
 
 		logger.info('Executing new query', { queryType: getQueryType(query), queryLength: query.length });
-		logger.debug('Full query text', { query });
 		try {
 			const result = await executeQuery(projectRoot, query);
 			logger.info('Query executed successfully', { queryType: getQueryType(query), resultLength: JSON.stringify(result).length });
@@ -225,7 +234,6 @@ server.registerTool(
 			};
 		} catch (error) {
 			logger.error('Query execution failed', { queryType: getQueryType(query), error: String(error) });
-			logger.debug('Failed query text', { query });
 			return {
 				content: [{
 					type: 'text',
@@ -249,20 +257,33 @@ main().catch((error) => {
 	process.exit(1);
 });
 
-function getServerUrl(projectRoot: string): string {
-	const port = getPort(projectRoot);
-	if (!port) {
+/**
+ * Sends an authenticated request to the extension host HTTP server of the project.
+ */
+async function callServer(projectRoot: string, route: string, init: { method?: string, body?: string } = {}): Promise<{ resp: Response, baseUrl: string }> {
+	const entry = getServerEntry(projectRoot);
+	if (!entry) {
 		logger.error('MCP HTTP server port not available', { projectRoot });
 		throw new Error(`MCP server not running for project: ${projectRoot}`);
 	}
-	logger.debug('Using server URL', { port, projectRoot, url: `http://localhost:${port}` });
-	return `http://localhost:${port}`;
+	if (!entry.token) {
+		logger.error('MCP HTTP server token not available', { projectRoot });
+		throw new Error('MCP server token not found. Reload the VS Code window to restart DevDb.');
+	}
+	const baseUrl = `http://127.0.0.1:${entry.port}`;
+	const resp = await fetch(`${baseUrl}${route}`, {
+		method: init.method ?? 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${entry.token}`,
+		},
+		body: init.body,
+	});
+	return { resp, baseUrl };
 }
 
 async function fetchTables(projectRoot: string): Promise<string[]> {
-	const baseUrl = getServerUrl(projectRoot);
-	logger.debug('Fetching tables from HTTP server', { baseUrl, projectRoot });
-	const resp = await fetch(`${baseUrl}/tables`);
+	const { resp, baseUrl } = await callServer(projectRoot, '/tables');
 	if (!resp.ok) {
 		logger.error('Failed to fetch tables from HTTP server', { baseUrl, projectRoot, status: resp.status, statusText: resp.statusText });
 		throw new Error('Could not establish database connection');
@@ -273,47 +294,43 @@ async function fetchTables(projectRoot: string): Promise<string[]> {
 }
 
 async function fetchTableSchema(projectRoot: string, name: string): Promise<string> {
-	const baseUrl = getServerUrl(projectRoot);
-	logger.debug('Fetching table schema from HTTP server', { baseUrl, projectRoot, tableName: name });
-	const resp = await fetch(`${baseUrl}/tables/${encodeURIComponent(name)}/schema`);
+	const { resp, baseUrl } = await callServer(projectRoot, `/tables/${encodeURIComponent(name)}/schema`);
 	if (!resp.ok) {
-		logger.error('Failed to fetch table schema from HTTP server', { baseUrl, projectRoot, tableName: name, status: resp.status, statusText: resp.statusText });
+		logger.error('Failed to fetch table schema from HTTP server', { baseUrl, projectRoot, status: resp.status, statusText: resp.statusText });
 		throw new Error('Could not establish database connection');
 	}
 	const { schema } = await resp.json() as { schema: string };
-	logger.debug('Table schema fetched successfully', { baseUrl, projectRoot, tableName: name, schemaLength: schema.length });
+	logger.debug('Table schema fetched successfully', { baseUrl, projectRoot, schemaLength: schema.length });
 	return schema;
 }
 
 async function executeQuery(projectRoot: string, query: string): Promise<any> {
-	const baseUrl = getServerUrl(projectRoot);
-	logger.debug('Executing query via HTTP server', { baseUrl, projectRoot, query });
-	const resp = await fetch(`${baseUrl}/query`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ query })
-	});
+	const { resp, baseUrl } = await callServer(projectRoot, '/query', { method: 'POST', body: JSON.stringify({ query }) });
 	if (!resp.ok) {
-		const errorData: { message: string } = await resp.json().catch(() => ({ message: 'Unknown DevDb MCP error' })) as any;
-		logger.error('Query execution failed via HTTP server', { baseUrl, projectRoot, query, status: resp.status, statusText: resp.statusText, error: errorData.message });
-		throw new Error(errorData.message);
+		const errorData = await resp.json().catch(() => ({})) as { error?: string, message?: string };
+		const message = errorData.error ?? errorData.message ?? 'Unknown DevDb MCP error';
+		logger.error('Query execution failed via HTTP server', { baseUrl, projectRoot, queryType: getQueryType(query), status: resp.status, statusText: resp.statusText, error: message });
+		throw new Error(message);
 	}
 	const { result } = await resp.json() as { result: any };
-	logger.debug('Query executed successfully via HTTP server', { baseUrl, projectRoot, query, resultLength: JSON.stringify(result).length });
+	logger.debug('Query executed successfully via HTTP server', { baseUrl, projectRoot, queryType: getQueryType(query), resultLength: JSON.stringify(result ?? null).length });
 	return result;
 }
 
-async function fetchDatabaseType(projectRoot: string): Promise<string> {
-	const baseUrl = getServerUrl(projectRoot);
-	logger.debug('Fetching database type from HTTP server', { baseUrl, projectRoot });
-	const resp = await fetch(`${baseUrl}/database-type`);
+/**
+ * Engine type and write permission come from the extension host. When it cannot tell, MCP stays read-only.
+ */
+async function fetchEngineInfo(projectRoot: string): Promise<{ type: string, allowWrites: boolean }> {
+	const { resp, baseUrl } = await callServer(projectRoot, '/database-type');
 	if (!resp.ok) {
 		logger.error('Failed to fetch database type from HTTP server', { baseUrl, projectRoot, status: resp.status, statusText: resp.statusText });
 		throw new Error('Could not establish database connection');
 	}
-	const { type } = await resp.json() as { type: string };
+	const { type, allowWrites } = await resp.json() as { type: string, allowWrites?: unknown };
 	logger.debug('Database type fetched successfully', { baseUrl, projectRoot, type });
-	return type;
+	return { type, allowWrites: allowWrites === true };
+}
+
+async function fetchDatabaseType(projectRoot: string): Promise<string> {
+	return (await fetchEngineInfo(projectRoot)).type;
 }
