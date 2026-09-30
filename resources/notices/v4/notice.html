@@ -14,188 +14,89 @@
 
 	<main class="page">
 		<header class="hero">
-			<div class="hero-copy">
-				<span class="eyebrow"><span class="dot"></span>DevDb 4.0</span>
-				<h1>Every datastore in your stack.<br><span class="accent">One panel in your IDE.</span></h1>
-				<p class="lead">Eight new engines, zero-config detection for modern stacks, and a safer MCP server for your AI agents.</p>
-				<div class="actions">
-					<button class="btn btn-primary" data-command="getLicense">
-						Unlock with DevDb Pro
-						<span class="price">${{price}} once</span>
-					</button>
-					<button class="btn btn-ghost" data-command="docs">Read the docs</button>
-				</div>
-				<p class="fine">One-time payment. Lifetime license. Use it in all your IDEs.</p>
+			<p class="kicker">DevDb 4</p>
+			<h1>Every datastore in your stack.<br>One panel in your IDE.</h1>
+			<p class="lead">Eight new engines. Zero-config detection. A safer MCP server for your AI agents.</p>
+			<div class="actions">
+				<button class="btn btn-primary" data-command="getLicense">Unlock with DevDb Pro</button>
+				<button class="link" data-command="docs">Read the docs <span aria-hidden="true">›</span></button>
 			</div>
-
-			<figure class="panel-mock" aria-label="DevDb panel preview">
-				<div class="pm-bar">
-					<span class="pm-tab">DevDb</span>
-					<span class="pm-conn"><span class="pm-led"></span>Redis · localhost:6379</span>
-				</div>
-				<div class="pm-body">
-					<aside class="pm-side">
-						<div class="pm-search">Search tables</div>
-						<div class="pm-group">cache:</div>
-						<div class="pm-item pm-active">cache:user</div>
-						<div class="pm-item">cache:order</div>
-						<div class="pm-group">queue:</div>
-						<div class="pm-item">queue:default</div>
-						<div class="pm-item">session</div>
-						<div class="pm-locked">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-							DynamoDB
-						</div>
-					</aside>
-					<div class="pm-grid">
-						<div class="pm-row pm-head"><span>key</span><span>type</span><span>ttl</span><span>value</span></div>
-						<div class="pm-row"><span>cache:user:1</span><span class="pm-type">hash</span><span>3600</span><span>{ name: "Ada" }</span></div>
-						<div class="pm-row pm-sel"><span>cache:user:2</span><span class="pm-type">hash</span><span>3600</span><span>{ name: "Linus" }</span></div>
-						<div class="pm-row"><span>cache:user:3</span><span class="pm-type">string</span><span>—</span><span>"guest"</span></div>
-						<div class="pm-row"><span>cache:user:4</span><span class="pm-type">zset</span><span>120</span><span>3 members</span></div>
-						<div class="pm-console"><span class="pm-prompt">&gt;</span> HGETALL cache:user:2</div>
-					</div>
-				</div>
-			</figure>
+			<p class="fine">${{price}}, one time. Lifetime license. Use it in all your IDEs.</p>
 		</header>
 
-		<section>
-			<h2>New engines</h2>
-			<div class="grid">
-				<article class="card card-free">
-					<div class="card-top">
-						<span class="icon icon-orange"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H8a5 5 0 1 1 1-9.9A6 6 0 0 1 20.5 11 4 4 0 0 1 17.5 19Z"/></svg></span>
-						<span class="pill pill-free">FREE</span>
-					</div>
-					<h3>Cloudflare D1 (local)</h3>
-					<p>Your Wrangler local D1 databases open in DevDb with no setup. Free for everyone.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-red"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>Redis / Valkey</h3>
-					<p>Keys grouped by namespace as tables. Hashes, lists, sets, sorted sets, streams, and a RESP console.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-yellow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M9 20V4M14 20v-7M19 20V8"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>ClickHouse</h3>
-					<p>Analytics tables over HTTP or HTTPS. Arrays, nullables and exact decimals.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-yellow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6M8 13h8M8 17h8"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>DuckDB</h3>
-					<p>Open <code>.duckdb</code> files, or query Parquet, CSV and JSON files as tables.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-						<span class="pill pill-new">NEW</span>
-					</div>
-					<h3>DynamoDB</h3>
-					<p>Browse tables and items in AWS or DynamoDB Local, next to your SQL databases.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>Neon</h3>
-					<p>Serverless Postgres from the <code>DATABASE_URL</code> in your <code>.env</code>, over verified TLS.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-purple"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2"/><path d="m6.7 7 3.6 2M17.3 7l-3.6 2M12 12v4"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>pgvector search</h3>
-					<p>Click an embedding cell and find similar rows. Works with OpenAI-compatible and Ollama endpoints.</p>
-				</article>
-
-				<article class="card">
-					<div class="card-top">
-						<span class="icon icon-teal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M21 3 12 12M15 3h6v6"/></svg></span>
-						<span class="pill pill-pro">PRO</span>
-					</div>
-					<h3>D1 remote &amp; Turso</h3>
-					<p>Remote Cloudflare D1 and Turso / libSQL databases, with the same grid and editor.</p>
-				</article>
+		<figure class="panel-mock" aria-label="DevDb panel preview">
+			<div class="pm-bar">
+				<span class="pm-tab">DevDb</span>
+				<span class="pm-conn"><span class="pm-led"></span>Redis · localhost:6379</span>
 			</div>
+			<div class="pm-body">
+				<aside class="pm-side">
+					<div class="pm-search">Search tables</div>
+					<div class="pm-group">cache:</div>
+					<div class="pm-item pm-active">cache:user</div>
+					<div class="pm-item">cache:order</div>
+					<div class="pm-group">queue:</div>
+					<div class="pm-item">queue:default</div>
+					<div class="pm-item">session</div>
+					<div class="pm-locked">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+						DynamoDB
+					</div>
+				</aside>
+				<div class="pm-grid">
+					<div class="pm-row pm-head"><span>key</span><span>type</span><span>ttl</span><span>value</span></div>
+					<div class="pm-row"><span>cache:user:1</span><span>hash</span><span>3600</span><span>{ name: "Ada" }</span></div>
+					<div class="pm-row pm-sel"><span>cache:user:2</span><span>hash</span><span>3600</span><span>{ name: "Linus" }</span></div>
+					<div class="pm-row"><span>cache:user:3</span><span>string</span><span>—</span><span>"guest"</span></div>
+					<div class="pm-row"><span>cache:user:4</span><span>zset</span><span>120</span><span>3 members</span></div>
+					<div class="pm-row"><span>cache:user:5</span><span>list</span><span>—</span><span>12 items</span></div>
+					<div class="pm-console"><span class="pm-prompt">&gt;</span> HGETALL cache:user:2</div>
+				</div>
+			</div>
+		</figure>
+
+		<section class="engines" aria-labelledby="engines-heading">
+			<header class="section-head">
+				<h2 id="engines-heading">Eight new engines.</h2>
+				<p>Open them next to your SQL databases. Same grid. Same editor.</p>
+			</header>
+			<dl class="engine-grid">
+				<div><dt>Redis / Valkey <span class="tier">Pro</span></dt><dd>Keys grouped by namespace as tables. Hashes, lists, sets, sorted sets, streams and a RESP console.</dd></div>
+				<div><dt>ClickHouse <span class="tier">Pro</span></dt><dd>Analytics tables over HTTP or HTTPS. Arrays, nullables and exact decimals.</dd></div>
+				<div><dt>DuckDB <span class="tier">Pro</span></dt><dd>Open <code>.duckdb</code> files. Query Parquet, CSV and JSON files as tables.</dd></div>
+				<div><dt>Neon <span class="tier">Pro</span></dt><dd>Serverless Postgres from the <code>DATABASE_URL</code> in your <code>.env</code>, over verified TLS.</dd></div>
+				<div><dt>pgvector search <span class="tier">Pro</span></dt><dd>Click an embedding and find similar rows. OpenAI-compatible and Ollama endpoints.</dd></div>
+				<div><dt>Cloudflare D1, local <span class="tier tier-free">Free</span></dt><dd>Your Wrangler local D1 databases open with no setup. Free for everyone.</dd></div>
+				<div><dt>D1 remote and Turso <span class="tier">Pro</span></dt><dd>Remote Cloudflare D1, Turso and libSQL databases.</dd></div>
+				<div><dt>DynamoDB <span class="tier">Pro</span></dt><dd>Tables and items in AWS or DynamoDB Local.</dd></div>
+			</dl>
 		</section>
 
-		<section class="split">
-			<div class="block">
-				<div class="block-head">
-					<span class="icon icon-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.8L20 10l-5 3.6L16.5 20 12 16.4 7.5 20 9 13.6 4 10l6.1-1.2L12 3Z"/></svg></span>
-					<div>
-						<h2>Zero-config detection</h2>
-						<span class="pill pill-free">FREE</span>
-					</div>
-				</div>
-				<p>Open your project. DevDb finds your databases from:</p>
-				<ul class="chips">
-					<li><code>DATABASE_URL</code></li>
-					<li>Prisma</li>
-					<li>Drizzle</li>
-					<li>docker-compose</li>
-					<li>Laravel SQL Server</li>
-					<li>Laravel Redis</li>
-					<li>Laravel MongoDB</li>
-				</ul>
-				<p class="note">Pro engines that DevDb finds show as locked rows until you unlock them.</p>
-			</div>
-
-			<div class="block">
-				<div class="block-head">
-					<span class="icon icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
-					<div>
-						<h2>Runs where you code</h2>
-					</div>
-				</div>
-				<ul class="checks">
-					<li>Cursor, Windsurf and VSCodium, with a SQLite WASM fallback</li>
-					<li>Linux ARM and Alpine builds</li>
-					<li>Windows on ARM builds</li>
-				</ul>
-			</div>
-
-			<div class="block">
-				<div class="block-head">
-					<span class="icon icon-purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
-					<div>
-						<h2>Safer MCP for AI agents</h2>
-					</div>
-				</div>
-				<ul class="checks">
-					<li>Accepts localhost connections only</li>
-					<li>Every client needs a token</li>
-					<li>Read-only by default. Writes ask you first.</li>
-				</ul>
-			</div>
+		<section class="pillars">
+			<article>
+				<p class="kicker">Zero-config detection <span class="tier tier-free">Free</span></p>
+				<h3>Open your project. DevDb finds the databases.</h3>
+				<p><code>DATABASE_URL</code>, Prisma, Drizzle, docker-compose, and the SQL Server, Redis and MongoDB settings of Laravel.</p>
+				<p class="note">Pro engines that DevDb finds show as locked until you unlock them.</p>
+			</article>
+			<article>
+				<p class="kicker">Runs where you code</p>
+				<h3>More editors. More machines.</h3>
+				<p>Cursor, Windsurf and VSCodium, with a SQLite WASM fallback. Builds for Linux ARM, Alpine and Windows on ARM.</p>
+			</article>
+			<article>
+				<p class="kicker">MCP for AI agents</p>
+				<h3>Your agents read. You decide on writes.</h3>
+				<p>The MCP server accepts localhost connections only. Every client needs a token. It is read-only by default, and writes ask you first.</p>
+			</article>
 		</section>
 
 		<section class="cta">
-			<div>
-				<h2>Unlock every engine with DevDb Pro</h2>
-				<p>${{price}} one-time. Lifetime license. No subscription.</p>
-			</div>
+			<h2>Unlock every engine.</h2>
+			<p>${{price}}, one time. Lifetime license. No subscription.</p>
 			<div class="actions">
 				<button class="btn btn-primary" data-command="getLicense">Unlock with DevDb Pro</button>
-				<button class="btn btn-ghost" data-command="docs">Read the docs</button>
+				<button class="link" data-command="docs">Read the docs <span aria-hidden="true">›</span></button>
 			</div>
 		</section>
 	</main>

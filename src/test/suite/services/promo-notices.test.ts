@@ -339,7 +339,35 @@ describe('Promo notices', function () {
 			assert.ok(includes.length >= 4);
 			const page = devWorkSpaceProHtml(html.getNonce(), false);
 			assert.ok(page.includes('mock-ui'));
-			assert.ok(page.includes('data-tab="focus-pad"'));
+			assert.ok(!page.includes('data-tab'), 'features are rows, not tabs');
+		});
+
+		it('the DevWorkspace Pro notice leads with the New AI session shortcut', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false);
+			const features = page.slice(page.indexOf('class="features"'));
+			assert.ok(features.indexOf('class="shortcut"') < features.indexOf('class="feature"'), 'shortcut block comes before every feature row');
+			assert.match(page, /class="key key-letter">J</);
+		});
+
+		for (const isNewInstall of [false, true]) {
+			it(`the DevWorkspace Pro notice shows the ${isNewInstall ? 'welcome' : 'launch'} code at the top and at the end`, () => {
+				const { discountCode, offerText } = devWorkspacePro.getOffer(isNewInstall);
+				const page = devWorkSpaceProHtml(html.getNonce(), isNewInstall);
+				const hero = page.slice(page.indexOf('<header class="hero">'), page.indexOf('</header>'));
+				const end = page.slice(page.indexOf('<section class="offer">'));
+				for (const part of [hero, end]) {
+					assert.ok(part.includes(discountCode));
+					assert.ok(part.includes(offerText));
+					assert.ok(part.includes('data-command="copyCode"'));
+				}
+			});
+		}
+
+		it('notice styles use no gradients or gradient text', () => {
+			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css']) {
+				const css = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
+				assert.ok(!/gradient\(|background-clip:\s*text/i.test(css), `${file} uses a gradient`);
+			}
 		});
 
 		it('rejects unknown placeholders and paths outside resources/notices', () => {

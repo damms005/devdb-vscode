@@ -2,34 +2,26 @@
 (function () {
 	const vscode = acquireVsCodeApi();
 
+	// Shortcuts show ⌘ on macOS and Ctrl elsewhere (.mac-only / .pc-only).
+	const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+	if (!/mac/i.test(platform)) {
+		document.body.classList.add('os-pc');
+	}
+
 	document.querySelectorAll('[data-command]').forEach(element => {
 		element.addEventListener('click', event => {
 			event.preventDefault();
 			vscode.postMessage({ command: element.dataset.command });
+
+			// data-done: short confirmation label, e.g. "Copied" on a copy button.
+			if (element.dataset.done && !element.dataset.label) {
+				element.dataset.label = element.textContent;
+				element.textContent = element.dataset.done;
+				setTimeout(() => {
+					element.textContent = element.dataset.label;
+					delete element.dataset.label;
+				}, 1600);
+			}
 		});
-	});
-
-	// Tabs: [data-tab="id"] buttons show the [data-panel="id"] panel of the same [data-tabs] group.
-	document.querySelectorAll('[data-tabs]').forEach(group => {
-		const tabs = group.querySelectorAll('[data-tab]');
-		const panels = group.querySelectorAll('[data-panel]');
-
-		function select(id) {
-			tabs.forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === id)));
-			panels.forEach(panel => { panel.hidden = panel.dataset.panel !== id; });
-		}
-
-		tabs.forEach((tab, index) => {
-			tab.addEventListener('click', () => select(tab.dataset.tab));
-			tab.addEventListener('keydown', event => {
-				const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-				if (!step) return;
-				const next = tabs[(index + step + tabs.length) % tabs.length];
-				next.focus();
-				select(next.dataset.tab);
-			});
-		});
-
-		if (tabs.length) select(tabs[0].dataset.tab);
 	});
 })();

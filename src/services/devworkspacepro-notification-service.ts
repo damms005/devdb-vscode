@@ -94,6 +94,9 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
                 case 'docs':
                     vscode.env.openExternal(vscode.Uri.parse(DOCS_URL));
                     break;
+                case 'copyCode':
+                    vscode.env.clipboard.writeText(getOffer(isNewInstall).discountCode);
+                    break;
                 case 'close':
                     panel.dispose();
                     break;
@@ -105,10 +108,13 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
 }
 
 export function getNoticeHtml(webview: NoticeWebview, nonce: string, extensionPath: string, isNewInstall: boolean = false): string {
-    return renderNoticeTemplate(extensionPath, webview, nonce, NOTICE_TEMPLATE, {
-        heading: isNewInstall ? 'Welcome gift' : 'DevDb user discount',
+    return renderNoticeTemplate(extensionPath, webview, nonce, NOTICE_TEMPLATE, getOffer(isNewInstall));
+}
+
+export function getOffer(isNewInstall: boolean) {
+    return {
         offerTitle: isNewInstall ? 'Welcome offer for DevDb users' : 'Special offer for DevDb users',
         offerText: isNewInstall ? 'Get 25% off your first yearly license.' : 'Get 30% off your first yearly license.',
         discountCode: isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'LAUNCHDAYGIFTFORDEVDBUSERS',
-    });
+    };
 }
