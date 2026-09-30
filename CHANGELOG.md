@@ -5,6 +5,7 @@
 - Cloudflare D1 (local), free: DevDb finds `d1_databases` in `wrangler.json`/`wrangler.jsonc`/`wrangler.toml` and opens the local SQLite file of each binding (`.wrangler/state`, or `--persist-to` from `package.json` scripts).
 - Cloudflare D1 (remote), Pro: connect with account ID, database ID and API token over the Cloudflare REST API.
 - Turso / libSQL, Pro: detected from `TURSO_DATABASE_URL` in `.env` or a `drizzle.config` with `dialect: 'turso'`, or added as a remote connection.
+- Pro: DynamoDB (AWS profiles incl. SSO, access keys, DynamoDB Local and LocalStack). Zero-config detection from `docker-compose.yml` and `.env`. Query/Scan filters, edits and deletes by full key, PartiQL for MCP (read-only by default).
 
 ### Fixed
 

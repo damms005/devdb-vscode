@@ -1,10 +1,11 @@
 import * as vscode from 'vscode'
 import { redactSecrets, remoteCredentialService } from './remote-credential-service'
 import { getRandomString } from './random-string-generator'
+import { DynamodbAuthMethod } from '../types'
 
-export type RemoteConnectionType = 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres' | 'redis' | 'clickhouse' | 'cloudflare-d1' | 'turso'
+export type RemoteConnectionType = 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres' | 'redis' | 'clickhouse' | 'cloudflare-d1' | 'turso' | 'dynamodb'
 
-export const REMOTE_CONNECTION_TYPES: readonly RemoteConnectionType[] = ['mysql-ssh', 'postgres-ssh', 'mongodb', 'mysql', 'postgres', 'redis', 'clickhouse', 'cloudflare-d1', 'turso']
+export const REMOTE_CONNECTION_TYPES: readonly RemoteConnectionType[] = ['mysql-ssh', 'postgres-ssh', 'mongodb', 'mysql', 'postgres', 'redis', 'clickhouse', 'cloudflare-d1', 'turso', 'dynamodb']
 
 export interface StoredRemoteConnection {
 	id: string
@@ -40,6 +41,14 @@ export interface StoredRemoteConnection {
 	allowUnauthorizedCertificate?: boolean
 	/** Cloudflare account id (D1). The D1 database id is kept in `database`; the API token is the `password` secret. */
 	accountId?: string
+	/** DynamoDB: AWS region */
+	awsRegion?: string
+	/** DynamoDB: `profile` (shared config / SSO) or `keys` (access key in SecretStorage) */
+	awsAuthMethod?: DynamodbAuthMethod
+	/** DynamoDB: AWS profile name */
+	awsProfile?: string
+	/** DynamoDB: custom endpoint (DynamoDB Local, LocalStack) */
+	awsEndpoint?: string
 	lastConnected?: string
 }
 
@@ -58,7 +67,7 @@ export interface RemoteConnectionListItem {
  */
 export interface RemoteConnectionFormData {
 	id?: string
-	connectionType: 'ssh-tunnel' | 'direct' | 'mongodb' | 'redis' | 'clickhouse' | RemoteConnectionType
+	connectionType: 'ssh-tunnel' | 'direct' | 'mongodb' | 'redis' | 'clickhouse' | 'dynamodb' | RemoteConnectionType
 	dbEngine?: 'mysql' | 'postgres'
 	connectionName: string
 	sshHost?: string
@@ -82,11 +91,35 @@ export interface RemoteConnectionFormData {
 	databaseId?: string
 	/** Turso / libSQL URL. The auth token comes in `dbPassword`. */
 	libsqlUrl?: string
+	awsRegion?: string
+	awsAuthMethod?: DynamodbAuthMethod
+	awsProfile?: string
+	awsEndpoint?: string
+	/** Sent webview -> host only; never sent back. */
+	awsAccessKeyId?: string
+	/** Sent webview -> host only; never sent back. */
+	awsSecretAccessKey?: string
+	/** Sent webview -> host only; never sent back. */
+	awsSessionToken?: string
 }
 
 export interface RemoteConnectionSecrets {
 	password?: string
 	connectionString?: string
+	/** DynamoDB access key ID (the secret access key is `password`) */
+	awsAccessKeyId?: string
+	awsSessionToken?: string
+}
+
+/**
+ * Secret updates for {@link RemoteConnectionStorageService.save}: a value replaces the stored
+ * secret, `undefined` keeps it and `null` removes it.
+ */
+export interface RemoteConnectionSecretUpdate {
+	password?: string | null
+	connectionString?: string | null
+	awsAccessKeyId?: string | null
+	awsSessionToken?: string | null
 }
 
 const STORAGE_KEY = 'devdb.remoteConnections'
@@ -152,11 +185,16 @@ export function connectionFromFormData(formData: RemoteConnectionFormData): { co
 	const connectionString = connectionStringOf(formData, type)
 	const redacted = connectionString ? redactSecrets(connectionString) : undefined
 
+	const isDynamodb = type === 'dynamodb'
+	const awsRegion = isDynamodb ? formData.awsRegion?.trim() || undefined : undefined
+	const awsEndpoint = isDynamodb ? formData.awsEndpoint?.trim() || undefined : undefined
+	const awsAuthMethod: DynamodbAuthMethod | undefined = isDynamodb ? (formData.awsAuthMethod === 'keys' ? 'keys' : 'profile') : undefined
+
 	const connection: StoredRemoteConnection = {
 		id: formData.id || getRandomString('rc-'),
 		name: formData.connectionName,
 		type,
-		host: hostFor(formData, type),
+		host: isDynamodb ? dynamodbDisplayHost(awsRegion, awsEndpoint) : hostFor(formData, type),
 		port: type === 'cloudflare-d1' || type === 'turso' ? undefined : port,
 		username: formData.dbUsername || undefined,
 		database: type === 'cloudflare-d1'
@@ -174,6 +212,16 @@ export function connectionFromFormData(formData: RemoteConnectionFormData): { co
 		protocol: type === 'clickhouse' ? formData.protocol || undefined : undefined,
 		ssl: type === 'mysql' || type === 'postgres' ? toBoolean(formData.ssl) : undefined,
 		allowUnauthorizedCertificate: toBoolean(formData.allowUnauthorizedCertificate),
+		awsRegion,
+		awsAuthMethod,
+		awsProfile: awsAuthMethod === 'profile' ? formData.awsProfile?.trim() || undefined : undefined,
+		awsEndpoint,
+	}
+
+	if (isDynamodb) {
+		delete connection.port
+		delete connection.username
+		delete connection.database
 	}
 
 	for (const key of Object.keys(connection) as (keyof StoredRemoteConnection)[]) {
@@ -182,11 +230,28 @@ export function connectionFromFormData(formData: RemoteConnectionFormData): { co
 
 	return {
 		connection,
-		secrets: {
-			password: formData.dbPassword || (type === 'turso' ? splitLibsqlUrl(formData.libsqlUrl?.trim() ?? '').authToken : undefined) || undefined,
-			connectionString,
-		},
+		secrets: isDynamodb
+			? {
+				password: awsAuthMethod === 'keys' ? formData.awsSecretAccessKey || undefined : undefined,
+				awsAccessKeyId: awsAuthMethod === 'keys' ? formData.awsAccessKeyId?.trim() || undefined : undefined,
+				awsSessionToken: awsAuthMethod === 'keys' ? formData.awsSessionToken?.trim() || undefined : undefined,
+			}
+			: {
+				password: formData.dbPassword || (type === 'turso' ? splitLibsqlUrl(formData.libsqlUrl?.trim() ?? '').authToken : undefined) || undefined,
+				connectionString,
+			},
 	}
+}
+
+function dynamodbDisplayHost(region?: string, endpoint?: string): string {
+	if (endpoint) {
+		try {
+			return new URL(endpoint).host || endpoint
+		} catch {
+			return endpoint
+		}
+	}
+	return `dynamodb.${region || 'default region'}`
 }
 
 /**
@@ -230,6 +295,10 @@ export function connectionToFormData(stored: StoredRemoteConnection): RemoteConn
 		accountId: stored.type === 'cloudflare-d1' ? stored.accountId : undefined,
 		databaseId: stored.type === 'cloudflare-d1' ? stored.database : undefined,
 		libsqlUrl: stored.type === 'turso' ? stored.host : undefined,
+		awsRegion: stored.awsRegion,
+		awsAuthMethod: stored.awsAuthMethod,
+		awsProfile: stored.awsProfile,
+		awsEndpoint: stored.awsEndpoint,
 	}
 }
 
@@ -313,7 +382,7 @@ class RemoteConnectionStorageService {
 	 * Persists a connection. A `password`/`connectionString` value replaces the stored secret;
 	 * `undefined` keeps the current secret. Pass `connectionString: null` to remove it.
 	 */
-	async save(connection: StoredRemoteConnection, secrets: { password?: string, connectionString?: string | null } = {}): Promise<StoredRemoteConnection> {
+	async save(connection: StoredRemoteConnection, secrets: RemoteConnectionSecretUpdate = {}): Promise<StoredRemoteConnection> {
 		if (!this.context) throw new Error('Extension context not set')
 
 		const toStore: StoredRemoteConnection = { ...connection }
@@ -333,14 +402,13 @@ class RemoteConnectionStorageService {
 
 		await this.context.globalState.update(STORAGE_KEY, connections)
 
-		if (secrets.password) {
-			await remoteCredentialService.storeCredential(toStore.id, 'password', secrets.password)
-		}
-
-		if (secrets.connectionString) {
-			await remoteCredentialService.storeCredential(toStore.id, 'connectionString', secrets.connectionString)
-		} else if (secrets.connectionString === null) {
-			await remoteCredentialService.deleteCredential(toStore.id, 'connectionString')
+		for (const credType of ['password', 'connectionString', 'awsAccessKeyId', 'awsSessionToken'] as const) {
+			const value = secrets[credType]
+			if (value) {
+				await remoteCredentialService.storeCredential(toStore.id, credType, value)
+			} else if (value === null) {
+				await remoteCredentialService.deleteCredential(toStore.id, credType)
+			}
 		}
 
 		return toStore
@@ -356,6 +424,14 @@ class RemoteConnectionStorageService {
 			?? connection.mongoConnectionString
 			?? connection.redisConnectionString
 
+		if (connection.type === 'dynamodb') {
+			return {
+				password,
+				awsAccessKeyId: await remoteCredentialService.getCredential(connection.id, 'awsAccessKeyId'),
+				awsSessionToken: await remoteCredentialService.getCredential(connection.id, 'awsSessionToken'),
+			}
+		}
+
 		return { password, connectionString }
 	}
 
@@ -366,15 +442,19 @@ class RemoteConnectionStorageService {
 	 */
 	async prepareFromForm(formData: RemoteConnectionFormData): Promise<{
 		connection: StoredRemoteConnection,
-		update: { password?: string, connectionString?: string | null },
+		update: RemoteConnectionSecretUpdate,
 		effective: RemoteConnectionSecrets,
 	}> {
 		const existing = formData.id ? await this.getById(formData.id) : undefined
 		const { connection, secrets } = connectionFromFormData(formData)
-		const stored = existing ? await this.getSecrets(existing) : {}
+		const stored: RemoteConnectionSecrets = existing ? await this.getSecrets(existing) : {}
+
+		if (connection.type === 'dynamodb') {
+			return { connection, ...dynamodbSecretChanges(connection, secrets, existing?.type === 'dynamodb' ? stored : {}, Boolean(existing)) }
+		}
 		const existingDisplay = existing?.mongoConnectionString ?? existing?.redisConnectionString
 
-		const update: { password?: string, connectionString?: string | null } = { password: secrets.password }
+		const update: RemoteConnectionSecretUpdate = { password: secrets.password }
 		const effective: RemoteConnectionSecrets = { password: secrets.password ?? stored.password }
 
 		if (secrets.connectionString && existingDisplay && secrets.connectionString === existingDisplay) {
@@ -418,6 +498,35 @@ class RemoteConnectionStorageService {
 	async getById(connectionId: string): Promise<StoredRemoteConnection | undefined> {
 		const connections = await this.getAll()
 		return connections.find(c => c.id === connectionId)
+	}
+}
+
+/**
+ * DynamoDB secrets: with access-key auth an empty field keeps the stored value; switching to
+ * profile auth removes the stored keys.
+ */
+function dynamodbSecretChanges(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets, stored: RemoteConnectionSecrets, isEdit: boolean): { update: RemoteConnectionSecretUpdate, effective: RemoteConnectionSecrets } {
+	if (connection.awsAuthMethod !== 'keys') {
+		return {
+			update: isEdit ? { password: null, awsAccessKeyId: null, awsSessionToken: null } : {},
+			effective: {},
+		}
+	}
+
+	// A new key pair without a session token must not reuse the old pair's token.
+	const dropStoredToken = Boolean(secrets.awsAccessKeyId) && !secrets.awsSessionToken
+
+	return {
+		update: {
+			password: secrets.password,
+			awsAccessKeyId: secrets.awsAccessKeyId,
+			awsSessionToken: dropStoredToken && isEdit ? null : secrets.awsSessionToken,
+		},
+		effective: {
+			password: secrets.password ?? stored.password,
+			awsAccessKeyId: secrets.awsAccessKeyId ?? stored.awsAccessKeyId,
+			awsSessionToken: dropStoredToken ? undefined : secrets.awsSessionToken ?? stored.awsSessionToken,
+		},
 	}
 }
 

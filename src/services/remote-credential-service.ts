@@ -1,14 +1,16 @@
 import * as vscode from 'vscode'
 
-export type CredentialType = 'password' | 'sshPassword' | 'sshPassphrase' | 'connectionString'
+export type CredentialType = 'password' | 'sshPassword' | 'sshPassphrase' | 'connectionString' | 'awsAccessKeyId' | 'awsSessionToken'
 
-const CREDENTIAL_TYPES: CredentialType[] = ['password', 'sshPassword', 'sshPassphrase', 'connectionString']
+const CREDENTIAL_TYPES: CredentialType[] = ['password', 'sshPassword', 'sshPassphrase', 'connectionString', 'awsAccessKeyId', 'awsSessionToken']
 
 const credentialLabels: Record<CredentialType, string> = {
 	password: 'database password',
 	sshPassword: 'SSH password',
 	sshPassphrase: 'SSH key passphrase',
 	connectionString: 'connection string',
+	awsAccessKeyId: 'AWS access key ID',
+	awsSessionToken: 'AWS session token',
 }
 
 /**

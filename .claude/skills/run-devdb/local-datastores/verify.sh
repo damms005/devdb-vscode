@@ -25,4 +25,7 @@ echo "== libsql (sqld)"
 curl -s -X POST http://127.0.0.1:8081/ -d '{"statements":["SELECT id, title, views FROM posts ORDER BY id"]}'; echo
 echo "== d1 local (workspace-edge)"
 sqlite3 workspace-edge/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/285ec869a673db37f488aefade4a3953aa3e4724a48cf491d78235a55d3c762a.sqlite "SELECT id, name, plan FROM customers ORDER BY id"
+echo "== dynamodb (DynamoDB Local on :8000)"
+curl -s -X POST http://localhost:8000 -H 'Content-Type: application/x-amz-json-1.0' -H 'X-Amz-Target: DynamoDB_20120810.ListTables' \
+  -H 'Authorization: AWS4-HMAC-SHA256 Credential=devdblocal/20260101/us-east-1/dynamodb/aws4_request, SignedHeaders=host, Signature=x' -d '{}'; echo
 echo "== duckdb"; ls -1 data

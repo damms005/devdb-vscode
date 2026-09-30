@@ -10,4 +10,5 @@ docker compose run --rm redis-seed
 python3 pgvector/seed-embeddings.py
 ./libsql/seed.sh
 ./d1/gen-d1.sh
+node dynamodb/seed.mjs
 ./verify.sh

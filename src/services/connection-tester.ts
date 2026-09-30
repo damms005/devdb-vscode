@@ -1,7 +1,7 @@
 import knexlib from 'knex';
 import { createClient as createRedisClient } from 'redis';
 import { createClient as createClickhouseClient, ClickHouseLogLevel } from '@clickhouse/client';
-import { ClickhouseConfig, DatabaseEngine, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig } from '../types';
+import { ClickhouseConfig, DatabaseEngine, DynamodbConfig, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig } from '../types';
 import { MongodbEngine } from '../database-engines/mongodb-engine';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { PostgresEngine } from '../database-engines/postgres-engine';
@@ -12,6 +12,7 @@ import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
 import { CloudflareD1Engine } from '../database-engines/cloudflare-d1-engine';
 import { LibsqlEngine } from '../database-engines/libsql-engine';
 import { RemoteSqliteEngine } from '../database-engines/remote-sqlite-engine';
+import { DynamodbEngine } from '../database-engines/dynamodb-engine';
 import { errorMessage, remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
 import { buildSslPostgresKnexConnection, isNeonConnectionString } from '../providers/postgres/neon-connection-helper';
@@ -30,6 +31,7 @@ export function proFeatureOf(connection: Pick<StoredRemoteConnection, 'type' | '
 	if (connection.type === 'clickhouse') return 'ClickHouse'
 	if (connection.type === 'cloudflare-d1') return 'Cloudflare D1 (remote)'
 	if (connection.type === 'turso') return 'Turso / libSQL'
+	if (connection.type === 'dynamodb') return 'DynamoDB'
 	if ((connection.type === 'postgres' || connection.type === 'postgres-ssh') && isNeonConnectionString(connection.host)) return 'Neon'
 	return undefined
 }
@@ -126,6 +128,9 @@ export async function createRemoteEngine(connection: StoredRemoteConnection, sec
 
 		case 'turso':
 			return createLibsqlEngine(connection, secrets)
+
+		case 'dynamodb':
+			return createDynamodbEngine(connection, secrets)
 	}
 
 	return { error: `Unsupported connection type: ${connection.type}` }
@@ -339,6 +344,36 @@ async function createLibsqlEngine(connection: StoredRemoteConnection, secrets: R
 	}
 
 	return probeSqliteEngine(new LibsqlEngine({ url: connection.host, authToken: secrets.password }), 'Turso / libSQL')
+}
+
+export function dynamodbConfigFor(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): DynamodbConfig {
+	return {
+		name: connection.name,
+		type: 'dynamodb',
+		region: connection.awsRegion,
+		endpoint: connection.awsEndpoint,
+		authMethod: connection.awsAuthMethod ?? 'profile',
+		profile: connection.awsProfile,
+		accessKeyId: secrets.awsAccessKeyId,
+		secretAccessKey: secrets.password,
+		sessionToken: secrets.awsSessionToken,
+	}
+}
+
+async function createDynamodbEngine(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): Promise<RemoteEngineResult> {
+	const config = dynamodbConfigFor(connection, secrets)
+	if (config.authMethod === 'keys' && (!config.accessKeyId || !config.secretAccessKey) && !config.endpoint) {
+		return { error: 'Failed to connect to DynamoDB: enter an access key ID and a secret access key' }
+	}
+
+	const engine = new DynamodbEngine(config)
+	try {
+		await engine.connect()
+	} catch (error) {
+		return { error: `Failed to connect to DynamoDB: ${errorMessage(error)}` }
+	}
+
+	return { engine }
 }
 
 export async function testRemoteConnection(formData: RemoteConnectionFormData): Promise<{ success: boolean; message: string }> {

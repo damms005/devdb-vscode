@@ -36,7 +36,9 @@ import { connectionToFormData, RemoteConnectionFormData, remoteConnectionStorage
 import { errorMessage } from './remote-credential-service';
 import { embeddingService, EmbeddingConfigInput } from './embedding-service';
 import { createRemoteEngine, testRemoteConnection } from './connection-tester';
-import { hasProLicense, proRequiredMessage, PRO_ENGINE_TYPES, PRO_PROVIDER_IDS, setProLicenseChecker } from './pro-gate';
+import { hasProLicense, proEngineLabel, proRequiredMessage, PRO_ENGINE_TYPES, PRO_PROVIDER_IDS, setProLicenseChecker } from './pro-gate';
+import { listAwsProfiles } from './aws-profiles';
+import { DynamoDbLocalProvider } from '../providers/dynamodb/dynamodb-local-provider';
 import { createGiftLink } from './gift-service';
 
 let workspaceTables: string[] = [];
@@ -104,6 +106,7 @@ const providers: DatabaseEngineProvider[] = [
 	SupabasePostgresProvider,
 	NeonPostgresProvider,
 	TursoProvider,
+	DynamoDbLocalProvider,
 ]
 
 let database: DatabaseEngine | null = null;
@@ -141,6 +144,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-remote-connection': async () => await getRemoteConnectionFormData(data.value),
 		'request:test-remote-connection': async () => await testRemoteConnection(data.value),
 		'request:get-d1-suggestions': async () => findD1Suggestions(),
+		'request:get-aws-profiles': async () => ({ profiles: listAwsProfiles() }),
 		'request:delete-remote-connection': async () => {
 			await remoteConnectionStorageService.delete(data.value)
 			return await remoteConnectionStorageService.getListItems()
@@ -322,22 +326,14 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	return true
 }
 
-const PRO_ENGINE_LABELS: Record<string, string> = {
-	duckdb: 'DuckDB',
-	redis: 'Redis / Valkey',
-	clickhouse: 'ClickHouse',
-	d1: 'Cloudflare D1 (remote)',
-	libsql: 'Turso / libSQL',
-}
-
 /**
- * Refuses engines of Pro datastore types (Redis, ClickHouse, DuckDB, remote D1, libSQL) without a DevDb Pro license.
+ * Refuses engines of Pro datastore types (Redis, ClickHouse, DuckDB, remote D1, libSQL, DynamoDB) without a DevDb Pro license.
  */
 function ensureProEngineAllowed(engine: DatabaseEngine): boolean {
 	const type = engine.getType()
 	if (!PRO_ENGINE_TYPES.includes(type) || hasProLicense()) return true
 
-	vscode.window.showErrorMessage(proRequiredMessage(PRO_ENGINE_LABELS[type] ?? type))
+	vscode.window.showErrorMessage(proRequiredMessage(proEngineLabel(type)))
 	return false
 }
 

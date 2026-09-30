@@ -42,11 +42,11 @@ export type EngineProviderCache = {
  *
  * @see https://github.com/knex/knex/issues/3233#issuecomment-988579036
  */
-export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse' | 'd1' | 'libsql'
+export type KnexClient = 'mysql2' | 'postgres' | 'mssql' | 'sqlite' | 'mongodb' | 'redis' | 'duckdb' | 'clickhouse' | 'd1' | 'libsql' | 'dynamodb'
 
 export type DatabaseEngineProvider = {
 	name: string
-	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb'
+	type: 'sqlite' | 'mysql' | 'postgres' | 'mssql' | 'duckdb' | 'dynamodb'
 	id: string
 	ddev?: boolean
 	description: string
@@ -148,6 +148,8 @@ export type QueryStats = {
 	elapsedSeconds?: number
 	/** Lower bound on the number of matching rows before any `LIMIT` was applied. */
 	rowsBeforeLimitAtLeast?: number
+	/** True when the total row count is an estimate (e.g. DynamoDB DescribeTable ItemCount, updated about every 6 hours). */
+	totalRowsApproximate?: boolean
 }
 
 export type QueryResponse = {
@@ -309,6 +311,22 @@ export interface RedisConfigFile {
 export interface RedisConfig extends RedisConfigFile {
 	password?: string
 	connectionString?: string
+}
+
+export type DynamodbAuthMethod = 'profile' | 'keys'
+
+export interface DynamodbConfig {
+	name: string
+	type: 'dynamodb'
+	region?: string
+	/** Custom endpoint, e.g. http://localhost:8000 for DynamoDB Local or http://localhost:4566 for LocalStack. */
+	endpoint?: string
+	authMethod?: DynamodbAuthMethod
+	/** AWS profile from ~/.aws/config or ~/.aws/credentials (auth method `profile`). */
+	profile?: string
+	accessKeyId?: string
+	secretAccessKey?: string
+	sessionToken?: string
 }
 
 export type LaravelConnection = 'pgsql' | 'mysql'

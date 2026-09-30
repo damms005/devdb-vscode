@@ -240,6 +240,35 @@ function validateMongo(query: string): QueryValidationResult {
 	return { allowed: true };
 }
 
+/** DynamoDB PartiQL statements that write items. */
+const PARTIQL_WRITE_KEYWORDS = new Set(['INSERT', 'UPDATE', 'DELETE']);
+
+/**
+ * DynamoDB accepts PartiQL through ExecuteStatement: SELECT reads; INSERT, UPDATE and DELETE
+ * write one item each and need writes enabled. Anything else (EXISTS, transactions, DDL) is blocked.
+ */
+function validateDynamodb(query: string, allowWrites: boolean): QueryValidationResult {
+	const code = normalizeSql(query, { hashComments: false, backslashEscapes: false, dollarQuotes: false }).replace(/[\s;]+$/, '');
+	if (!code) {
+		return { allowed: false, warning: 'Query blocked: empty statement' };
+	}
+	if (hasStackedStatements(code)) {
+		return { allowed: false, warning: 'Query blocked: multiple statements are not allowed via MCP' };
+	}
+
+	const keyword = getQueryType(code);
+	if (keyword === 'SELECT') {
+		return { allowed: true };
+	}
+	if (!PARTIQL_WRITE_KEYWORDS.has(keyword)) {
+		return { allowed: false, warning: `Query blocked: DynamoDB accepts PartiQL SELECT, INSERT, UPDATE and DELETE only, not ${keyword}` };
+	}
+	if (!allowWrites) {
+		return { allowed: false, destructive: true, warning: `Query blocked: ${keyword} writes data and MCP is read-only (enable Devdb.mcp.allowWrites)` };
+	}
+	return { allowed: true, destructive: true, warning: `Warning: ${keyword} writes data` };
+}
+
 function validateSqlInMode(query: string, allowWrites: boolean, mode: LexerMode, engineType?: string): QueryValidationResult {
 	const normalized = normalizeSql(query, mode);
 	if (!normalized) {
@@ -310,6 +339,10 @@ export function validateQuery(query: string, engineType?: string, options: Query
 
 	if (engineType === 'mongodb') {
 		return validateMongo(query);
+	}
+
+	if (engineType === 'dynamodb') {
+		return validateDynamodb(query, allowWrites);
 	}
 
 	if (!engineType) {

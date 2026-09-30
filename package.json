@@ -319,6 +319,7 @@
 		"winston": "^3.19.0"
 	},
 	"dependencies": {
+		"@aws-sdk/client-dynamodb": "^3.1141.0",
 		"@azure/app-configuration": "^1.12.1",
 		"@azure/keyvault-secrets": "^4.11.2",
 		"@clickhouse/client": "^1.23.1",
