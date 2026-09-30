@@ -41,8 +41,15 @@ Module._load = function (request: string, ...rest: any[]) {
 	return originalLoad.call(this, request, ...rest);
 };
 
+// Other suites may have loaded these services with a different `vscode` stub.
+const servicesDir = path.resolve(__dirname, '../../../services');
+for (const cached of Object.keys(require.cache)) {
+	if (cached.startsWith(servicesDir)) delete require.cache[cached];
+}
+
 const newDatastores = require('../../../services/new-datastores-notification-service');
 const welcome = require('../../../services/welcome-message-service');
+const version = require('../../../services/version');
 const html = require('../../../services/html');
 const devWorkspacePro = require('../../../services/devworkspacepro-notification-service');
 
@@ -92,10 +99,10 @@ describe('Promo notices', function () {
 
 	describe('version parsing', () => {
 		it('parses release and prerelease versions', () => {
-			assert.deepStrictEqual(welcome.parseVersion('3.2.0'), { core: [3, 2, 0], prerelease: [] });
-			assert.deepStrictEqual(welcome.parseVersion('3.2.0-beta.1'), { core: [3, 2, 0], prerelease: ['beta', '1'] });
-			assert.deepStrictEqual(welcome.parseVersion('3.2.1+build.5'), { core: [3, 2, 1], prerelease: [] });
-			assert.strictEqual(welcome.parseVersion('not-a-version'), undefined);
+			assert.deepStrictEqual(version.parseVersion('3.2.0'), { core: [3, 2, 0], prerelease: [] });
+			assert.deepStrictEqual(version.parseVersion('3.2.0-beta.1'), { core: [3, 2, 0], prerelease: ['beta', '1'] });
+			assert.deepStrictEqual(version.parseVersion('3.2.1+build.5'), { core: [3, 2, 1], prerelease: [] });
+			assert.strictEqual(version.parseVersion('not-a-version'), undefined);
 		});
 
 		it('compares with semver precedence', () => {
