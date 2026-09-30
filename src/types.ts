@@ -195,9 +195,13 @@ export type SqliteConfig = {
 export type DuckDbConfig = {
 	type: 'duckdb'
 	path: string
+	/**
+	 * Open the file read-only. Defaults to true; set false to allow writes.
+	 */
+	readOnly?: boolean
 }
 
-export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql' | 'duckdb'
+export type ConfigFileConnectionTypes = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql' | 'duckdb' | 'redis' | 'clickhouse'
 
 export type SqlConfig = {
 	name: string

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig, ClickhouseConfig } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderOption, TableQueryResponse, PaginatedTableQueryResponse, TableFilterPayload, TableFilterResponse, Column, SerializedMutation, EngineProviderCache, FilteredDatabaseEngineProvider } from '../types';
 import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sqlite-provider';
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { FilePickerDuckDbProvider } from '../providers/duckdb/file-picker-duckdb-provider';
@@ -24,29 +24,21 @@ import { log } from './logging-service';
 import { getRandomString } from './random-string-generator';
 import { logToOutput } from './output-service';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
-import { MysqlEngine } from '../database-engines/mysql-engine';
 import { PostgresEngine } from '../database-engines/postgres-engine';
-import { MongodbEngine } from '../database-engines/mongodb-engine';
 import { RedisEngine, RedisNamespace } from '../database-engines/redis-engine';
-import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
 import { DuckDbEngine } from '../database-engines/duckdb-engine';
-import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
-import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { DevDbViewProvider } from '../devdb-view-provider';
 import { join } from 'path';
-import { remoteConnectionStorageService, StoredRemoteConnection } from './remote-connection-storage-service';
-import { remoteCredentialService } from './remote-credential-service';
+import { connectionToFormData, RemoteConnectionFormData, remoteConnectionStorageService } from './remote-connection-storage-service';
+import { errorMessage } from './remote-credential-service';
 import { embeddingService, EmbeddingConfigInput } from './embedding-service';
-import { getConnectionFor } from './connector';
-import { buildSslPostgresKnexConnection } from '../providers/postgres/neon-connection-helper';
-import { getRandomString as generateId } from './random-string-generator';
-import { testRemoteConnection } from './connection-tester';
+import { createRemoteEngine, testRemoteConnection } from './connection-tester';
+import { hasProLicense, proRequiredMessage, PRO_ENGINE_TYPES, PRO_PROVIDER_IDS, setProLicenseChecker } from './pro-gate';
 import { createGiftLink } from './gift-service';
 
 let workspaceTables: string[] = [];
 
 let selectedProvider: string | null = null
-let licenseChecker: (() => boolean) | null = null
 let connectionId = 0
 
 /**
@@ -74,7 +66,18 @@ function cancelActiveQuery(): void {
 }
 
 export function setLicenseChecker(checker: () => boolean) {
-	licenseChecker = checker
+	setProLicenseChecker(checker)
+}
+
+/**
+ * Runs a Pro-only request handler, or answers with `refusal` when no DevDb Pro license is active.
+ */
+async function withPro<T>(feature: string, refusal: (message: string) => T, handler: () => Promise<T>): Promise<T> {
+	if (!hasProLicense()) {
+		return refusal(proRequiredMessage(feature))
+	}
+
+	return handler()
 }
 
 const providers: DatabaseEngineProvider[] = [
@@ -107,10 +110,10 @@ export function getDatabase(): DatabaseEngine | null {
 export async function handleIncomingMessage(data: any, webviewView: vscode.WebviewView) {
 	const actions: Record<string, () => unknown> = {
 		'request:get-user-preferences': async () => vscode.workspace.getConfiguration('Devdb'),
-		'request:get-license-status': async () => ({ hasLicense: licenseChecker?.() ?? false }),
+		'request:get-license-status': async () => ({ hasLicense: hasProLicense() }),
 		'request:activate-license': async () => {
 			await vscode.commands.executeCommand('devdb.license.manage');
-			const licenseStatus = { hasLicense: licenseChecker?.() ?? false };
+			const licenseStatus = { hasLicense: hasProLicense() };
 			reply(webviewView.webview, 'response:get-license-status', licenseStatus);
 			return undefined;
 		},
@@ -145,14 +148,14 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 			return getMcpConfig()
 		},
 		'request:create-gift-link': async () => await createGiftLink(data.value),
-		'request:pgvector-similarity-search': async () => await pgvectorSimilaritySearch(data.value),
+		'request:pgvector-similarity-search': async () => await withPro('Vector similarity search', error => ({ rows: [], error }), () => pgvectorSimilaritySearch(data.value)),
 		'request:get-embedding-configs': async () => ({ configs: embeddingService.getConfigs() }),
-		'request:save-embedding-config': async () => ({ configs: await embeddingService.saveConfig(data.value.config as EmbeddingConfigInput) }),
+		'request:save-embedding-config': async () => await withPro('Vector similarity search', (error): { configs: ReturnType<typeof embeddingService.getConfigs>, error?: string } => ({ configs: embeddingService.getConfigs(), error }), async () => ({ configs: await embeddingService.saveConfig(data.value.config as EmbeddingConfigInput) })),
 		'request:delete-embedding-config': async () => ({ configs: await embeddingService.deleteConfig(data.value.id as string) }),
-		'request:test-embedding-config': async () => await embeddingService.testConfig(data.value),
-		'request:summarize-table': async () => await summarizeTable(data.value),
-		'request:run-raw-command': async () => await runRawCommand(data.value),
-		'request:get-redis-namespaces': async () => await getRedisNamespaces(),
+		'request:test-embedding-config': async () => await withPro('Vector similarity search', error => ({ ok: false, error }), () => embeddingService.testConfig(data.value)),
+		'request:summarize-table': async () => await withPro('DuckDB', error => ({ error }), () => summarizeTable(data.value)),
+		'request:run-raw-command': async () => await withPro('Redis / Valkey', error => ({ error }), () => runRawCommand(data.value)),
+		'request:get-redis-namespaces': async () => await withPro('Redis / Valkey', error => ({ error }), () => getRedisNamespaces()),
 		'request:cancel-query': async () => {
 			cancelActiveQuery()
 			return undefined
@@ -260,6 +263,11 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 		return false
 	}
 
+	if (PRO_PROVIDER_IDS.includes(provider.id) && !hasProLicense()) {
+		vscode.window.showErrorMessage(proRequiredMessage(provider.name))
+		return false
+	}
+
 	if (provider.ddev) {
 		await provider.reconnect()
 	}
@@ -272,6 +280,8 @@ async function selectProvider(providerId: string, data: any): Promise<boolean> {
 		vscode.window.showErrorMessage(`Provider selection error: Could not get database engine for ${providerId}`)
 		return false
 	}
+
+	if (!ensureProEngineAllowed(engine)) return false
 
 	database = engine
 	return true
@@ -286,6 +296,11 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 		return false
 	}
 
+	if (PRO_PROVIDER_IDS.includes(provider.id) && !hasProLicense()) {
+		vscode.window.showErrorMessage(proRequiredMessage(provider.name))
+		return false
+	}
+
 	const engine = await provider.getDatabaseEngine(option) as DatabaseEngine
 
 	if (thisConnectionId !== connectionId) return false
@@ -295,8 +310,21 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 		return false
 	}
 
+	if (!ensureProEngineAllowed(engine)) return false
+
 	database = engine
 	return true
+}
+
+/**
+ * Refuses engines of Pro datastore types (Redis, ClickHouse, DuckDB) without a DevDb Pro license.
+ */
+function ensureProEngineAllowed(engine: DatabaseEngine): boolean {
+	const type = engine.getType()
+	if (!PRO_ENGINE_TYPES.includes(type) || hasProLicense()) return true
+
+	vscode.window.showErrorMessage(proRequiredMessage(type === 'duckdb' ? 'DuckDB' : type === 'redis' ? 'Redis / Valkey' : 'ClickHouse'))
+	return false
 }
 
 async function getFreshTableData(requestPayload: {
@@ -551,81 +579,13 @@ async function getRemoteConnectionFormData(connectionId: string) {
 	const stored = await remoteConnectionStorageService.getById(connectionId)
 	if (!stored) return null
 
-	let connectionType: string
-	if (stored.type === 'mysql-ssh' || stored.type === 'postgres-ssh') {
-		connectionType = 'ssh-tunnel'
-	} else if (stored.type === 'mongodb') {
-		connectionType = 'mongodb'
-	} else {
-		connectionType = 'direct'
-	}
-
-	return {
-		id: stored.id,
-		connectionType,
-		connectionName: stored.name,
-		sshHost: stored.sshHost,
-		sshPort: stored.sshPort,
-		sshUsername: stored.sshUsername,
-		sshPrivateKeyPath: stored.sshPrivateKeyPath,
-		dbHost: stored.host,
-		dbPort: stored.port,
-		dbUsername: stored.username,
-		dbName: stored.database,
-		mongoConnectionString: stored.mongoConnectionString,
-		ssl: stored.ssl ?? false,
-	}
+	return connectionToFormData(stored)
 }
 
-async function saveRemoteConnection(formData: any) {
-	const connectionType = formData.connectionType as string
-	const port = formData.dbPort ? Number(formData.dbPort) : undefined
-	const isPostgres = port === 5432
+async function saveRemoteConnection(formData: RemoteConnectionFormData) {
+	const { connection, update } = await remoteConnectionStorageService.prepareFromForm(formData)
 
-	let type: StoredRemoteConnection['type']
-	if (connectionType === 'ssh-tunnel') {
-		type = isPostgres ? 'postgres-ssh' : 'mysql-ssh'
-	} else if (connectionType === 'mongodb') {
-		type = 'mongodb'
-	} else {
-		type = isPostgres ? 'postgres' : 'mysql'
-	}
-
-	const isEdit = !!formData.id
-	let oldConnectionName: string | undefined
-
-	if (isEdit) {
-		const existing = await remoteConnectionStorageService.getById(formData.id)
-		if (existing && existing.name !== formData.connectionName) {
-			oldConnectionName = existing.name
-		}
-	}
-
-	const connection: StoredRemoteConnection = {
-		id: formData.id || generateId('rc-'),
-		name: formData.connectionName,
-		type,
-		host: formData.dbHost || 'localhost',
-		port,
-		username: formData.dbUsername || undefined,
-		database: formData.dbName || undefined,
-		sshHost: formData.sshHost || undefined,
-		sshPort: formData.sshPort ? Number(formData.sshPort) : undefined,
-		sshUsername: formData.sshUsername || undefined,
-		sshPrivateKeyPath: formData.sshPrivateKeyPath || undefined,
-		mongoConnectionString: formData.mongoConnectionString || undefined,
-		ssl: formData.ssl === true ? true : undefined,
-	}
-
-	if (oldConnectionName) {
-		const password = await remoteCredentialService.getCredential(oldConnectionName, 'password')
-		await remoteCredentialService.deleteAllCredentials(oldConnectionName)
-		if (password) {
-			await remoteCredentialService.storeCredential(formData.connectionName, 'password', password)
-		}
-	}
-
-	await remoteConnectionStorageService.save(connection, formData.dbPassword || undefined)
+	await remoteConnectionStorageService.save(connection, update)
 
 	return await remoteConnectionStorageService.getListItems()
 }
@@ -638,163 +598,21 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 	}
 
 	try {
-		let engine: DatabaseEngine | null = null
-
-		if (connection.type === 'mongodb') {
-			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const config: MongodbConfig = {
-				name: connection.name,
-				type: 'mongodb',
-				host: connection.host,
-				port: connection.port,
-				username: connection.username,
-				database: connection.database ?? '',
-				authSource: connection.authSource,
-				schemaSampleSize: connection.schemaSampleSize,
-				password: password ?? undefined,
-				connectionString: connection.mongoConnectionString,
-			}
-			const mongoEngine = new MongodbEngine(config)
-			if (!(await mongoEngine.connect())) {
-				return { connected: false, error: `Failed to connect to MongoDB: ${connection.name}` }
-			}
-			engine = mongoEngine
+		const result = await createRemoteEngine(connection, await remoteConnectionStorageService.getSecrets(connection))
+		if (!result.engine) {
+			return { connected: false, error: result.error }
 		}
 
-		if (connection.type === 'mysql-ssh') {
-			const config: MysqlSshConfigFile = {
-				name: connection.name,
-				type: 'mysql-ssh',
-				host: connection.host,
-				port: connection.port,
-				username: connection.username,
-				database: connection.database ?? '',
-				sshHost: connection.sshHost ?? '',
-				sshPort: connection.sshPort,
-				sshUsername: connection.sshUsername ?? '',
-				sshPrivateKeyPath: connection.sshPrivateKeyPath,
-			}
-			const sshEngine = new MysqlSshEngine(config, remoteCredentialService)
-			if (!(await sshEngine.connect())) {
-				return { connected: false, error: `Failed to connect via SSH to MySQL: ${connection.name}` }
-			}
-			engine = sshEngine
+		if (thisConnectionId !== connectionId) {
+			try { await result.engine.disconnect() } catch { }
+			return { connected: false, error: 'Connection superseded by a newer request' }
 		}
 
-		if (connection.type === 'postgres-ssh') {
-			const config: PostgresSshConfigFile = {
-				name: connection.name,
-				type: 'postgres-ssh',
-				host: connection.host,
-				port: connection.port,
-				username: connection.username,
-				database: connection.database ?? '',
-				sshHost: connection.sshHost ?? '',
-				sshPort: connection.sshPort,
-				sshUsername: connection.sshUsername ?? '',
-				sshPrivateKeyPath: connection.sshPrivateKeyPath,
-			}
-			const sshEngine = new PostgresSshEngine(config, remoteCredentialService)
-			if (!(await sshEngine.connect())) {
-				return { connected: false, error: `Failed to connect via SSH to PostgreSQL: ${connection.name}` }
-			}
-			engine = sshEngine
-		}
-
-		if (connection.type === 'mysql') {
-			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const knex = await getConnectionFor(
-				connection.name, 'mysql2',
-				connection.host, connection.port ?? 3306,
-				connection.username ?? 'root', password ?? '',
-				connection.database, false
-			)
-			if (!knex) {
-				return { connected: false, error: `Failed to connect to MySQL: ${connection.name}` }
-			}
-			const mysqlEngine = new MysqlEngine(knex)
-			if (!(await mysqlEngine.isOkay())) {
-				return { connected: false, error: `MySQL connection not healthy: ${connection.name}` }
-			}
-			engine = mysqlEngine
-		}
-
-		if (connection.type === 'postgres') {
-			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const knex = connection.ssl === true
-				? buildSslPostgresKnexConnection({
-					host: connection.host,
-					port: connection.port ?? 5432,
-					user: connection.username ?? 'postgres',
-					password: password ?? '',
-					database: connection.database ?? '',
-				})
-				: await getConnectionFor(
-					connection.name, 'postgres',
-					connection.host, connection.port ?? 5432,
-					connection.username ?? 'postgres', password ?? '',
-					connection.database, false
-				)
-			if (!knex) {
-				return { connected: false, error: `Failed to connect to PostgreSQL: ${connection.name}` }
-			}
-			const pgEngine = new PostgresEngine(knex)
-			if (!(await pgEngine.isOkay())) {
-				return { connected: false, error: `PostgreSQL connection not healthy: ${connection.name}` }
-			}
-			engine = pgEngine
-		}
-
-		if (connection.type === 'redis') {
-			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const config: RedisConfig = {
-				name: connection.name,
-				type: 'redis',
-				host: connection.host,
-				port: connection.port,
-				username: connection.username,
-				database: connection.database ? Number(connection.database) : undefined,
-				keyPrefix: connection.keyPrefix,
-				password: password ?? undefined,
-				connectionString: connection.redisConnectionString,
-			}
-			const redisEngine = new RedisEngine(config)
-			if (!(await redisEngine.connect())) {
-				return { connected: false, error: `Failed to connect to Redis: ${connection.name}` }
-			}
-			engine = redisEngine
-		}
-
-		if (connection.type === 'clickhouse') {
-			const password = await remoteCredentialService.getCredential(connection.name, 'password')
-			const config: ClickhouseConfig = {
-				name: connection.name,
-				type: 'clickhouse',
-				host: connection.host,
-				port: connection.port ?? 8123,
-				protocol: connection.protocol,
-				username: connection.username ?? 'default',
-				database: connection.database ?? 'default',
-				password: password ?? undefined,
-			}
-			const clickhouseEngine = new ClickhouseEngine(config)
-			if (!(await clickhouseEngine.connect())) {
-				return { connected: false, error: `Failed to connect to ClickHouse: ${connection.name}` }
-			}
-			engine = clickhouseEngine
-		}
-
-		if (!engine) {
-			return { connected: false, error: `Unsupported connection type: ${connection.type}` }
-		}
-
-		if (thisConnectionId !== connectionId) return { connected: false, error: 'Connection superseded by a newer request' }
-
-		database = engine
+		database = result.engine
 		await remoteConnectionStorageService.updateLastConnected(remoteConnectionId)
 		return { connected: true }
 	} catch (error) {
-		return { connected: false, error: String(error) }
+		return { connected: false, error: errorMessage(error) }
 	}
 }
 

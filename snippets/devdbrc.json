@@ -71,5 +71,46 @@
       "}"
     ],
     "description": "Add a new Microsoft SQL Server database configuration"
+  },
+  "DevDB DuckDB Configuration": {
+    "prefix": "devdb duckdb",
+    "body": [
+      "{",
+      "\t\"type\": \"duckdb\",",
+      "\t\"path\": \"${1:/path/to/database.duckdb}\",",
+      "\t\"readOnly\": ${2:true}",
+      "}"
+    ],
+    "description": "Add a new DuckDB database configuration (DevDb Pro, read-only by default)"
+  },
+  "DevDB Redis Configuration": {
+    "prefix": "devdb redis valkey",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My Redis Connection}\",",
+      "\t\"type\": \"redis\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:6379},",
+      "\t\"password\": \"${4}\",",
+      "\t\"database\": ${5:0}",
+      "}"
+    ],
+    "description": "Add a new Redis / Valkey configuration (DevDb Pro)"
+  },
+  "DevDB ClickHouse Configuration": {
+    "prefix": "devdb clickhouse",
+    "body": [
+      "{",
+      "\t\"name\": \"${1:My ClickHouse Connection}\",",
+      "\t\"type\": \"clickhouse\",",
+      "\t\"host\": \"${2:localhost}\",",
+      "\t\"port\": ${3:8123},",
+      "\t\"protocol\": \"${4|http,https|}\",",
+      "\t\"username\": \"${5:default}\",",
+      "\t\"password\": \"${6}\",",
+      "\t\"database\": \"${7:default}\"",
+      "}"
+    ],
+    "description": "Add a new ClickHouse configuration (DevDb Pro)"
   }
 }
