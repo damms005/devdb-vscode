@@ -323,9 +323,15 @@
 	},
 	"overrides": {
 		"diff": "^8.0.3",
-		"ip-address": "^10.1.1",
+		"fast-uri": "^3.1.8",
+		"hono": "^4.13.5",
+		"ip-address": "^10.7.2",
+		"js-yaml": "^4.3.2",
 		"picomatch": "^4.0.4",
+		"qs": "^6.16.0",
 		"serialize-javascript": "^7.0.3",
+		"shell-quote": "^1.10.0",
+		"tar": "^7.5.21",
 		"uuid": "^11.1.1"
 	},
 	"prettier": {
