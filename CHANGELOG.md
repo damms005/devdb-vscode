@@ -14,7 +14,7 @@
 
 ### Changed
 
-- New DevDb 4 launch notice (once, 4.x only; Pro users get a toast) and a refreshed DevWorkspace Pro showcase with the app's real UI mocks (once per showcase version, DDEV workspaces only). Both follow the VS Code theme and use a strict CSP.
+- New DevDb v4 launch notice (once, 4.x only; Pro users get a toast) and a refreshed DevWorkspace Pro showcase with the app's real UI mocks (once per showcase version, DDEV workspaces only). Both follow the VS Code theme and use a strict CSP.
 
 ## 3.2.0
 

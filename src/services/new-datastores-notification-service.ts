@@ -15,7 +15,7 @@ const DELAY_MS = 1200;
 export const PRO_LIFETIME_PRICE_USD = 15;
 
 export const NOTICE_TEMPLATE = 'v4/notice.html';
-export const PRO_TOAST_MESSAGE = 'DevDb 4 is here: Redis/Valkey, ClickHouse, DuckDB, DynamoDB, Turso, D1 and more are in your Pro plan.';
+export const PRO_TOAST_MESSAGE = 'DevDb v4 is here: Redis/Valkey, ClickHouse, DuckDB, DynamoDB, Turso, D1 and more are in your Pro plan.';
 export const LEARN_MORE_URL = 'https://devdbpro.com/?ref=ide#features';
 export const PRICING_URL = 'https://devdbpro.com/?ref=ide&pro=true#pricing';
 export const DOCS_URL = 'https://docs.devdbpro.com';
@@ -70,7 +70,7 @@ export function getNewDatastoresNoticeAction(
 }
 
 /**
- * Shows the DevDb 4 launch notice at most once, only on the 4.x line.
+ * Shows the DevDb v4 launch notice at most once, only on the 4.x line.
  * Free users get a full-page webview, licensed users a short toast.
  */
 export async function showNewDatastoresNotice(
@@ -119,7 +119,7 @@ function showProToast() {
 function createNewDatastoresWebview(context: vscode.ExtensionContext) {
 	const panel = vscode.window.createWebviewPanel(
 		'devdb-new-datastores-notice',
-		"What's new in DevDb 4",
+		"What's new in DevDb v4",
 		vscode.ViewColumn.One,
 		{
 			enableScripts: true,

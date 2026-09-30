@@ -1,32 +1,40 @@
-/* DevWorkspace Pro showcase. Page colors come from the VS Code theme; mocks use mocks.css. */
+/* DevWorkspace Pro launch banner. Page colors come from the VS Code theme; mocks use mocks.css. */
 :root {
 	--fg: var(--vscode-editor-foreground, var(--vscode-foreground));
+	--title: var(--fg);
 	--muted: var(--vscode-descriptionForeground);
 	--bg: var(--vscode-editor-background);
 	--hairline: color-mix(in srgb, var(--fg) 12%, transparent);
-	--tile: color-mix(in srgb, var(--fg) 4%, var(--bg));
+	--surface: color-mix(in srgb, var(--fg) 5%, var(--bg));
 	--accent: #02a074;
 	--accent-hover: #018a64;
 	--link: var(--vscode-textLink-foreground);
-	--title: var(--fg);
+	--light: color-mix(in srgb, var(--fg) 11%, transparent);
 	--sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
 	--mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
-	--shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 7%, transparent), 0 2px 4px rgba(0, 0, 0, 0.06), 0 24px 48px -20px rgba(0, 0, 0, 0.4);
-	--key-fg: color-mix(in srgb, var(--fg) 80%, #fff);
-	--key-bg: color-mix(in srgb, var(--fg) 10%, var(--bg));
-	--key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 3px 0 rgba(0, 0, 0, 0.55), 0 18px 36px -12px rgba(0, 0, 0, 0.6);
+	--edge: 0 0 0 1px color-mix(in srgb, var(--fg) 9%, transparent);
+	--shadow-far: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.2), 0 40px 80px -20px rgba(0, 0, 0, 0.65);
+	--shadow-near: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.25), 0 30px 60px -12px rgba(0, 0, 0, 0.75);
+	--key-fg: color-mix(in srgb, var(--fg) 75%, #fff);
+	--key-bg: color-mix(in srgb, var(--fg) 12%, var(--bg));
+	--key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 3px 0 rgba(0, 0, 0, 0.6), 0 24px 40px -10px rgba(0, 0, 0, 0.8);
 }
-body.vscode-dark { --title: color-mix(in srgb, var(--fg) 45%, #fff); }
-body.vscode-light { --title: color-mix(in srgb, var(--fg) 55%, #000); }
+body.vscode-dark { --title: color-mix(in srgb, var(--fg) 40%, #fff); }
 body.vscode-light {
+	--title: color-mix(in srgb, var(--fg) 55%, #000);
+	--accent: #017a58; --accent-hover: #016a4c;
+	--light: color-mix(in srgb, var(--fg) 7%, transparent);
+	--edge: 0 0 0 1px rgba(0, 0, 0, 0.07);
+	--shadow-far: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.05), 0 40px 80px -24px rgba(0, 0, 0, 0.28);
+	--shadow-near: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.06), 0 30px 60px -16px rgba(0, 0, 0, 0.32);
 	--key-fg: #1d1d1f; --key-bg: #fff;
-	--key-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 3px 0 rgba(0, 0, 0, 0.1), 0 18px 36px -14px rgba(0, 0, 0, 0.25);
+	--key-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 3px 0 rgba(0, 0, 0, 0.1), 0 24px 40px -12px rgba(0, 0, 0, 0.3);
 }
-body.vscode-light { --accent: #017a58; --accent-hover: #016a4c; --shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04), 0 24px 48px -24px rgba(0, 0, 0, 0.22); }
 
 *, ::before, ::after { box-sizing: border-box; }
 /* Page reset; never touches the mocks. */
-:where(body, h1, h2, h3, p, ul, dl, dd, figure):not(.mock-frame *) { margin: 0; padding: 0; }
+:where(body, h1, h2, p, ul, figure):where(:not(.mock-frame *)) { margin: 0; padding: 0; }
+html, body { height: 100%; }
 
 body {
 	font-family: var(--sans);
@@ -36,9 +44,8 @@ body {
 	color: var(--fg);
 	background: var(--bg);
 	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
 }
-
-.page { max-width: 1120px; margin: 0 auto; padding: 96px 48px 120px; }
 
 .close {
 	position: fixed; top: 16px; right: 16px; z-index: 20;
@@ -46,181 +53,140 @@ body {
 	border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer;
 }
 .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; }
-.close:hover { background: var(--tile); color: var(--fg); }
-.close:focus-visible, .btn:focus-visible, .link:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; }
-
-kbd:not(.mock-frame *) { font: inherit; letter-spacing: inherit; padding: 0; border: 0; background: none; box-shadow: none; color: inherit; }
-h1, h2:not(.mock-frame *), .copy h3, .shortcut h3, .more-grid dt { color: var(--title); }
-
-/* Hero */
-.hero { text-align: center; margin-bottom: 64px; }
-.kicker { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--muted); margin-bottom: 12px; }
-h1 {
-	font-size: clamp(40px, 5.6vw, 64px); line-height: 1.05; font-weight: 700; letter-spacing: -0.035em;
-	margin-bottom: 20px;
-}
-.lead { font-size: clamp(19px, 1.8vw, 21px); line-height: 1.4; color: var(--muted); max-width: 640px; margin: 0 auto 32px; }
-.actions { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: center; align-items: center; }
-.platforms { margin-top: 16px; font-size: 14px; color: var(--muted); }
-
-/* Offer line under the hero CTAs. */
-.offer-line {
-	display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px;
-	margin-top: 28px; font-size: 15px; color: var(--fg);
-}
-.offer-code { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
-.offer-code code { padding: 0; background: none; font-family: var(--mono); font-size: 14px; letter-spacing: 0.03em; color: var(--fg); }
-.copy-btn {
-	padding: 0; border: 0; background: none; cursor: pointer;
-	font: inherit; font-size: 14px; color: var(--link);
-}
-.copy-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
-.copy-btn:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; }
-
-.btn {
-	display: inline-flex; align-items: center; height: 44px; padding: 0 22px;
-	font: inherit; font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
-	border: 0; border-radius: 980px; cursor: pointer; transition: background-color 0.2s ease;
-}
-.btn-primary { color: #fff; background: var(--accent); }
-.btn-primary:hover { background: var(--accent-hover); }
-.link {
-	display: inline-flex; align-items: center; gap: 4px; padding: 0;
-	font: inherit; font-size: 17px; letter-spacing: -0.01em;
-	border: 0; background: none; color: var(--link); cursor: pointer;
-}
-.link span { font-size: 1.2em; line-height: 1; }
-.link:hover { text-decoration: underline; text-underline-offset: 3px; }
-
-/* Mocks */
-.mock-frame { font-size: 16px; line-height: 1.5; letter-spacing: normal; text-align: left; }
-.hero-frame {
-	display: flex; flex-direction: column; max-height: 470px; overflow: hidden;
-	border-radius: 18px; box-shadow: var(--shadow);
-}
-.hero-frame .mock-ui:first-child { border: 0; box-shadow: none; }
-
-/* Sections */
-.features { margin-top: 160px; }
-.section-head { text-align: center; margin-bottom: 64px; }
-h2:not(.mock-frame *) { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; font-weight: 700; letter-spacing: -0.03em; }
-.section-head p { margin-top: 14px; font-size: 21px; color: var(--muted); }
+.close:hover { background: var(--surface); color: var(--fg); }
+.close:focus-visible, .btn:focus-visible, .link:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; }
 
 /* Platform-specific shortcut text; notice.js adds .os-pc outside macOS. */
 .pc-only { display: none; }
 body.os-pc .pc-only { display: inline; }
 body.os-pc .mac-only { display: none; }
 
-/* Lead feature: the New AI session shortcut, drawn as keycaps. */
-.shortcut { text-align: center; padding: 88px 32px 96px; border-radius: 28px; background: var(--tile); margin-bottom: 128px; }
-.keys { display: flex; justify-content: center; gap: 20px; margin-bottom: 56px; }
-.key {
-	position: relative; display: inline-flex; width: 132px; height: 132px; border-radius: 22px;
-	font-family: var(--sans); color: var(--key-fg); background: var(--key-bg);
-	box-shadow: var(--key-shadow);
+/* One screen: hero on top, a dense strip at the bottom. */
+.banner {
+	display: flex; flex-direction: column; min-height: 100vh;
+	max-width: 1320px; margin: 0 auto; padding: clamp(28px, 5vh, 56px) 56px clamp(24px, 4vh, 40px);
 }
-.key-letter { align-items: center; justify-content: center; font-size: 52px; font-weight: 400; letter-spacing: 0; }
-.key-glyph { position: absolute; top: 16px; right: 18px; font-size: 30px; line-height: 1; }
-.key-word { position: absolute; left: 18px; bottom: 16px; font-size: 17px; letter-spacing: 0; }
-.key-word-pc { font-size: 22px; }
-.shortcut .kicker { font-size: 17px; }
-.shortcut h3 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.08; font-weight: 700; letter-spacing: -0.03em; margin: 0 auto 18px; max-width: 720px; }
-.shortcut-copy { font-size: 19px; line-height: 1.45; color: var(--muted); max-width: 600px; margin: 0 auto; }
+.hero { flex: 1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; align-items: center; }
 
-/* Alternating feature rows: mock on one side, copy on the other. */
-.feature {
-	display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 72px; align-items: center;
+/* Copy */
+.label { font-size: 17px; font-weight: 600; color: var(--muted); margin-bottom: 14px; }
+h1 {
+	font-size: clamp(40px, 4.3vw, 62px); line-height: 1.03; font-weight: 700; letter-spacing: -0.04em;
+	color: var(--title); margin-bottom: 24px;
 }
-.feature + .feature { margin-top: 128px; }
-.feature:nth-of-type(even) { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
-.feature:nth-of-type(even) .stage { order: 2; }
+.h1-soft { color: color-mix(in srgb, var(--title) 42%, var(--bg)); }
+.lead { font-size: clamp(17px, 1.5vw, 20px); line-height: 1.4; color: var(--muted); max-width: 440px; margin-bottom: 30px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
 
-.copy .kicker { margin-bottom: 10px; font-size: 15px; }
-.copy h3 { font-size: clamp(26px, 2.7vw, 34px); line-height: 1.12; font-weight: 700; letter-spacing: -0.028em; margin-bottom: 16px; }
-.copy > p:not(.kicker) { color: var(--muted); margin-bottom: 24px; }
-.points { list-style: none; }
-.points li { padding: 12px 0; font-size: 15px; line-height: 1.4; color: var(--fg); border-top: 1px solid var(--hairline); }
-
-/* Stage: a flat neutral tile that holds a mock. */
-.stage {
-	position: relative; display: flex; align-items: center; justify-content: center;
-	min-height: 440px; padding: 36px; border-radius: 22px; overflow: hidden; background: var(--tile);
+.btn {
+	display: inline-flex; align-items: center; height: 46px; padding: 0 24px;
+	font: inherit; font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+	border: 0; border-radius: 980px; cursor: pointer; color: #fff; background: var(--accent);
+	transition: background-color 0.2s ease;
 }
-.stage > .mock-ui { flex: 1; zoom: 0.8; }
-.stage > .mock-ui.rounded-xl, .stage > .mock-ui.ai-mock .ai-window { box-shadow: var(--shadow); }
-.stage-scratchpad > .mock-ui { zoom: 0.68; }
-.stage-voice > .mock-ui { zoom: 0.72; }
-/* The recipes mock places its dialog at left: 400px, so it needs its full 780px width. */
-.stage-recipes { padding: 24px; }
-.stage-recipes > .mock-ui { zoom: 0.66; flex: none; width: 790px; }
+.btn:hover { background: var(--accent-hover); }
+.link {
+	display: inline-flex; align-items: center; gap: 4px; padding: 0;
+	font: inherit; font-size: 17px; letter-spacing: -0.01em;
+	border: 0; background: none; color: var(--link); cursor: pointer;
+}
+.link span { font-size: 1.2em; line-height: 1; }
+.link:hover, .copy-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Offer: two quiet lines under the CTA. */
+.offer { margin-top: 22px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.offer-title { color: var(--fg); font-weight: 600; }
+.offer-code { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 2px; }
+.offer-code code { font-family: var(--mono); font-size: 13.5px; letter-spacing: 0.03em; padding: 0; background: none; color: var(--fg); user-select: all; }
+.copy-btn { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 14px; color: var(--link); }
+
+/* Visual: the app in perspective, the AI launcher in front, then the keys. */
+.visual { position: relative; height: clamp(400px, 62vh, 540px); perspective: 1800px; }
+.visual::before {
+	content: ''; position: absolute; inset: -18% -30% -18% -10%; z-index: -1;
+	background: radial-gradient(closest-side, var(--light), transparent);
+}
+.mock-frame { font-size: 16px; line-height: 1.5; letter-spacing: normal; text-align: left; }
+.app {
+	position: absolute; z-index: 1; top: 0; left: 8%; width: 1180px; height: 700px; zoom: 0.6;
+	display: flex; flex-direction: column; overflow: hidden;
+	border-radius: 20px; box-shadow: var(--shadow-far);
+	transform: rotateY(-22deg) rotateX(6deg) rotateZ(1.5deg); transform-origin: left center;
+}
+.app .mock-ui:first-child { border: 0; box-shadow: none; }
+
+.launcher {
+	position: absolute; z-index: 2; left: -2%; bottom: 10%; width: 400px;
+	transform: rotateY(-8deg) translateZ(40px);
+}
 
 /* AI launcher mock (drawn here, themed with the mock palette). */
-.ai-mock { display: flex; flex-direction: column; gap: 18px; zoom: 1 !important; max-width: 520px; font-family: var(--sans); color: hsl(var(--app-foreground)); }
-.ai-mock svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.ai-window { border-radius: 12px; background: hsl(var(--app-card)); overflow: hidden; }
+.ai-window {
+	border-radius: 14px; overflow: hidden; background: hsl(var(--app-card)); color: hsl(var(--app-foreground));
+	box-shadow: var(--shadow-near); font-family: var(--sans); letter-spacing: 0;
+}
+.ai-window svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ai-chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid hsl(var(--app-border)); }
 .ai-dot { width: 10px; height: 10px; border-radius: 50%; }
 .ai-dot-red { background: #ff5f57; }
 .ai-dot-yellow { background: #febc2e; }
 .ai-dot-green { background: #28c840; }
 .ai-title { margin-left: 10px; font-size: 12px; font-weight: 600; color: hsl(var(--app-muted-foreground)); }
-.ai-prompt { padding: 18px 18px 26px; font-size: 14px; line-height: 1.55; }
+.ai-prompt { padding: 16px 16px 22px; font-size: 13.5px; line-height: 1.55; }
 .ai-dim { color: hsl(var(--app-muted-foreground)); }
 .ai-caret { display: inline-block; width: 2px; height: 15px; margin-left: 2px; vertical-align: -3px; background: hsl(var(--app-primary)); }
 .ai-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid hsl(var(--app-border)); font-size: 12px; }
 .ai-tool { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: hsl(var(--app-secondary)); font-family: var(--mono); }
-.ai-tool svg { color: hsl(var(--app-highlight)); }
 .ai-tool .ai-chev { color: hsl(var(--app-muted-foreground)); width: 12px; height: 12px; }
 .ai-spacer { flex: 1; }
 .ai-ghost { color: hsl(var(--app-muted-foreground)); }
 .ai-launch { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; font-weight: 600; color: hsl(var(--app-primary-foreground)); background: hsl(var(--app-primary)); }
 .ai-launch kbd { font-family: var(--sans); font-size: 11px; opacity: 0.8; }
-.ai-resume { padding: 6px 0; border-radius: 12px; background: hsl(var(--app-card)); box-shadow: var(--shadow); font-size: 12.5px; }
-.ai-resume-head { display: flex; align-items: center; gap: 8px; padding: 8px 16px 6px; font-weight: 600; color: hsl(var(--app-muted-foreground)); }
-.ai-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 9px 16px; border-top: 1px solid hsl(var(--app-border)); }
-.ai-row-tool { font-family: var(--mono); font-size: 11.5px; color: hsl(var(--app-muted-foreground)); }
-.ai-row-task { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ai-row-time { color: hsl(var(--app-muted-foreground)); white-space: nowrap; }
-.ai-row-btn { padding: 3px 10px; border-radius: 6px; font-weight: 600; background: hsl(var(--app-secondary)); }
 
-/* And more */
-.more { margin-top: 160px; }
-.more h2 { margin-bottom: 40px; }
-.more-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 40px; }
-.more-grid div { padding: 20px 0 28px; border-top: 1px solid var(--hairline); }
-.more-grid dt { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-.more-grid dd { font-size: 15px; color: var(--muted); }
-
-/* Offer */
-.offer {
-	display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 24px 32px; align-items: center;
-	margin-top: 120px; padding: 40px 44px; border-radius: 22px; background: var(--tile);
+/* Keycaps: flat caps with a lower edge and a soft cast shadow. */
+.keys { position: absolute; z-index: 3; right: 4%; bottom: 0; display: flex; gap: 14px; transform: translateZ(80px); }
+.key {
+	position: relative; display: inline-flex; width: 104px; height: 104px; border-radius: 18px;
+	font-family: var(--sans); color: var(--key-fg); background: var(--key-bg); box-shadow: var(--key-shadow);
 }
-.offer h2:not(.mock-frame *) { font-size: 24px; letter-spacing: -0.02em; margin-bottom: 6px; }
-.offer p { color: var(--muted); font-size: 15px; }
-.code-box {
-	display: inline-flex; align-items: center; gap: 16px; height: 44px; padding: 0 16px;
-	border-radius: 12px; background: var(--bg); box-shadow: 0 0 0 1px var(--hairline);
-}
-.code { padding: 0; background: none; font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--fg); user-select: all; }
+.key-letter { align-items: center; justify-content: center; font-size: 40px; font-weight: 400; letter-spacing: 0; }
+.key-glyph { position: absolute; top: 12px; right: 14px; font-size: 24px; line-height: 1; }
+.key-word { position: absolute; left: 14px; bottom: 12px; font-size: 14px; letter-spacing: 0; }
+body.os-pc .key-word { font-size: 18px; }
 
-@media (max-width: 960px) {
-	.page { padding: 72px 32px 96px; }
-	.feature, .feature:nth-of-type(even) { grid-template-columns: minmax(0, 1fr); gap: 32px; }
-	.feature:nth-of-type(even) .stage { order: 0; }
-	.feature + .feature { margin-top: 96px; }
-	.more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-	.offer { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+/* Bottom strip */
+.strip { margin-top: clamp(24px, 4vh, 44px); padding-top: 20px; border-top: 1px solid var(--hairline); }
+.strip-title { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-bottom: 12px; }
+.highlights { list-style: none; display: grid; grid-template-columns: 1.5fr repeat(5, minmax(0, 1fr)); gap: 12px 24px; }
+.highlights li { display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.highlights strong { font-size: 15px; font-weight: 600; color: var(--title); }
+.highlights .shortcut strong { color: var(--accent); }
+
+@media (max-width: 1180px) {
+	.highlights { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+	.banner { padding: 56px 28px 40px; }
+	.hero { grid-template-columns: minmax(0, 1fr); gap: 40px; text-align: center; }
+	.lead { margin-left: auto; margin-right: auto; }
+	.actions, .offer-code { justify-content: center; }
+	.visual { height: 400px; perspective: none; }
+	.visual::before { inset: -10%; }
+	.app { left: 0; width: 1000px; zoom: 0.55; transform: none; }
+	.launcher { left: auto; right: 0; bottom: 8%; transform: none; }
+	.keys { right: auto; left: 0; bottom: -8px; gap: 10px; transform: none; }
+	.key { width: 84px; height: 84px; border-radius: 16px; }
+	.key-letter { font-size: 32px; }
+	.key-glyph { font-size: 20px; }
+	.key-word { font-size: 12px; }
 }
 @media (max-width: 560px) {
-	.page { padding: 56px 20px 72px; }
-	.shortcut { padding: 56px 20px 64px; }
-	.key { width: 96px; height: 96px; border-radius: 16px; }
-	.key-letter { font-size: 38px; }
-	.more-grid { grid-template-columns: minmax(0, 1fr); }
-	.stage { padding: 20px; min-height: 0; }
-	.stage-recipes > .mock-ui { zoom: 0.5; }
-	.offer { padding: 28px 24px; }
+	.banner { padding: 48px 20px 32px; }
+	.highlights { grid-template-columns: minmax(0, 1fr); }
+	.visual { height: 320px; }
+	.launcher { width: 300px; }
+	.key { width: 76px; height: 76px; border-radius: 14px; }
+	.key-letter { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {
 	.btn { transition: none; }

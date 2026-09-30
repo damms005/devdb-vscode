@@ -130,7 +130,7 @@ describe('Promo notices', function () {
 		});
 	});
 
-	describe('DevDb 4 notice gating', () => {
+	describe('DevDb v4 notice gating', () => {
 		it('shows the webview once for free users and stores a single awaited flag', async () => {
 			const context = makeFakeContext();
 
@@ -235,7 +235,7 @@ describe('Promo notices', function () {
 	});
 
 	describe('welcome message', () => {
-		it('shows the DevDb 4 notice first and defers the DevWorkspace Pro showcase', async () => {
+		it('shows the DevDb v4 notice first and defers the DevWorkspace Pro showcase', async () => {
 			const ddevRoot = makeDdevWorkspace();
 
 			const context = makeFakeContext({ 'devdb-version': '3.1.0' });
@@ -259,7 +259,7 @@ describe('Promo notices', function () {
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
-		it('licensed users get the DevDb 4 toast and the showcase on the same launch', async () => {
+		it('licensed users get the DevDb v4 toast and the showcase on the same launch', async () => {
 			const ddevRoot = makeDdevWorkspace();
 
 			const context = makeFakeContext({ 'devdb-version': '3.1.0' });
@@ -325,7 +325,7 @@ describe('Promo notices', function () {
 			});
 		}
 
-		it('the DevDb 4 notice shows the Pro price and both CTAs', () => {
+		it('the DevDb v4 notice shows the Pro price and both CTAs', () => {
 			const page: string = newDatastores.getNoticeHtml(webview, html.getNonce(), extensionPath);
 			assert.ok(page.includes(`$${newDatastores.PRO_LIFETIME_PRICE_USD}`));
 			assert.ok(page.includes('data-command="getLicense"'));
@@ -333,40 +333,45 @@ describe('Promo notices', function () {
 			assert.strictEqual(newDatastores.PRICING_URL, 'https://devdbpro.com/?ref=ide&pro=true#pricing');
 		});
 
+		it('names the release "DevDb v4", never "DevDb 4"', () => {
+			const page: string = newDatastores.getNoticeHtml(webview, html.getNonce(), extensionPath);
+			assert.ok(page.includes('DevDb v4'));
+			assert.ok(newDatastores.PRO_TOAST_MESSAGE.startsWith('DevDb v4'));
+			assert.ok(!/DevDb 4\b/.test(page + newDatastores.PRO_TOAST_MESSAGE));
+		});
+
 		it('the DevWorkspace Pro notice embeds every mock it includes', () => {
 			const template = fs.readFileSync(path.join(extensionPath, 'resources/notices', devWorkspacePro.NOTICE_TEMPLATE), 'utf8');
 			const includes = [...template.matchAll(/\{\{include:([^}]+)\}\}/g)].map(match => match[1]);
-			assert.ok(includes.length >= 4);
+			assert.ok(includes.length >= 2);
 			const page = devWorkSpaceProHtml(html.getNonce(), false);
 			assert.ok(page.includes('mock-ui'));
-			assert.ok(!page.includes('data-tab'), 'features are rows, not tabs');
+			assert.ok(!page.includes('data-tab'), 'no tabs');
 		});
 
 		it('the DevWorkspace Pro notice leads with the New AI session shortcut', () => {
 			const page = devWorkSpaceProHtml(html.getNonce(), false);
-			const features = page.slice(page.indexOf('class="features"'));
-			assert.ok(features.indexOf('class="shortcut"') < features.indexOf('class="feature"'), 'shortcut block comes before every feature row');
 			assert.match(page, /class="key key-letter">J</);
+			const highlights = page.slice(page.indexOf('class="highlights"'));
+			assert.ok(highlights.indexOf('New AI session') < highlights.indexOf('<li>'), 'New AI session is the first highlight');
 		});
 
 		for (const isNewInstall of [false, true]) {
-			it(`the DevWorkspace Pro notice shows the ${isNewInstall ? 'welcome' : 'launch'} code at the top and at the end`, () => {
-				const { discountCode, offerText } = devWorkspacePro.getOffer(isNewInstall);
+			it(`the DevWorkspace Pro notice shows the ${isNewInstall ? 'welcome' : 'launch'} offer next to the CTA`, () => {
+				const { offerTitle, discountCode, offerText } = devWorkspacePro.getOffer(isNewInstall);
 				const page = devWorkSpaceProHtml(html.getNonce(), isNewInstall);
-				const hero = page.slice(page.indexOf('<header class="hero">'), page.indexOf('</header>'));
-				const end = page.slice(page.indexOf('<section class="offer">'));
-				for (const part of [hero, end]) {
-					assert.ok(part.includes(discountCode));
-					assert.ok(part.includes(offerText));
-					assert.ok(part.includes('data-command="copyCode"'));
+				const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="visual"'));
+				assert.ok(hero.includes('data-command="getLicense"'));
+				for (const text of [offerTitle, offerText, discountCode, 'data-command="copyCode"']) {
+					assert.ok(hero.includes(text), `hero misses ${text}`);
 				}
 			});
 		}
 
-		it('notice styles use no gradients or gradient text', () => {
+		it('notice styles use no linear gradients, gradient text or glass effects', () => {
 			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css']) {
 				const css = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
-				assert.ok(!/gradient\(|background-clip:\s*text/i.test(css), `${file} uses a gradient`);
+				assert.ok(!/(linear|conic)-gradient\(|background-clip:\s*text|backdrop-filter/i.test(css), `${file} uses a banned effect`);
 			}
 		});
 

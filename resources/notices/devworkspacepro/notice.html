@@ -13,148 +13,49 @@
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
 	</button>
 
-	<main class="page">
-		<header class="hero">
-			<p class="kicker">DevWorkspace Pro</p>
-			<h1>Your projects. Your agents.<br>One app.</h1>
-			<p class="lead">DDEV projects, terminal, SSH, GitHub, logs and AI agents in one desktop app. Press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> to start an AI session in your project.</p>
-			<div class="actions">
-				<button class="btn btn-primary" data-command="getLicense">Get DevWorkspace Pro</button>
-				<button class="link" data-command="learnMore">See all features <span aria-hidden="true">›</span></button>
-				<button class="link" data-command="docs">Docs <span aria-hidden="true">›</span></button>
+	<main class="banner">
+		<section class="hero">
+			<div class="copy">
+				<p class="label">DevWorkspace Pro</p>
+				<h1>Your projects.<br>Your agents.<br><span class="h1-soft">One app.</span></h1>
+				<p class="lead">DDEV projects, terminal, SSH, GitHub and logs in one desktop app. Press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> to start an AI session in your project.</p>
+				<div class="actions">
+					<button class="btn" data-command="getLicense">Get DevWorkspace Pro</button>
+					<button class="link" data-command="learnMore">See all features <span aria-hidden="true">›</span></button>
+					<button class="link" data-command="docs">Docs <span aria-hidden="true">›</span></button>
+				</div>
+				<div class="offer">
+					<p><span class="offer-title">{{offerTitle}}.</span> {{offerText}}</p>
+					<p class="offer-code">Code <code>{{discountCode}}</code><button class="copy-btn" data-command="copyCode" data-done="Copied">Copy</button></p>
+				</div>
 			</div>
-			<p class="offer-line">
-				<span>{{offerText}}</span>
-				<span class="offer-code">Code <code>{{discountCode}}</code><button class="copy-btn" data-command="copyCode" data-done="Copied">Copy</button></span>
-			</p>
-			<p class="platforms">macOS, Windows and Linux.</p>
-		</header>
 
-		<figure class="hero-frame mock-frame">
-			{{include:devworkspacepro/mocks/overview.html}}
-			{{include:devworkspacepro/mocks/status-bar.html}}
-		</figure>
-
-		<section class="features" aria-labelledby="new-heading">
-			<header class="section-head">
-				<h2 id="new-heading">New in DevWorkspace Pro.</h2>
-			</header>
-
-			<div class="shortcut">
+			<div class="visual" aria-label="DevWorkspace Pro preview">
+				<figure class="app mock-frame">
+					{{include:devworkspacepro/mocks/overview.html}}
+					{{include:devworkspacepro/mocks/status-bar.html}}
+				</figure>
+				<figure class="launcher mock-frame">{{include:devworkspacepro/mocks/ai-launcher.html}}</figure>
 				<div class="keys" aria-hidden="true">
 					<span class="key key-mod">
 						<span class="mac-only"><span class="key-glyph">⌘</span><span class="key-word">command</span></span>
-						<span class="pc-only"><span class="key-word key-word-pc">ctrl</span></span>
+						<span class="pc-only"><span class="key-word">ctrl</span></span>
 					</span>
 					<span class="key key-letter">J</span>
 				</div>
-				<p class="kicker">New AI session</p>
-				<h3>One shortcut starts your agent.</h3>
-				<p class="shortcut-copy">On a project page, press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> to open the AI launcher. Type a task and press Enter. Claude Code, Codex or opencode starts in the project folder.</p>
 			</div>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-ai">{{include:devworkspacepro/mocks/ai-launcher.html}}</div>
-				<div class="copy">
-					<p class="kicker">Session resume</p>
-					<h3>Quit mid-session. Pick up where you left off.</h3>
-					<p>After a restart, resume an unfinished AI session in the same folder, with the same conversation and arguments.</p>
-					<ul class="points">
-						<li>Works with Claude Code, Codex and opencode.</li>
-						<li>A session never resumes by itself. You click Resume.</li>
-					</ul>
-				</div>
-			</article>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-github">{{include:devworkspacepro/mocks/github-issues.html}}</div>
-				<div class="copy">
-					<p class="kicker">GitHub issues</p>
-					<h3>Hand an issue to your agent.</h3>
-					<p>Send to AI starts your agent in the project root with the issue title and body. Add more detail first, if you like.</p>
-					<ul class="points">
-						<li>Add an issue to Focus Pad, on a new branch if you want.</li>
-						<li>Get notified when a workflow run starts and ends.</li>
-					</ul>
-				</div>
-			</article>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-focus">{{include:devworkspacepro/mocks/focus-pad.html}}</div>
-				<div class="copy">
-					<p class="kicker">Focus Pad</p>
-					<h3>A task list that can hand off tasks.</h3>
-					<p>A Markdown checklist that stays on top of your windows. Click the sparkle on a task, select a project, and your agent starts.</p>
-					<ul class="points">
-						<li>Priorities, deadlines and collections.</li>
-						<li>Show it from any app with one shortcut.</li>
-						<li>Your tasks stay on your computer.</li>
-					</ul>
-				</div>
-			</article>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-voice">{{include:devworkspacepro/mocks/voice-to-text.html}}</div>
-				<div class="copy">
-					<p class="kicker">Voice-to-Text</p>
-					<h3>Speak your prompts.</h3>
-					<p>Hold a key, speak, release. The text goes where your cursor is: an agent prompt, a terminal, any app.</p>
-					<ul class="points">
-						<li>Transcription runs on your computer. No audio leaves it.</li>
-						<li>50+ languages.</li>
-						<li>Double-tap the key for hands-free recording.</li>
-					</ul>
-				</div>
-			</article>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-scratchpad">{{include:devworkspacepro/mocks/scratchpad.html}}</div>
-				<div class="copy">
-					<p class="kicker">Scratchpad</p>
-					<h3>Run PHP in your booted app.</h3>
-					<p>Laravel, Symfony, Drupal or WordPress. No route. No test.</p>
-					<ul class="points">
-						<li>Runs in the DDEV container, or on a server over SSH.</li>
-						<li>Formatted output and a query log.</li>
-						<li>History of your last snippets.</li>
-					</ul>
-				</div>
-			</article>
-
-			<article class="feature">
-				<div class="stage mock-frame stage-recipes">{{include:devworkspacepro/mocks/recipes.html}}</div>
-				<div class="copy">
-					<p class="kicker">Recipes</p>
-					<h3>Chores, done in one click.</h3>
-					<p>Each step shows before it runs.</p>
-					<ul class="points">
-						<li>Upgrade Laravel.</li>
-						<li>Set up project sharing.</li>
-						<li>Install tools and DDEV add-ons.</li>
-					</ul>
-				</div>
-			</article>
 		</section>
 
-		<section class="more" aria-labelledby="more-heading">
-			<h2 id="more-heading">And more.</h2>
-			<dl class="more-grid">
-				<div><dt>Keep Awake</dt><dd>No sleep during long builds and agent runs.</dd></div>
-				<div><dt>Git Changes</dt><dd>Read diffs, commit and browse history.</dd></div>
-				<div><dt>Files</dt><dd>Go to file. Search in files.</dd></div>
-				<div><dt>Uptime monitoring</dt><dd>Know when a site goes down.</dd></div>
-				<div><dt>Remote SSH</dt><dd>Servers, logs and Scratchpad over SSH.</dd></div>
-				<div><dt>Terminal</dt><dd>Tabs come back after a restart.</dd></div>
-			</dl>
-		</section>
-
-		<section class="offer">
-			<div class="offer-copy">
-				<h2>{{offerTitle}}</h2>
-				<p>{{offerText}} Use this code at checkout:</p>
-			</div>
-			<div class="code-box"><code class="code">{{discountCode}}</code><button class="copy-btn" data-command="copyCode" data-done="Copied">Copy</button></div>
-			<button class="btn btn-primary" data-command="getLicense">Get DevWorkspace Pro</button>
+		<section class="strip" aria-labelledby="new-heading">
+			<h2 id="new-heading" class="strip-title">New in DevWorkspace Pro</h2>
+			<ul class="highlights">
+				<li class="shortcut"><strong>New AI session</strong><span>Press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> on a project page. Claude Code, Codex or opencode starts in the project folder.</span></li>
+				<li><strong>Session resume</strong><span>Continue unfinished AI sessions after a restart.</span></li>
+				<li><strong>Issues to AI</strong><span>Send a GitHub issue to your agent.</span></li>
+				<li><strong>Focus Pad to AI</strong><span>Hand a task from your list to your agent.</span></li>
+				<li><strong>Voice-to-Text</strong><span>Speak your prompts. Transcription runs on your computer.</span></li>
+				<li><strong>And more</strong><span>Scratchpad, Recipes, Git Changes, Remote SSH, uptime monitoring.</span></li>
+			</ul>
 		</section>
 	</main>
 
