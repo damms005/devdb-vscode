@@ -1,8 +1,8 @@
 import { stat } from 'fs/promises';
 import { Database } from '@vscode/sqlite3';
 import { reportError } from '../services/initialization-error-service';
-import { Column, CustomSqliteEngine, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
-import { buildWhereClause } from '../services/sql';
+import { Column, CustomSqliteEngine, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
+import { assertReadOnlySql, buildWhereClause } from '../services/sql';
 
 export class SqliteEngine implements DatabaseEngine {
   private db: Database | null = null;
@@ -422,7 +422,11 @@ export class SqliteEngine implements DatabaseEngine {
     return this.rawQuery(code)
   }
 
-  async rawQuery(code: string): Promise<any> {
+  async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
+    if (options?.readOnly) {
+      return this.rawQueryReadOnly(code);
+    }
+
     try {
       const db = this.getConnection();
       if (!db) {
@@ -461,6 +465,34 @@ export class SqliteEngine implements DatabaseEngine {
     } catch (err) {
       reportError(`SQLite run arbitrary query error: ${err}`);
       throw err;
+    }
+  }
+
+  /**
+   * Runs one read statement with `PRAGMA query_only = ON`, which makes SQLite refuse any
+   * change to the database file. Writable PRAGMAs (including `query_only` itself) and
+   * ATTACH/VACUUM are rejected up front.
+   */
+  private async rawQueryReadOnly(code: string): Promise<any> {
+    const statement = assertReadOnlySql(code, 'sqlite', ['SELECT', 'WITH', 'EXPLAIN', 'VALUES', 'PRAGMA']);
+    if (/^PRAGMA\b/i.test(statement)) {
+      assertReadOnlyPragma(statement);
+    }
+
+    const db = this.getConnection();
+    if (!db) {
+      throw new Error('Cannot connect to database');
+    }
+
+    const run = (sql: string) => new Promise<void>((resolve, reject) => db.run(sql, (err) => err ? reject(err) : resolve()));
+
+    await run('PRAGMA query_only = ON');
+    try {
+      return await new Promise<any[]>((resolve, reject) => {
+        db.all(code, (err, rows) => err ? reject(err) : resolve(rows));
+      });
+    } finally {
+      await run('PRAGMA query_only = OFF');
     }
   }
 
@@ -521,7 +553,8 @@ export class SqliteEngine implements DatabaseEngine {
     const clause = buildWhereClause(this, 'sqlite3', whereClause, columns)
 
     for (const entry of clause) {
-      wheres.push(`${entry.column} ${entry.operator} ?`)
+      const column = this.escapeIdentifier(entry.column)
+      wheres.push(`${entry.useRawCast ? `CAST(${column} AS TEXT)` : column} ${entry.operator} ?`)
       whereParams.push(entry.value)
     }
 
@@ -596,6 +629,29 @@ export class SqliteEngine implements DatabaseEngine {
   }
 
   destroy() { }
+}
+
+/**
+ * PRAGMAs that only read when called with an argument (e.g. `table_info(users)`).
+ */
+const READ_PRAGMAS_WITH_ARGUMENT = ['table_info', 'table_xinfo', 'index_list', 'index_info', 'index_xinfo', 'foreign_key_list', 'foreign_key_check', 'integrity_check', 'quick_check'];
+
+/**
+ * PRAGMAs that only read when called with no argument (with one, they write).
+ */
+const READ_PRAGMAS_WITHOUT_ARGUMENT = ['database_list', 'compile_options', 'collation_list', 'function_list', 'pragma_list', 'module_list', 'table_list', 'user_version', 'schema_version', 'application_id', 'page_count', 'page_size', 'freelist_count', 'encoding', 'journal_mode', 'foreign_keys', 'data_version'];
+
+function assertReadOnlyPragma(statement: string): void {
+  const match = statement.match(/^PRAGMA\s+(?:\w+\s*\.\s*)?(\w+)\s*([\s\S]*)$/i);
+  const name = match?.[1]?.toLowerCase() ?? '';
+  const argument = (match?.[2] ?? '').trim();
+
+  const isRead = !argument.includes('=')
+    && (READ_PRAGMAS_WITH_ARGUMENT.includes(name) || (READ_PRAGMAS_WITHOUT_ARGUMENT.includes(name) && argument === ''));
+
+  if (!isRead) {
+    throw new Error(`Read-only mode does not allow PRAGMA ${name || statement}`);
+  }
 }
 
 export class SQLiteTransaction {

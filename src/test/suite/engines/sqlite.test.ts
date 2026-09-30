@@ -225,6 +225,63 @@ describe('Sqlite Tests', () => {
 			assert.strictEqual(bobRows?.rows[0].age, 40);
 		});
 
+		it('should filter varchar(n), char(n), enum-like and date columns', async () => {
+			await engine?.raw(`
+            CREATE TABLE products (
+                id INTEGER PRIMARY KEY,
+                title varchar(255),
+                sku char(36),
+                status TEXT CHECK (status IN ('active', 'banned')),
+                released date
+            )
+        `);
+			await engine?.raw(`
+            INSERT INTO products (title, sku, status, released) VALUES
+            ('Blue shirt', '11111111-aaaa', 'active', '2024-01-15'),
+            ('Red hat', '22222222-bbbb', 'banned', '2023-06-01')
+        `);
+
+			const columns = await engine.getColumns('products');
+
+			for (const [filter, expectedTitle] of [
+				[{ title: 'shirt' }, 'Blue shirt'],
+				[{ sku: '2222' }, 'Red hat'],
+				[{ status: 'bann' }, 'Red hat'],
+				[{ released: '2024-01' }, 'Blue shirt'],
+			] as const) {
+				const rows = await engine.getRows('products', columns, 10, 0, filter);
+				assert.deepStrictEqual(rows?.rows.map(row => row.title), [expectedTitle], JSON.stringify(filter));
+				assert.strictEqual(await engine.getTotalRows('products', columns, filter), 1, JSON.stringify(filter));
+			}
+		});
+
+		it('should enforce read-only raw queries', async () => {
+			await engine?.raw(`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)`);
+			await engine?.raw(`INSERT INTO users (name) VALUES ('John')`);
+
+			const rows = await engine.rawQuery('SELECT name FROM users;', { readOnly: true });
+			assert.deepStrictEqual(rows.map((row: any) => row.name), ['John']);
+			assert.ok(Array.isArray(await engine.rawQuery('PRAGMA table_info(users)', { readOnly: true })));
+
+			for (const bypass of [
+				'/**/DROP TABLE users',
+				'-- c\nDELETE FROM users',
+				'SELECT 1; DELETE FROM users',
+				'WITH d AS (SELECT 1) DELETE FROM users',
+				'PRAGMA query_only = OFF',
+				'PRAGMA query_only(0)',
+				'PRAGMA user_version = 5',
+				"ATTACH DATABASE '/tmp/devdb-x.db' AS x",
+			]) {
+				await assert.rejects(engine.rawQuery(bypass, { readOnly: true }), JSON.stringify(bypass));
+			}
+
+			// query_only is switched back off afterwards
+			await engine?.raw(`INSERT INTO users (name) VALUES ('Jane')`);
+			const [{ total }] = await engine.rawQuery('SELECT COUNT(*) AS total FROM users');
+			assert.strictEqual(total, 2);
+		});
+
 		it('should return version information', async () => {
 			const version = await engine.getVersion();
 			assert.strictEqual(Number(version.split('.').join('')) >= 10, true);

@@ -279,6 +279,68 @@ describe('PostgreSQL Tests', () => {
 			assert.strictEqual(nameFilteredRows?.rows[0].age, 25);
 		});
 
+		it('should filter varchar(n), char(n), enum, date and jsonb columns', async () => {
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.raw(`DROP TYPE IF EXISTS product_status`);
+			await engine.connection?.raw(`CREATE TYPE product_status AS ENUM ('active', 'banned')`);
+			await engine.connection?.raw(`
+				CREATE TABLE products (
+					id SERIAL PRIMARY KEY,
+					title varchar(255),
+					sku char(36),
+					status product_status,
+					released date,
+					meta jsonb
+				)
+			`);
+			await engine.connection?.raw(`
+				INSERT INTO products (title, sku, status, released, meta) VALUES
+				('Blue shirt', '11111111-aaaa', 'active', '2024-01-15', '{"color": "blue"}'),
+				('Red hat', '22222222-bbbb', 'banned', '2023-06-01', '{"color": "red"}')
+			`);
+
+			const columns = await engine.getColumns('products');
+
+			for (const [filter, expectedTitle] of [
+				[{ title: 'shirt' }, 'Blue shirt'],
+				[{ sku: '2222' }, 'Red hat'],
+				[{ status: 'bann' }, 'Red hat'],
+				[{ released: '2024-01' }, 'Blue shirt'],
+				[{ meta: 'red' }, 'Red hat'],
+			] as const) {
+				const rows = await engine.getRows('products', columns, 10, 0, filter);
+				assert.deepStrictEqual(rows?.rows.map(row => row.title), [expectedTitle], JSON.stringify(filter));
+				assert.strictEqual(Number(await engine.getTotalRows('products', columns, filter)), 1, JSON.stringify(filter));
+			}
+
+			await engine.connection?.raw(`DROP TABLE IF EXISTS products`);
+			await engine.connection?.raw(`DROP TYPE IF EXISTS product_status`);
+		});
+
+		it('should enforce read-only raw queries', async () => {
+			await engine.connection?.raw(`INSERT INTO users (name, age) VALUES ('John', 30)`);
+
+			const rows = await engine.rawQuery('SELECT name FROM users;', { readOnly: true });
+			assert.deepStrictEqual(rows.map((row: any) => row.name), ['John']);
+
+			for (const bypass of [
+				'/**/DROP TABLE users',
+				'-- c\nTRUNCATE users',
+				'SELECT 1; DELETE FROM users',
+				'SELECT 1; COMMIT; DELETE FROM users',
+				'WITH d AS (DELETE FROM users RETURNING *) SELECT * FROM d',
+				"COPY (SELECT 1) TO PROGRAM 'id'",
+				"SELECT $$;$$; DELETE FROM users",
+				"SELECT lo_export(0, '/tmp/devdb-x')",
+				"SELECT 'a\\'; DELETE FROM users; --'",
+			]) {
+				await assert.rejects(engine.rawQuery(bypass, { readOnly: true }), JSON.stringify(bypass));
+			}
+
+			const result = await engine.connection!.raw('SELECT COUNT(*)::int AS total FROM users');
+			assert.strictEqual(result.rows[0].total, 1);
+		});
+
 		it('should return undefined for getVersion', async () => {
 			const version = await engine.getVersion();
 			assert.strictEqual(version, undefined);

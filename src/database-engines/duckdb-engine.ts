@@ -513,7 +513,8 @@ export class DuckDbEngine implements DatabaseEngine {
 		const clause = buildWhereClause(this, 'sqlite3', whereClause, columns);
 
 		clause.forEach((entry) => {
-			wheres.push(`${this.escapeIdentifier(entry.column)} ${entry.operator} $${paramOffset + whereParams.length + 1}`);
+			const column = entry.useRawCast ? `CAST(${this.escapeIdentifier(entry.column)} AS VARCHAR)` : this.escapeIdentifier(entry.column);
+			wheres.push(`${column} ${entry.operator} $${paramOffset + whereParams.length + 1}`);
 			whereParams.push(entry.value);
 		});
 

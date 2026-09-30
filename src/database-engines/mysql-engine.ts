@@ -1,5 +1,5 @@
-import { Column, DatabaseEngine, KnexClient, QueryResponse, SerializedMutation } from '../types';
-import { SqlService } from '../services/sql';
+import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
+import { SqlService, assertReadOnlySql } from '../services/sql';
 import knexlib from "knex";
 
 export type MysqlConnectionDetails = { host: string, port: number, username: string, password: string, database: string }
@@ -126,12 +126,39 @@ export class MysqlEngine implements DatabaseEngine {
 		await SqlService.commitChange(this.connection, serializedMutation, transaction);
 	}
 
-	async rawQuery(code: string): Promise<any> {
+	/**
+	 * Runs arbitrary SQL. With `readOnly`, the statement must pass {@link assertReadOnlySql}
+	 * and runs inside a `READ ONLY` transaction that is always rolled back. mysql2 already
+	 * refuses stacked statements (`multipleStatements` is off).
+	 */
+	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.connection) throw new Error('Connection not initialized');
 
-		return (await this.connection.raw(code))[0];
+		if (!options?.readOnly) {
+			return (await this.connection.raw(code))[0];
+		}
+
+		assertReadOnlySql(code, 'mysql', MYSQL_READ_ONLY_KEYWORDS, MYSQL_READ_ONLY_DENIED_PATTERNS);
+
+		const trx = await this.connection.transaction({ readOnly: true });
+		try {
+			return (await trx.raw(code))[0];
+		} finally {
+			await trx.rollback();
+		}
 	}
 }
+
+const MYSQL_READ_ONLY_KEYWORDS = ['SELECT', 'WITH', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN', 'TABLE', 'VALUES'];
+
+/**
+ * Side effects a READ ONLY transaction does not stop: server-side file writes and
+ * session-level locks.
+ */
+const MYSQL_READ_ONLY_DENIED_PATTERNS = [
+	/\bINTO\s+(OUTFILE|DUMPFILE)\b/i,
+	/\b(GET_LOCK|RELEASE_LOCK|RELEASE_ALL_LOCKS)\s*\(/i,
+];
 
 async function getForeignKeyFor(table: string, column: string, connection: knexlib.Knex): Promise<{ table: string, column: string } | undefined> {
 

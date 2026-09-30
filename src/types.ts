@@ -119,7 +119,19 @@ export interface DatabaseEngine {
 
 	disconnect(): Promise<void>
 
-	rawQuery(code: string): Promise<any>
+	/**
+	 * Runs arbitrary engine-native code. With `readOnly: true` the engine enforces
+	 * read-only execution at the database level (read-only transaction, query_only,
+	 * readonly setting or a read-verb allowlist) and rejects anything it cannot
+	 * guarantee is a read.
+	 */
+	rawQuery(code: string, options?: RawQueryOptions): Promise<any>
+}
+
+export type RawQueryOptions = {
+	readOnly?: boolean
+	/** Cancels the query on engines that support it (e.g. ClickHouse). */
+	signal?: AbortSignal
 }
 
 /**

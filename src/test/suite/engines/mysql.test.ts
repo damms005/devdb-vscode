@@ -203,6 +203,68 @@ describe('MySQL Tests', () => {
 			assert.strictEqual(nameFilteredRows?.rows[0].age, 25);
 		});
 
+		it('should filter varchar(n), char(n), enum and date columns', async () => {
+			await engine.connection?.raw(`
+				CREATE TABLE products (
+					id INT PRIMARY KEY AUTO_INCREMENT,
+					title varchar(255),
+					sku char(36),
+					status enum('active', 'banned'),
+					released date
+				)
+			`);
+			await engine.connection?.raw(`
+				INSERT INTO products (title, sku, status, released) VALUES
+				('Blue shirt', '11111111-aaaa', 'active', '2024-01-15'),
+				('Red hat', '22222222-bbbb', 'banned', '2023-06-01')
+			`);
+
+			const columns = await engine.getColumns('products');
+			assert.strictEqual(columns.find(column => column.name === 'title')?.type, 'varchar(255)');
+
+			for (const [filter, expectedTitle] of [
+				[{ title: 'shirt' }, 'Blue shirt'],
+				[{ sku: '2222' }, 'Red hat'],
+				[{ status: 'bann' }, 'Red hat'],
+				[{ released: '2024-01' }, 'Blue shirt'],
+			] as const) {
+				const rows = await engine.getRows('products', columns, 10, 0, filter);
+				assert.deepStrictEqual(rows?.rows.map(row => row.title), [expectedTitle], JSON.stringify(filter));
+				assert.strictEqual(await engine.getTotalRows('products', columns, filter), 1, JSON.stringify(filter));
+			}
+		});
+
+		it('should enforce read-only raw queries', async () => {
+			await engine.connection?.raw(`INSERT INTO users (name, age) VALUES ('John', 30)`);
+
+			const rows = await engine.rawQuery('SELECT name FROM users;', { readOnly: true });
+			assert.deepStrictEqual(rows.map((row: any) => row.name), ['John']);
+
+			for (const bypass of [
+				'/**/DROP TABLE users',
+				'-- c\nTRUNCATE users',
+				'SELECT 1; DELETE FROM users',
+				'WITH d AS (SELECT 1) DELETE FROM users',
+				"SELECT * FROM users INTO OUTFILE '/tmp/devdb-out.txt'",
+				'/*!DELETE FROM users*/',
+			]) {
+				await assert.rejects(engine.rawQuery(bypass, { readOnly: true }), JSON.stringify(bypass));
+			}
+
+			const [[{ total }]] = await engine.connection!.raw('SELECT COUNT(*) AS total FROM users');
+			assert.strictEqual(Number(total), 1);
+		});
+
+		it('should block a write that passes the keyword gate via the READ ONLY transaction', async () => {
+			await engine.connection?.raw(`INSERT INTO users (name, age) VALUES ('John', 30)`);
+
+			// starts with WITH, so only the database-level READ ONLY transaction can stop it
+			await assert.rejects(engine.rawQuery('WITH d AS (SELECT 1) DELETE FROM users', { readOnly: true }), /READ ONLY/i);
+
+			const [[{ total }]] = await engine.connection!.raw('SELECT COUNT(*) AS total FROM users');
+			assert.strictEqual(Number(total), 1);
+		});
+
 		it('should run arbitrary query and get output', async () => {
 			await engine.connection?.raw(`
 				INSERT INTO users (name, age) VALUES
