@@ -194,15 +194,17 @@ describe('Remote connection tester', () => {
 		})
 
 		it('resolves a relative path against the .devdbrc folder', async () => {
-			const vscodeModule = require('vscode')
-			const previous = vscodeModule.workspace.workspaceFolders
-			vscodeModule.workspace.workspaceFolders = [{ uri: { fsPath: tmpdir() } }]
+			// Other suites may load a vscode stub whose workspaceFolders is a getter.
+			const workspace = require('vscode').workspace
+			const previous = Object.getOwnPropertyDescriptor(workspace, 'workspaceFolders')
+			Object.defineProperty(workspace, 'workspaceFolders', { value: [{ uri: { fsPath: tmpdir() } }], configurable: true, writable: true })
 			try {
 				await ConfigFileProvider.resolveConfiguration!({ type: 'duckdb', path: basename(dbPath) })
 				assert.strictEqual(ConfigFileProvider.cache?.length, 1)
 				assert.strictEqual(ConfigFileProvider.cache![0].id, dbPath)
 			} finally {
-				vscodeModule.workspace.workspaceFolders = previous
+				if (previous) Object.defineProperty(workspace, 'workspaceFolders', previous)
+				else delete workspace.workspaceFolders
 			}
 		})
 
