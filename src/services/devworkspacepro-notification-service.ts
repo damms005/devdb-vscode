@@ -66,7 +66,7 @@ export function previewDevWorkspaceProNotice(context: vscode.ExtensionContext, i
 function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewInstall: boolean = false) {
     const panel = vscode.window.createWebviewPanel(
         'devworkspacepro-notice',
-        isNewInstall ? 'Welcome to DevDb - Get DevWorkspace Pro' : 'DevWorkspace Pro - The Best GUI for DDEV',
+        isNewInstall ? 'Welcome to DevDb - Get DevWorkspace Pro v2' : 'DevWorkspace Pro v2 - The Best GUI for DDEV',
         vscode.ViewColumn.One,
         {
             enableScripts: true,

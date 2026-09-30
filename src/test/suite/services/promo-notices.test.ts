@@ -356,6 +356,14 @@ describe('Promo notices', function () {
 			assert.ok(highlights.indexOf('New AI session') < highlights.indexOf('<li>'), 'New AI session is the first highlight');
 		});
 
+		it('the DevWorkspace Pro hero names v2 and says it is a desktop app', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false);
+			const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="visual"'));
+			assert.ok(hero.includes('DevWorkspace Pro v2'));
+			assert.ok(/desktop/i.test(hero));
+			assert.ok(page.includes('v2.0.0') && !page.includes('v1.2.63'), 'mock status bar shows v2.0.0');
+		});
+
 		for (const isNewInstall of [false, true]) {
 			it(`the DevWorkspace Pro notice shows the ${isNewInstall ? 'welcome' : 'launch'} offer next to the CTA`, () => {
 				const { offerTitle, discountCode, offerText } = devWorkspacePro.getOffer(isNewInstall);
@@ -368,11 +376,23 @@ describe('Promo notices', function () {
 			});
 		}
 
-		it('notice styles use no linear gradients, gradient text or glass effects', () => {
+		it('notice styles use no linear gradients or gradient text, and glass only on the v4 numeral', () => {
 			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css']) {
 				const css = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
-				assert.ok(!/(linear|conic)-gradient\(|background-clip:\s*text|backdrop-filter/i.test(css), `${file} uses a banned effect`);
+				assert.ok(!/(linear|conic)-gradient\(|background-clip:\s*text/i.test(css), `${file} uses a gradient`);
+				for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+					if (/backdrop-filter/i.test(body)) {
+						assert.strictEqual(`${file} ${selector.trim()}`, 'v4/notice.css .eight-plate', 'glass is allowed on the v4 numeral only');
+					}
+				}
 			}
+		});
+
+		it('the DevDb v4 notice leads the engine strip with the number 8', () => {
+			const page: string = newDatastores.getNoticeHtml(webview, html.getNonce(), extensionPath);
+			assert.ok(page.includes('<span class="eight-plate">8</span>'));
+			assert.ok(page.includes('8 new engines.'));
+			assert.ok(!/Eight new engines/i.test(page));
 		});
 
 		it('rejects unknown placeholders and paths outside resources/notices', () => {

@@ -17,9 +17,17 @@
 	--edge: 0 0 0 1px color-mix(in srgb, var(--fg) 9%, transparent);
 	--shadow-far: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.2), 0 40px 80px -20px rgba(0, 0, 0, 0.65);
 	--shadow-near: var(--edge), 0 2px 6px rgba(0, 0, 0, 0.25), 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+	--glass-fill: rgba(255, 255, 255, 0.08);
+	--glass-rim: rgba(255, 255, 255, 0.35);
+	--glass-edge: rgba(255, 255, 255, 0.14);
+	--glass-ink: #fff;
 }
 body.vscode-dark { --title: color-mix(in srgb, var(--fg) 40%, #fff); }
 body.vscode-light {
+	--glass-fill: rgba(255, 255, 255, 0.55);
+	--glass-rim: rgba(255, 255, 255, 0.95);
+	--glass-edge: rgba(0, 0, 0, 0.08);
+	--glass-ink: #1d1d1f;
 	--title: color-mix(in srgb, var(--fg) 55%, #000);
 	--light: color-mix(in srgb, var(--fg) 7%, transparent);
 	--window: var(--bg);
@@ -137,17 +145,44 @@ h1 {
 .tier { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .tier-free, .found-mark.tier { color: var(--fg); }
 
-/* Bottom strip */
-.strip { margin-top: clamp(24px, 4vh, 44px); padding-top: 20px; border-top: 1px solid var(--hairline); }
-.strip-title { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-bottom: 12px; }
-.engines { list-style: none; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px 20px; }
-.engines li { display: flex; flex-direction: column; gap: 2px; }
-.engines li span:first-child { font-size: 15px; font-weight: 600; color: var(--title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.also { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 28px; margin-top: 18px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+/* Bottom strip: the 8 on a glass plate, then the engine names. */
+.strip {
+	display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 40px;
+	margin-top: clamp(20px, 3.5vh, 40px); padding-top: 22px; border-top: 1px solid var(--hairline);
+}
+.strip-head { display: flex; align-items: center; gap: 16px; }
+.strip-title { font-size: 17px; line-height: 1.15; font-weight: 600; letter-spacing: -0.015em; color: var(--title); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Glass numeral: a frosted plate over a soft accent disc, with a thin inner highlight. */
+.eight { position: relative; isolation: isolate; width: 92px; height: 92px; flex-shrink: 0; }
+.eight::before {
+	content: ''; position: absolute; z-index: -1; left: 6px; top: 4px; width: 58px; height: 58px; border-radius: 50%;
+	background: var(--accent); opacity: 0.9;
+}
+.eight::after {
+	content: ''; position: absolute; z-index: -1; right: 8px; bottom: 6px; width: 44px; height: 44px; border-radius: 50%;
+	background: var(--vscode-charts-purple, #b180d7); opacity: 0.55;
+}
+.eight-plate {
+	display: grid; place-items: center; width: 100%; height: 100%; border-radius: 26px;
+	font-size: 68px; line-height: 1; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: lining-nums;
+	color: var(--glass-ink);
+	background: var(--glass-fill);
+	-webkit-backdrop-filter: blur(14px) saturate(180%);
+	backdrop-filter: blur(14px) saturate(180%);
+	box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-edge), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+.engines { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 28px; }
+.engines li { display: flex; align-items: baseline; gap: 10px; }
+.engines li span:first-child { font-size: 14.5px; font-weight: 600; color: var(--title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.also { grid-column: 1 / -1; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 28px; margin-top: 18px; font-size: 13px; line-height: 1.45; color: var(--muted); }
 .also strong { font-weight: 600; color: var(--fg); }
 
 @media (max-width: 1180px) {
-	.engines { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 14px; }
+	.engines { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; }
+	.strip { column-gap: 32px; }
 }
 @media (max-width: 900px) {
 	.banner { padding: 56px 28px 40px; }
@@ -159,6 +194,7 @@ h1 {
 	.panel-mock { position: relative; top: 0; left: 0; width: 100%; transform: none; }
 	.found { left: 50%; bottom: 0; transform: translateX(-50%); }
 	.also { grid-template-columns: minmax(0, 1fr); }
+	.strip { grid-template-columns: minmax(0, 1fr); row-gap: 20px; }
 }
 @media (max-width: 560px) {
 	.banner { padding: 48px 20px 32px; }
