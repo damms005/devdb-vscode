@@ -144,8 +144,12 @@ export class ClickhouseEngine implements DatabaseEngine {
 		}
 
 		try {
-			const result = await this.client.ping()
-			return result.success === true
+			/**
+			 * `ping()` hits `/ping`, which does not check credentials. A real query
+			 * makes a wrong password fail here instead of on the first table load.
+			 */
+			await this.client.query({ query: 'SELECT 1', format: 'JSONEachRow' })
+			return true
 		} catch (error) {
 			reportError(`ClickHouse OK-check error: ${error}`)
 			return false

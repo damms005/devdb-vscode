@@ -17,6 +17,8 @@ import { LicenseService } from './services/license/license-service';
 import { remoteCredentialService } from './services/remote-credential-service';
 import { remoteConnectionStorageService } from './services/remote-connection-storage-service';
 import { embeddingService } from './services/embedding-service';
+import { setSshHostKeyStore } from './services/ssh-host-key-prompt';
+import { setNeonLicenseChecker } from './providers/postgres/neon-postgres-provider';
 
 let devDbViewProvider: DevDbViewProvider | undefined;
 let licenseService: LicenseService;
@@ -25,6 +27,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	licenseService = new LicenseService(context.secrets);
 	await licenseService.initialize();
 	setLicenseChecker(() => licenseService.isValid());
+	setNeonLicenseChecker(() => licenseService.isValid());
+	setSshHostKeyStore(context.globalState);
 
 	remoteCredentialService.setExtensionContext(context);
 	remoteConnectionStorageService.setExtensionContext(context);

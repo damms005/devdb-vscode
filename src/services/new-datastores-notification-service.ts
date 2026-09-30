@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { buildNoticeCsp, getNonce } from './html';
-import { parseVersion } from './welcome-message-service';
+import { parseVersion } from './version';
 
 export const NOTICE_SHOWN_KEY = 'newDatastores.notice.shown';
 /** Keys used by earlier builds; cleared by the dev preview command. */

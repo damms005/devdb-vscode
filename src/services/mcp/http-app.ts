@@ -123,7 +123,7 @@ export function createMcpApp(deps: McpAppDeps): express.Express {
 			const rawQuery = db.rawQuery as RawQueryWithOptions;
 			const result = await rawQuery.call(db, query, { readOnly: !allowWrites });
 			logger.info('Query executed successfully', { queryType, resultLength: JSON.stringify(result ?? null).length });
-			res.json({ result });
+			res.json(Array.isArray(result) && (result as { truncated?: boolean }).truncated ? { result, truncated: true } : { result });
 		} catch (error) {
 			logger.error('Query execution failed', { queryType, error: (error as Error).message });
 			res.status(500).json({ error: `Error running query: ${(error as Error).message}` });

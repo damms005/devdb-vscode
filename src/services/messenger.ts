@@ -433,10 +433,15 @@ async function summarizeTable(payload: { table: string }): Promise<{ rows?: Reco
 		return { error: 'Summarize is only supported on DuckDB' }
 	}
 
+	const signal = beginQuery()
+	const controller = activeQueryController
+
 	try {
-		return { rows: await engine.summarize(payload.table) }
+		return { rows: await engine.summarize(payload.table, signal) }
 	} catch (error) {
 		return { error: error instanceof Error ? error.message : String(error) }
+	} finally {
+		endQuery(controller)
 	}
 }
 
@@ -454,11 +459,16 @@ async function runRawCommand(payload: { command: string }): Promise<{ result?: s
 		return { error: 'Empty command' }
 	}
 
+	const signal = beginQuery()
+	const controller = activeQueryController
+
 	try {
-		const raw = await engine.rawQuery(payload.command)
+		const raw = await engine.rawQuery(payload.command, { signal })
 		return { result: formatRawCommandResult(raw) }
 	} catch (error) {
 		return { error: error instanceof Error ? error.message : String(error) }
+	} finally {
+		endQuery(controller)
 	}
 }
 
