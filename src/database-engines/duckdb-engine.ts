@@ -10,14 +10,64 @@ import { buildWhereClause } from '../services/sql';
  */
 interface DuckDbResultReader {
 	getRowObjects(): Record<string, any>[];
+	readonly done: boolean;
+}
+
+interface DuckDbPreparedStatement {
+	readonly statementType: number;
+	streamAndReadUntil(targetRowCount: number): Promise<DuckDbResultReader>;
+	destroySync?(): void;
+}
+
+interface DuckDbExtractedStatements {
+	readonly count: number;
+	prepare(index: number): Promise<DuckDbPreparedStatement>;
 }
 
 interface DuckDbConnection {
 	runAndReadAll(sql: string, params?: any[]): Promise<DuckDbResultReader>;
+	streamAndReadUntil(sql: string, targetRowCount: number, params?: any[]): Promise<DuckDbResultReader>;
 	run(sql: string, params?: any[]): Promise<unknown>;
+	extractStatements(sql: string): Promise<DuckDbExtractedStatements>;
+	interrupt(): void;
 	closeSync?(): void;
 	disconnectSync?(): void;
 }
+
+/** `StatementType` values from `@duckdb/node-bindings` that a read-only rawQuery may run. */
+const STATEMENT_TYPE_SELECT = 1;
+const STATEMENT_TYPE_EXPLAIN = 4;
+
+/**
+ * Statements refused in read-only rawQuery by first keyword. Some of these
+ * (e.g. `PRAGMA`) prepare as a plain SELECT, so the statement type alone does
+ * not catch them.
+ */
+const READ_ONLY_BLOCKED_KEYWORDS = ['COPY', 'ATTACH', 'DETACH', 'INSTALL', 'LOAD', 'SET', 'RESET', 'PRAGMA', 'EXPORT', 'IMPORT', 'USE', 'CALL', 'CHECKPOINT', 'FORCE', 'UPDATE_EXTENSIONS'];
+
+/**
+ * Hard cap on the rows {@link DuckDbEngine.rawQuery} returns, matching the
+ * ClickHouse engine. Results are streamed, so rows past the cap are never read.
+ */
+export const RAW_QUERY_MAX_ROWS = 10_000;
+
+/** Tables above this row count are summarized from a sample. */
+export const SUMMARIZE_SAMPLE_THRESHOLD = 5_000_000;
+
+/** Approximate number of rows a sampled SUMMARIZE reads. */
+const SUMMARIZE_SAMPLE_ROWS = 1_000_000;
+
+/** Columns of a DuckDB `SUMMARIZE` result, in order. */
+const SUMMARIZE_COLUMNS = ['column_name', 'column_type', 'min', 'max', 'approx_unique', 'avg', 'std', 'q25', 'q50', 'q75', 'count', 'null_percentage'];
+
+/** BLOB cells show at most this many bytes as hex. */
+const BLOB_PREVIEW_BYTES = 64;
+
+/**
+ * Rows returned by {@link DuckDbEngine.rawQuery}. `truncated` is true when the
+ * result had more than {@link RAW_QUERY_MAX_ROWS} rows and was cut.
+ */
+export type DuckDbRawQueryRows = Record<string, any>[] & { truncated?: boolean };
 
 interface DuckDbInstance {
 	connect(): Promise<DuckDbConnection>;
@@ -69,6 +119,13 @@ export class DuckDbEngine implements DatabaseEngine {
 	private connecting: Promise<DuckDbConnection | null> | null = null;
 	private readonly readOnly: boolean;
 	private readonly dataFile?: DuckDbDataFile;
+
+	/**
+	 * Row counts of the data-file view, keyed by filter. A CSV/JSON view
+	 * re-parses the whole file for each COUNT(*), so the count is kept for the
+	 * session.
+	 */
+	private readonly dataFileCountCache = new Map<string, number>();
 
 	constructor(dbPath: string = ':memory:', options: DuckDbEngineOptions = {}) {
 		this.dataFile = options.dataFile;
@@ -138,15 +195,20 @@ export class DuckDbEngine implements DatabaseEngine {
 					config.access_mode = 'READ_ONLY';
 				}
 				this.instance = await DuckDBInstance.create(this.dbPath, config);
-				this.connection = await this.instance.connect();
+				const connection = await this.instance.connect();
 
 				if (this.dataFile) {
-					await this.connection.run(this.buildCreateViewSql(this.dataFile));
+					await connection.run(this.buildCreateViewSql(this.dataFile));
 				}
 
-				return this.connection;
+				await this.lockDown(connection);
+
+				this.connection = connection;
+				return connection;
 			} catch (err) {
 				reportError(this.describeConnectionError(err));
+				this.instance?.closeSync?.();
+				this.instance = null;
 				return null;
 			} finally {
 				this.connecting = null;
@@ -154,6 +216,46 @@ export class DuckDbEngine implements DatabaseEngine {
 		})();
 
 		return this.connecting;
+	}
+
+	/**
+	 * Removes DuckDB's file, network and extension access once the database
+	 * (and the data-file view) is open, then locks the configuration so SQL
+	 * cannot turn it back on. Without this, any query (including one from the
+	 * MCP server) could read `/etc/passwd`, write files with COPY, ATTACH other
+	 * databases or download extensions. A data-file view keeps read access to
+	 * its one file through `allowed_paths`; writing to it stays blocked.
+	 */
+	private async lockDown(connection: DuckDbConnection): Promise<void> {
+		if (this.dataFile) {
+			await connection.run(`SET allowed_paths = [${this.quoteLiteral(this.dataFile.path)}]`);
+		}
+		await connection.run('SET enable_external_access = false');
+		await connection.run('SET autoinstall_known_extensions = false');
+		await connection.run('SET autoload_known_extensions = false');
+		await connection.run('SET lock_configuration = true');
+	}
+
+	private quoteLiteral(value: string): string {
+		return `'${value.replace(/'/g, "''")}'`;
+	}
+
+	/**
+	 * Runs `task` on the connection and calls `interrupt()` when `signal`
+	 * aborts, so the host's cancel stops the running DuckDB query.
+	 */
+	private async withInterrupt<T>(connection: DuckDbConnection, signal: AbortSignal | undefined, task: () => Promise<T>): Promise<T> {
+		if (signal?.aborted) {
+			throw new Error('Query cancelled');
+		}
+
+		const onAbort = () => connection.interrupt();
+		signal?.addEventListener('abort', onAbort, { once: true });
+		try {
+			return await task();
+		} finally {
+			signal?.removeEventListener('abort', onAbort);
+		}
 	}
 
 	/**
@@ -176,8 +278,7 @@ export class DuckDbEngine implements DatabaseEngine {
 	 */
 	private buildCreateViewSql(dataFile: DuckDbDataFile): string {
 		const reader = this.dataFileReader(dataFile.path);
-		const literalPath = dataFile.path.replace(/'/g, "''");
-		return `CREATE VIEW ${this.escapeIdentifier(dataFile.viewName)} AS SELECT * FROM ${reader}('${literalPath}')`;
+		return `CREATE VIEW ${this.escapeIdentifier(dataFile.viewName)} AS SELECT * FROM ${reader}(${this.quoteLiteral(dataFile.path)})`;
 	}
 
 	private dataFileReader(path: string): string {
@@ -191,14 +292,18 @@ export class DuckDbEngine implements DatabaseEngine {
 		return 'read_csv_auto';
 	}
 
-	private async query(sql: string, params: any[] = []): Promise<Record<string, any>[]> {
+	private async query(sql: string, params: any[] = [], signal?: AbortSignal): Promise<Record<string, any>[]> {
+		const connection = await this.requireConnection();
+		const reader = await this.withInterrupt(connection, signal, () => connection.runAndReadAll(sql, params));
+		return reader.getRowObjects().map((row) => this.normalizeRow(row));
+	}
+
+	private async requireConnection(): Promise<DuckDbConnection> {
 		const connection = await this.getDuckDbConnection();
 		if (!connection) {
 			throw new Error('Cannot connect to database');
 		}
-
-		const reader = await connection.runAndReadAll(sql, params);
-		return reader.getRowObjects().map((row) => this.normalizeRow(row));
+		return connection;
 	}
 
 	async isOkay(): Promise<boolean> {
@@ -360,7 +465,7 @@ export class DuckDbEngine implements DatabaseEngine {
 		return ['varchar', 'char', 'bpchar', 'text', 'string', 'json', 'uuid'];
 	}
 
-	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>): Promise<number> {
+	async getTotalRows(table: string, columns: Column[], whereClause?: Record<string, any>, signal?: AbortSignal): Promise<number> {
 		try {
 			let sql = `SELECT COUNT(*) AS count FROM ${this.escapeIdentifier(table)}`;
 			const params: any[] = [];
@@ -373,15 +478,26 @@ export class DuckDbEngine implements DatabaseEngine {
 				}
 			}
 
-			const rows = await this.query(sql, params);
-			return rows.length ? Number(rows[0].count) : 0;
+			const isDataFileView = this.dataFile?.viewName === table;
+			const cacheKey = `${sql}\u0000${JSON.stringify(params)}`;
+			const cached = isDataFileView ? this.dataFileCountCache.get(cacheKey) : undefined;
+			if (cached !== undefined) {
+				return cached;
+			}
+
+			const rows = await this.query(sql, params, signal);
+			const count = rows.length ? Number(rows[0].count) : 0;
+			if (isDataFileView) {
+				this.dataFileCountCache.set(cacheKey, count);
+			}
+			return count;
 		} catch (err) {
 			reportError(`DuckDB get total rows error: ${err}`);
 			return 0;
 		}
 	}
 
-	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>): Promise<QueryResponse | undefined> {
+	async getRows(table: string, columns: Column[], limit: number, offset: number, whereClause?: Record<string, any>, signal?: AbortSignal): Promise<QueryResponse | undefined> {
 		try {
 			const columnNames = columns.map((col) => this.escapeIdentifier(col.name)).join(', ');
 			let sql = `SELECT ${columnNames} FROM ${this.escapeIdentifier(table)}`;
@@ -398,7 +514,7 @@ export class DuckDbEngine implements DatabaseEngine {
 			sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 			params.push(limit, offset);
 
-			const rows = await this.query(sql, params);
+			const rows = await this.query(sql, params, signal);
 			return { rows, sql };
 		} catch (err) {
 			reportError(`DuckDB get rows error: ${err}`);
@@ -408,16 +524,83 @@ export class DuckDbEngine implements DatabaseEngine {
 
 	/**
 	 * Runs `SUMMARIZE <table>` and returns the per-column statistics rows
-	 * (min/max/approx_unique/avg/std/percentiles/null_percentage/…) for a future
-	 * column-stats panel.
+	 * (min/max/approx_unique/avg/std/percentiles/null_percentage/…).
+	 *
+	 * - Tables above {@link SUMMARIZE_SAMPLE_THRESHOLD} rows are summarized
+	 *   from a system sample of about {@link SUMMARIZE_SAMPLE_ROWS} rows.
+	 * - When SUMMARIZE fails for the table (e.g. `Overflow in HUGEINT
+	 *   addition` in `avg`), each column is summarized alone, and a column that
+	 *   still fails gets min/max/approx_unique/count/null_percentage only.
+	 *
+	 * When a sample or a fallback is used, every row gets a `note` column that
+	 * says so. A cancel (via `signal`) rejects instead of returning rows.
 	 */
-	async summarize(table: string): Promise<Record<string, any>[]> {
+	async summarize(table: string, signal?: AbortSignal): Promise<Record<string, any>[]> {
+		const rowCount = await this.getTotalRows(table, [], undefined, signal);
+		const sampled = rowCount > SUMMARIZE_SAMPLE_THRESHOLD;
+		const source = sampled
+			? `(SELECT * FROM ${this.escapeIdentifier(table)} USING SAMPLE ${Math.min(100, Math.ceil((SUMMARIZE_SAMPLE_ROWS / rowCount) * 100))}% (system))`
+			: this.escapeIdentifier(table);
+		const sampleNote = sampled ? `Sampled about ${SUMMARIZE_SAMPLE_ROWS.toLocaleString('en-US')} of ${rowCount.toLocaleString('en-US')} rows` : '';
+
 		try {
-			return await this.query(`SUMMARIZE ${this.escapeIdentifier(table)}`);
+			const rows = await this.query(`SUMMARIZE SELECT * FROM ${source}`, [], signal);
+			return sampleNote ? rows.map((row) => ({ ...row, note: sampleNote })) : rows;
 		} catch (err) {
-			reportError(`DuckDB summarize error: ${err}`);
-			return [];
+			if (signal?.aborted) {
+				throw err;
+			}
+			reportError(`DuckDB summarize error, summarizing per column: ${err}`);
 		}
+
+		const columns = await this.getColumns(table);
+		const rows: Record<string, any>[] = [];
+		for (const column of columns) {
+			rows.push(await this.summarizeColumn(source, column, signal));
+		}
+
+		return rows.map((row) => ({ ...row, note: [sampleNote, row.note].filter(Boolean).join('; ') }));
+	}
+
+	private async summarizeColumn(source: string, column: Column, signal?: AbortSignal): Promise<Record<string, any>> {
+		const name = this.escapeIdentifier(column.name);
+
+		try {
+			const [row] = await this.query(`SUMMARIZE SELECT ${name} FROM ${source}`, [], signal);
+			return { ...row, note: '' };
+		} catch (err) {
+			if (signal?.aborted) {
+				throw err;
+			}
+
+			const summary: Record<string, any> = Object.fromEntries(SUMMARIZE_COLUMNS.map((key) => [key, null]));
+			summary.column_name = column.name;
+			summary.column_type = column.type;
+
+			try {
+				const [basic] = await this.query(
+					`SELECT min(${name})::VARCHAR AS min, max(${name})::VARCHAR AS max,
+					        approx_count_distinct(${name}) AS approx_unique, count(*) AS count,
+					        round(100.0 * count_if(${name} IS NULL) / nullif(count(*), 0), 2)::VARCHAR AS null_percentage
+					 FROM ${source}`,
+					[],
+					signal
+				);
+				Object.assign(summary, basic);
+				summary.note = `avg/std/quantiles unavailable: ${this.firstLine(err)}`;
+			} catch (basicErr) {
+				if (signal?.aborted) {
+					throw basicErr;
+				}
+				summary.note = `SUMMARIZE failed: ${this.firstLine(basicErr)}`;
+			}
+
+			return summary;
+		}
+	}
+
+	private firstLine(err: unknown): string {
+		return String(err instanceof Error ? err.message : err).split('\n')[0];
 	}
 
 	async getVersion(): Promise<string> {
@@ -485,25 +668,70 @@ export class DuckDbEngine implements DatabaseEngine {
 		return this.rawQuery(code);
 	}
 
-	async rawQuery(code: string): Promise<any> {
+	/**
+	 * Runs arbitrary SQL. Row results are streamed and cut at
+	 * {@link RAW_QUERY_MAX_ROWS}; a cut result has `truncated: true`.
+	 *
+	 * With `options.readOnly`, only one statement is accepted and it must
+	 * prepare as a SELECT (or a plain EXPLAIN). COPY/ATTACH/INSTALL/LOAD/SET/
+	 * PRAGMA/EXPORT and similar are refused by keyword. File, network and
+	 * extension access are off for every query (see {@link lockDown}).
+	 */
+	async rawQuery(code: string, options?: { readOnly?: boolean; signal?: AbortSignal }): Promise<any> {
 		try {
-			const connection = await this.getDuckDbConnection();
-			if (!connection) {
-				throw new Error('Cannot connect to database');
+			const connection = await this.requireConnection();
+
+			if (options?.readOnly) {
+				return await this.runReadOnly(connection, code, options.signal);
 			}
 
 			const isReadQuery = /^\s*(SELECT|PRAGMA|WITH|SHOW|DESCRIBE|EXPLAIN|CALL|VALUES|FROM|TABLE|SUMMARIZE|PIVOT|UNPIVOT)\b/i.test(code);
 
 			if (isReadQuery) {
-				return await this.query(code);
+				const reader = await this.withInterrupt(connection, options?.signal, () => connection.streamAndReadUntil(code, RAW_QUERY_MAX_ROWS + 1));
+				return this.capRows(reader);
 			}
 
-			await connection.run(code);
+			await this.withInterrupt(connection, options?.signal, () => connection.run(code));
 			return { changes: 0 };
 		} catch (err) {
 			reportError(`DuckDB run arbitrary query error: ${err}`);
 			throw err;
 		}
+	}
+
+	private async runReadOnly(connection: DuckDbConnection, code: string, signal?: AbortSignal): Promise<DuckDbRawQueryRows> {
+		const keyword = firstKeyword(code);
+		if (READ_ONLY_BLOCKED_KEYWORDS.includes(keyword)) {
+			throw new Error(`${keyword} is not allowed in read-only mode`);
+		}
+
+		const extracted = await connection.extractStatements(code);
+		if (extracted.count !== 1) {
+			throw new Error('Read-only mode accepts exactly one statement');
+		}
+
+		const prepared = await extracted.prepare(0);
+		try {
+			const isPlainExplain = prepared.statementType === STATEMENT_TYPE_EXPLAIN && !/^EXPLAIN\s+ANALY[SZ]E\b/i.test(stripSqlComments(code).trim());
+			if (prepared.statementType !== STATEMENT_TYPE_SELECT && !isPlainExplain) {
+				throw new Error('Read-only mode accepts only SELECT statements');
+			}
+
+			const reader = await this.withInterrupt(connection, signal, () => prepared.streamAndReadUntil(RAW_QUERY_MAX_ROWS + 1));
+			return this.capRows(reader);
+		} finally {
+			prepared.destroySync?.();
+		}
+	}
+
+	private capRows(reader: DuckDbResultReader): DuckDbRawQueryRows {
+		const allRows = reader.getRowObjects();
+		const rows: DuckDbRawQueryRows = allRows.slice(0, RAW_QUERY_MAX_ROWS).map((row) => this.normalizeRow(row));
+		if (allRows.length > RAW_QUERY_MAX_ROWS) {
+			rows.truncated = true;
+		}
+		return rows;
 	}
 
 	private buildWhereClause(whereClause: Record<string, any>, columns: Column[], paramOffset: number): { whereString: string; whereParams: any[] } {
@@ -562,7 +790,7 @@ export class DuckDbEngine implements DatabaseEngine {
 		}
 
 		if (value instanceof Uint8Array) {
-			return Buffer.from(value).toString('base64');
+			return this.blobPreview(value);
 		}
 
 		if (Array.isArray(value)) {
@@ -578,24 +806,57 @@ export class DuckDbEngine implements DatabaseEngine {
 		}
 
 		if (typeof value === 'object') {
-			const constructorName = value?.constructor?.name;
+			/**
+			 * DuckDB value classes are matched by shape, not constructor name,
+			 * because the production bundle may rename classes.
+			 */
 
-			/** DuckDB LIST/ARRAY values wrap their elements in an `items` array. */
-			if (constructorName === 'DuckDBListValue' || constructorName === 'DuckDBArrayValue' || Array.isArray((value as any).items)) {
-				return ((value as any).items as any[]).map((item) => this.normalizeValue(item));
+			/** LIST/ARRAY values wrap their elements in an `items` array. */
+			if (Array.isArray(value.items)) {
+				return (value.items as any[]).map((item) => this.normalizeValue(item));
 			}
 
-			/** DuckDB STRUCT values expose their fields under an `entries` object. */
-			if (constructorName === 'DuckDBStructValue' || ((value as any).entries && typeof (value as any).entries === 'object' && !Array.isArray((value as any).entries))) {
+			/** MAP values hold `{ key, value }` pairs in an `entries` array. */
+			if (Array.isArray(value.entries)) {
 				const out: Record<string, any> = {};
-				for (const [key, entryValue] of Object.entries((value as any).entries)) {
+				for (const entry of value.entries as { key: any; value: any }[]) {
+					const key = this.normalizeValue(entry.key);
+					out[typeof key === 'string' ? key : JSON.stringify(key)] = this.normalizeValue(entry.value);
+				}
+				return out;
+			}
+
+			/** STRUCT values expose their fields under an `entries` object. */
+			if (value.entries && typeof value.entries === 'object') {
+				const out: Record<string, any> = {};
+				for (const [key, entryValue] of Object.entries(value.entries)) {
 					out[key] = this.normalizeValue(entryValue);
 				}
 				return out;
 			}
 
-			if (typeof (value as any).toJSON === 'function') {
-				return this.normalizeValue((value as any).toJSON());
+			/** UNION values carry the active member as `{ tag, value }`. */
+			if (typeof value.tag === 'string' && 'value' in value) {
+				return this.normalizeValue(value.value);
+			}
+
+			/** BLOB values: hex preview of the first bytes plus the total size. */
+			if (value.bytes instanceof Uint8Array) {
+				return this.blobPreview(value.bytes);
+			}
+
+			/**
+			 * Scalar value classes (DECIMAL, UUID, DATE, TIME, TIMESTAMP[TZ],
+			 * INTERVAL, BIT, BIGNUM, …) render with DuckDB's own text form via
+			 * toString(). Walking their fields instead would show internals such
+			 * as `{ width, scale, value }` for a DECIMAL.
+			 */
+			if (typeof value.toString === 'function' && value.toString !== Object.prototype.toString) {
+				return String(value);
+			}
+
+			if (typeof value.toJSON === 'function') {
+				return this.normalizeValue(value.toJSON());
 			}
 
 			const out: Record<string, any> = {};
@@ -606,6 +867,13 @@ export class DuckDbEngine implements DatabaseEngine {
 		}
 
 		return value;
+	}
+
+	private blobPreview(bytes: Uint8Array): string {
+		const hex = Buffer.from(bytes.subarray(0, BLOB_PREVIEW_BYTES)).toString('hex').toUpperCase();
+		return bytes.length > BLOB_PREVIEW_BYTES
+			? `0x${hex}… (${bytes.length} bytes)`
+			: `0x${hex}`;
 	}
 
 	private isComplexType(type: string): boolean {
@@ -633,4 +901,16 @@ export class DuckDbEngine implements DatabaseEngine {
 	}
 
 	destroy(): void { }
+}
+
+function stripSqlComments(sql: string): string {
+	return sql
+		.replace(/\/\*[\s\S]*?\*\//g, ' ')
+		.replace(/--[^\n]*/g, ' ');
+}
+
+/** Upper-cased first keyword of a statement, skipping comments, whitespace and `(`. */
+function firstKeyword(sql: string): string {
+	const stripped = stripSqlComments(sql).replace(/^[\s(]+/, '');
+	return (stripped.match(/^[A-Za-z_]+/)?.[0] ?? '').toUpperCase();
 }

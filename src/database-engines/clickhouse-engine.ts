@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { createClient, ClickHouseClient, ClickHouseSettings, ResponseJSON } from '@clickhouse/client'
 import knexlib from 'knex'
 import { Column, ClickhouseConfig, DatabaseEngine, KnexClient, QueryResponse, QueryStats, RawQueryOptions, SerializedMutation, SerializedCellUpdateMutation, SerializedRowDeletionMutation } from '../types'
@@ -16,6 +17,22 @@ const RAW_QUERY_MAX_RESULT_BYTES = 64 * 1024 * 1024
 
 /** Wall-clock ceiling (seconds) on a single raw query. */
 const RAW_QUERY_MAX_EXECUTION_TIME = 30
+
+/** Default wall-clock ceiling (seconds) on table browsing queries (getRows/getTotalRows). */
+const DEFAULT_MAX_EXECUTION_TIME = 60
+
+/** Default per-query server memory ceiling (2 GiB) so one query cannot OOM the server. */
+const DEFAULT_MAX_MEMORY_USAGE = 2 * 1024 * 1024 * 1024
+
+/** Well-known ClickHouse TLS ports (HTTPS interface and native secure). */
+const TLS_PORTS = [8443, 9440]
+
+export interface ClickhouseEngineOptions {
+	/** Wall-clock ceiling (seconds) for getRows/getTotalRows. Defaults to 60. */
+	maxExecutionTimeSeconds?: number
+	/** Per-query server memory ceiling in bytes. Defaults to 2 GiB. */
+	maxMemoryUsageBytes?: number
+}
 
 /**
  * Protective per-query settings applied to {@link ClickhouseEngine.rawQuery}.
@@ -51,16 +68,33 @@ const RAW_QUERY_PROTECTIVE_SETTINGS: ClickHouseSettings = {
 export class ClickhouseEngine implements DatabaseEngine {
 	private client: ClickHouseClient | null = null
 	private config: ClickhouseConfig
+	private readonly maxExecutionTime: number
+	private readonly maxMemoryUsage: number
 
-	constructor(config: ClickhouseConfig) {
+	/**
+	 * True when the connection uses plain HTTP to a non-loopback host, so
+	 * credentials and data travel unencrypted. {@link connect} logs a warning.
+	 */
+	public readonly usesInsecureTransport: boolean
+
+	constructor(config: ClickhouseConfig, options: ClickhouseEngineOptions = {}) {
 		this.config = config
+		this.maxExecutionTime = options.maxExecutionTimeSeconds ?? DEFAULT_MAX_EXECUTION_TIME
+		this.maxMemoryUsage = options.maxMemoryUsageBytes ?? DEFAULT_MAX_MEMORY_USAGE
+
+		const host = config.host ?? 'localhost'
+		this.usesInsecureTransport = resolveProtocol(host, config.port ?? 8123, config.protocol) === 'http' && !isLoopbackHost(host)
 	}
 
 	async connect(): Promise<boolean> {
 		try {
 			const host = this.config.host ?? 'localhost'
 			const port = this.config.port ?? 8123
-			const protocol = this.config.protocol ?? 'http'
+			const protocol = resolveProtocol(host, port, this.config.protocol)
+
+			if (this.usesInsecureTransport) {
+				reportError(`ClickHouse warning: connecting to ${host}:${port} over plain HTTP. Credentials and data are not encrypted. Set "protocol": "https" in the connection config.`)
+			}
 
 			this.client = createClient({
 				url: `${protocol}://${host}:${port}`,
@@ -75,6 +109,16 @@ export class ClickhouseEngine implements DatabaseEngine {
 					 * them as strings preserves the exact value end-to-end.
 					 */
 					output_format_json_quote_64bit_integers: 1,
+					/**
+					 * Return Decimal values as JSON strings too. As numbers they are
+					 * parsed into doubles and lose digits, e.g. 99999999999999.9999.
+					 */
+					output_format_json_quote_decimals: 1,
+					/**
+					 * Stop read-only queries on the server when the HTTP client goes
+					 * away (e.g. the user cancels), instead of letting them run on.
+					 */
+					cancel_http_readonly_queries_on_client_close: 1,
 				},
 			})
 
@@ -200,7 +244,7 @@ export class ClickhouseEngine implements DatabaseEngine {
 		const rows = await this.queryJson<{ count: string | number }>(
 			`SELECT count() AS count FROM ${sanitizeIdentifier(table)}${clause}`,
 			params,
-			{ signal },
+			{ settings: this.browseSettings(), signal },
 		)
 
 		return Number(rows[0]?.count ?? 0)
@@ -215,7 +259,7 @@ export class ClickhouseEngine implements DatabaseEngine {
 			const { clause, params } = this.buildWhereClause(columns, whereClause)
 			const sql = `SELECT * FROM ${sanitizeIdentifier(table)}${clause} LIMIT ${Number(limit) || 0} OFFSET ${Number(offset) || 0}`
 
-			const response = await this.runJson<Record<string, any>>(sql, params, { signal })
+			const response = await this.runJson<Record<string, any>>(sql, params, { settings: this.browseSettings(), signal })
 			const serializedRows = response.data.map(serializeRow)
 			const stats = extractStats(response)
 
@@ -231,7 +275,8 @@ export class ClickhouseEngine implements DatabaseEngine {
 			throw new Error('Not connected')
 		}
 
-		const safeTable = sanitizeIdentifier(serializedMutation.table)
+		const table = serializedMutation.table
+		const safeTable = sanitizeIdentifier(table)
 		const safePkColumn = sanitizeIdentifier(serializedMutation.primaryKeyColumn)
 
 		/**
@@ -268,8 +313,12 @@ export class ClickhouseEngine implements DatabaseEngine {
 			 * that is not a plain String column. The Nullable/LowCardinality
 			 * wrappers are peeled off the cast target because the value is non-null
 			 * here and a bare cast covers both cases.
+			 *
+			 * The type comes from `system.columns`, never from the webview
+			 * payload: it is interpolated into the SQL, so a crafted payload type
+			 * would be an injection vector.
 			 */
-			const castType = unwrapNullableAndLowCardinality(mutation.column.type)
+			const castType = unwrapNullableAndLowCardinality(await this.getServerColumnType(table, mutation.column.name))
 
 			await this.client.command({
 				query: `ALTER TABLE ${safeTable} UPDATE ${safeColumn} = CAST({newValue:String} AS ${castType}) ${whereClause} SETTINGS mutations_sync = 1`,
@@ -304,13 +353,33 @@ export class ClickhouseEngine implements DatabaseEngine {
 		}
 	}
 
+	/**
+	 * Runs arbitrary SQL under row/byte/time/memory ceilings. With
+	 * `options.readOnly` the server enforces `readonly = 1`: writes, DDL,
+	 * `SYSTEM`, `KILL`, writing table functions and setting changes all fail.
+	 */
 	async rawQuery(code: string, options?: RawQueryOptions): Promise<any> {
 		if (!this.client) {
 			throw new Error('Connection not initialized')
 		}
 
+		const settings: ClickHouseSettings = {
+			...RAW_QUERY_PROTECTIVE_SETTINGS,
+			max_memory_usage: String(this.maxMemoryUsage),
+		}
+		if (options?.readOnly) {
+			/**
+			 * `readonly = 1` still lets a user KILL their own queries, so KILL
+			 * is refused here before it reaches the server.
+			 */
+			if (firstKeyword(code) === 'KILL') {
+				throw new Error('KILL is not allowed in read-only mode')
+			}
+			settings.readonly = '1'
+		}
+
 		const response = await this.runJson<Record<string, any>>(code, undefined, {
-			settings: RAW_QUERY_PROTECTIVE_SETTINGS,
+			settings,
 			signal: options?.signal,
 		})
 
@@ -324,6 +393,26 @@ export class ClickhouseEngine implements DatabaseEngine {
 		return this.config.database ?? 'default'
 	}
 
+	private browseSettings(): ClickHouseSettings {
+		return {
+			max_execution_time: this.maxExecutionTime,
+			max_memory_usage: String(this.maxMemoryUsage),
+		}
+	}
+
+	private async getServerColumnType(table: string, column: string): Promise<string> {
+		const rows = await this.queryJson<{ type: string }>(
+			'SELECT type FROM system.columns WHERE database = {database:String} AND table = {table:String} AND name = {column:String}',
+			{ database: this.currentDatabase(), table, column },
+		)
+
+		if (!rows[0]?.type) {
+			throw new Error(`Unknown column ${column} on table ${table}`)
+		}
+
+		return rows[0].type
+	}
+
 	private async queryJson<T>(query: string, params?: Record<string, any>, options?: { settings?: ClickHouseSettings, signal?: AbortSignal }): Promise<T[]> {
 		const response = await this.runJson<T>(query, params, options)
 		return response.data
@@ -334,17 +423,45 @@ export class ClickhouseEngine implements DatabaseEngine {
 	 * including the `statistics` / `rows_before_limit_at_least` metadata that the
 	 * plain {@link queryJson} discards. Threads an optional `AbortSignal` and
 	 * per-query `clickhouse_settings` through to the client.
+	 *
+	 * Each query gets its own `query_id`. Aborting the signal closes the HTTP
+	 * request and also sends `KILL QUERY` for that id on a separate request,
+	 * because closing the socket alone does not stop every query on the server.
 	 */
 	private async runJson<T>(query: string, params?: Record<string, any>, options?: { settings?: ClickHouseSettings, signal?: AbortSignal }): Promise<ResponseJSON<T>> {
-		const resultSet = await this.client!.query({
-			query,
-			format: 'JSON',
-			query_params: params,
-			clickhouse_settings: options?.settings,
-			abort_signal: options?.signal,
-		})
+		const queryId = randomUUID()
+		const signal = options?.signal
+		const killOnAbort = () => this.killQuery(queryId)
 
-		return await resultSet.json<T>()
+		signal?.addEventListener('abort', killOnAbort, { once: true })
+
+		try {
+			const resultSet = await this.client!.query({
+				query,
+				format: 'JSON',
+				query_id: queryId,
+				query_params: params,
+				clickhouse_settings: options?.settings,
+				abort_signal: signal,
+			})
+
+			/**
+			 * Statements that return no rows (DDL, INSERT, KILL, …) produce an
+			 * empty body even with `FORMAT JSON`, which `resultSet.json()` would
+			 * reject after the statement already ran.
+			 */
+			const text = await resultSet.text()
+			return text.trim() ? JSON.parse(text) : { data: [], meta: [], rows: 0 } as unknown as ResponseJSON<T>
+		} finally {
+			signal?.removeEventListener('abort', killOnAbort)
+		}
+	}
+
+	private killQuery(queryId: string): void {
+		this.client?.command({
+			query: 'KILL QUERY WHERE query_id = {queryId:String} ASYNC',
+			query_params: { queryId },
+		}).catch(error => reportError(`ClickHouse KILL QUERY error: ${error}`))
 	}
 
 	/**
@@ -475,14 +592,49 @@ function extractStats(response: ResponseJSON<unknown>): QueryStats | undefined {
 }
 
 /**
- * ClickHouse identifiers are wrapped in backticks; embedded backticks are
- * doubled. Dotted identifiers (`db.table`) are quoted segment-wise.
+ * Quotes one ClickHouse identifier (a column name) in backticks. ClickHouse
+ * reads a backslash in a quoted identifier as an escape, so backslashes are
+ * escaped first, then backticks; else a name ending in `\` escapes the closing
+ * backtick. The name is quoted whole: a dot is part of the name (e.g. Nested
+ * `a.b`), not a separator. Used for table names too: the client
+ * re-escapes backslashes in `{name:Identifier}` parameters, which breaks such names.
  */
-function sanitizeIdentifier(identifier: string): string {
-	return identifier
-		.split('.')
-		.map(segment => `\`${segment.replace(/`/g, '``')}\``)
-		.join('.')
+export function sanitizeIdentifier(identifier: string): string {
+	return `\`${identifier.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\``
+}
+
+/** Upper-cased first keyword of a statement, skipping comments, whitespace and `(`. */
+function firstKeyword(sql: string): string {
+	const stripped = sql
+		.replace(/\/\*[\s\S]*?\*\//g, ' ')
+		.replace(/(--|#)[^\n]*/g, ' ')
+		.replace(/^[\s(]+/, '')
+	return (stripped.match(/^[A-Za-z_]+/)?.[0] ?? '').toUpperCase()
+}
+
+function isLoopbackHost(host: string): boolean {
+	const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, '')
+	return normalized === 'localhost'
+		|| normalized.endsWith('.localhost')
+		|| normalized === '::1'
+		|| /^127\.\d+\.\d+\.\d+$/.test(normalized)
+}
+
+/**
+ * Picks the transport when the config does not set one: HTTPS for the
+ * well-known TLS ports (8443, 9440) and for any non-loopback host, HTTP only
+ * for loopback hosts.
+ */
+export function resolveProtocol(host: string, port: number, configured?: 'http' | 'https'): 'http' | 'https' {
+	if (configured) {
+		return configured
+	}
+
+	if (TLS_PORTS.includes(Number(port))) {
+		return 'https'
+	}
+
+	return isLoopbackHost(host) ? 'http' : 'https'
 }
 
 /**
