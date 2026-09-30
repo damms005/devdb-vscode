@@ -75,4 +75,8 @@ docker run --rm --platform "$platform" -v "$root":/work -w /work \
 		if [ -f /etc/alpine-release ]; then apk add --no-cache python3 make g++ >/dev/null; fi
 		echo "Container: $(uname -m), $(node -v), $(ldd --version 2>&1 | head -n1)"
 		sh -ec "$BUILD_SCRIPT" build --nodedir=/usr/local
+		# Remove debug info (Alpine builds keep it): smaller VSIX, same dynamic symbols.
+		find node_modules/@vscode/sqlite3/build node_modules/ssh2/lib/protocol/crypto/build node_modules/cpu-features/build \
+			-name "*.node" -exec strip --strip-unneeded {} + 2>/dev/null || true
+		find node_modules/@vscode/sqlite3/build -name "*.node" -exec ls -l {} +
 	'
