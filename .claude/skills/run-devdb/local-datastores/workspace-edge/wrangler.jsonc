@@ -1,0 +1,20 @@
+// Cloudflare Worker with two D1 bindings. d1/gen-d1.sh creates the local file for DB only,
+// so CACHE shows the "run wrangler d1 migrations apply ... --local first" hint in DevDb.
+{
+  "name": "devdb-edge-demo",
+  "main": "src/index.js",
+  "compatibility_date": "2025-01-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "edge-demo-db",
+      "database_id": "4b1c6a0e-2f7d-4c1e-9d6a-8a3f5e2b7c91", // fake id: local only
+      "migrations_dir": "migrations",
+    },
+    {
+      "binding": "CACHE",
+      "database_name": "edge-cache-db",
+      "database_id": "9d2f7e1a-3c4b-4d5e-8f6a-1b2c3d4e5f60",
+    },
+  ],
+}

@@ -100,7 +100,21 @@ services:
       interval: 2s
       retries: 30
 
+  # Turso / libSQL server (sqld). No auth: any token is accepted. Seed with ./libsql/seed.sh.
+  libsql:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    container_name: devdb-local-libsql
+    ports: ["8081:8080"]
+    volumes:
+      - libsql-data:/var/lib/sqld
+    healthcheck:
+      # the image has no curl/wget: plain HTTP over bash /dev/tcp
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 2s
+      retries: 30
+
 volumes:
+  libsql-data:
   clickhouse-data:
   pgvector-data:
   neon-data:

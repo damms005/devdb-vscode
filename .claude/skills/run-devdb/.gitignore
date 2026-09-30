@@ -7,3 +7,4 @@ local-datastores/certs/*.csr
 local-datastores/certs/*.srl
 local-datastores/workspace/.devdbrc
 local-datastores/*.log
+local-datastores/workspace-edge/.wrangler
