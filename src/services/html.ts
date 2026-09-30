@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
-import { join } from 'path';
+import { readFileSync } from 'fs';
+import { join, sep } from 'path';
 import * as vscode from 'vscode';
 
 export const FRONTEND_FOLDER_NAME = 'ui-shell'
@@ -83,4 +84,59 @@ export function getNonce(): string {
  */
 export function buildNoticeCsp(cspSource: string, nonce: string): string {
 	return `default-src 'none'; img-src https: ${cspSource}; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
+}
+
+/** Folder with the notice templates, relative to the extension root. */
+export const NOTICES_FOLDER = 'resources/notices';
+
+export interface NoticeWebview {
+	cspSource: string;
+	asWebviewUri(uri: vscode.Uri): { toString(): string };
+}
+
+/**
+ * Renders a notice template from `resources/notices`. Placeholders:
+ * `{{csp}}`, `{{nonce}}`, `{{name}}` (HTML-escaped value from `vars`),
+ * `{{asset:path}}` (webview URI of a file) and `{{include:path}}` (raw file content).
+ * Paths are relative to `resources/notices`. An unknown placeholder throws.
+ */
+export function renderNoticeTemplate(
+	extensionPath: string,
+	webview: NoticeWebview,
+	nonce: string,
+	template: string,
+	vars: Record<string, string | number> = {},
+): string {
+	const root = join(extensionPath, NOTICES_FOLDER);
+	const resolveNoticePath = (relative: string) => {
+		const absolute = join(root, relative);
+		if (!absolute.startsWith(root + sep)) {
+			throw new Error(`Notice path escapes ${NOTICES_FOLDER}: ${relative}`);
+		}
+		return absolute;
+	};
+
+	const values: Record<string, string> = { csp: buildNoticeCsp(webview.cspSource, nonce), nonce };
+	for (const [key, value] of Object.entries(vars)) {
+		values[key] = escapeHtml(String(value));
+	}
+
+	const expand = (source: string, depth: number): string => source.replace(/\{\{\s*([a-z]+)(?::([^}\s]+))?\s*\}\}/gi, (_, name: string, arg?: string) => {
+		if (name === 'asset' && arg) {
+			return webview.asWebviewUri(vscode.Uri.file(resolveNoticePath(arg))).toString();
+		}
+		if (name === 'include' && arg && depth < 3) {
+			return expand(readFileSync(resolveNoticePath(arg), 'utf8'), depth + 1);
+		}
+		if (!arg && name in values) {
+			return values[name];
+		}
+		throw new Error(`Unknown notice placeholder {{${name}${arg ? `:${arg}` : ''}}} in ${template}`);
+	});
+
+	return expand(readFileSync(resolveNoticePath(template), 'utf8'), 0);
+}
+
+function escapeHtml(value: string): string {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

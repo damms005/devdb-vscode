@@ -15,6 +15,9 @@
 !resources/devdb-128x128.png
 !resources/devdb.png
 
+# Promo notice pages (templates, styles, script)
+!resources/notices/**
+
 # Include snippets and schemas
 !snippets/*
 !schemas/*

@@ -1,0 +1,147 @@
+/* DevWorkspace Pro showcase. Page colors come from the VS Code theme; mocks use mocks.css. */
+:root {
+	--fg: var(--vscode-foreground);
+	--muted: var(--vscode-descriptionForeground);
+	--bg: var(--vscode-editor-background);
+	--border: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+	--surface: color-mix(in srgb, var(--fg) 4%, var(--bg));
+	--surface-2: color-mix(in srgb, var(--fg) 8%, var(--bg));
+	--brand: #02a074;
+	--brand-soft: color-mix(in srgb, var(--brand) 14%, var(--bg));
+	--green: var(--vscode-charts-green, #3fb950);
+	--mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+*, ::before, ::after { box-sizing: border-box; }
+/* Page reset; never touches the mocks. */
+:where(body, h1, h2, h3, p, ul, figure):not(.mock-frame *) { margin: 0; padding: 0; }
+
+body {
+	font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
+	font-size: 14px;
+	line-height: 1.55;
+	color: var(--fg);
+	background: var(--bg);
+	-webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 1080px; margin: 0 auto; padding: 48px 40px 64px; }
+
+.close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.close {
+	position: fixed; top: 14px; right: 14px; z-index: 20;
+	display: grid; place-items: center; width: 32px; height: 32px;
+	border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.close:hover { background: var(--surface-2); color: var(--fg); }
+.close:focus-visible, .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+
+.caption kbd { font-family: var(--mono); font-size: 0.85em; padding: 1px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+
+/* Hero */
+.hero { text-align: center; margin-bottom: 32px; }
+.eyebrow {
+	display: inline-block; margin-bottom: 14px; padding: 4px 12px;
+	font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+	border-radius: 999px; color: var(--brand); background: var(--brand-soft);
+	border: 1px solid color-mix(in srgb, var(--brand) 40%, transparent);
+}
+h1 {
+	font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px;
+	background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #2dd4bf));
+	-webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lead { font-size: 16px; color: var(--muted); max-width: 620px; margin: 0 auto 22px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.platforms { display: flex; justify-content: center; gap: 18px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+.platforms span::before { content: '✓'; margin-right: 6px; color: var(--green); font-weight: 700; }
+
+.btn {
+	display: inline-flex; align-items: center; height: 40px; padding: 0 18px;
+	font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer; transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { border: 0; color: #fff; background: var(--brand); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { border: 1px solid var(--border); color: var(--fg); background: transparent; }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-link { border: 0; background: none; color: var(--vscode-textLink-foreground); padding: 0 8px; }
+.btn-link:hover { text-decoration: underline; }
+
+/* Mock frames */
+.mock-frame { font-size: 16px; line-height: 1.5; text-align: left; letter-spacing: normal; }
+.hero-frame {
+	display: flex; flex-direction: column; max-height: 470px; overflow: hidden;
+	border-radius: 16px; border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--border));
+	box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.55);
+}
+.caption { margin: 12px auto 56px; text-align: center; font-size: 13px; color: var(--muted); max-width: 640px; }
+
+h2:not(.mock-frame *) { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 16px; }
+.page > section { margin-bottom: 48px; }
+
+.tabs {
+	display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 20px;
+	border-radius: 10px; background: var(--surface-2);
+}
+.tab {
+	height: 32px; padding: 0 14px; border: 0; border-radius: 7px;
+	font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; cursor: pointer;
+}
+.tab:hover { color: var(--fg); }
+.tab[aria-selected='true'] { color: var(--fg); background: var(--bg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+
+.panel { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.panel[hidden] { display: none; }
+.shot {
+	padding: 20px; border-radius: 14px; overflow: hidden;
+	background: linear-gradient(140deg, var(--brand-soft), var(--surface) 70%);
+	border: 1px solid var(--border);
+}
+/* Mocks are drawn for a wider column; scale them like the site's hero (zoom: 0.75). */
+.shot { min-height: 480px; display: flex; align-items: center; justify-content: center; }
+.shot > * { zoom: 0.8; flex: 1; }
+[data-panel='scratchpad'] .shot > * { zoom: 0.7; }
+/* The recipes mock places its dialog at left: 400px, so it needs its full 780px width. */
+[data-panel='recipes'] .shot > * { zoom: 0.72; flex: none; width: 790px; }
+.copy h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.copy p { color: var(--muted); margin-bottom: 14px; }
+.checks { list-style: none; display: grid; gap: 8px; }
+.checks li { position: relative; padding-left: 22px; }
+.checks li::before {
+	content: ''; position: absolute; left: 2px; top: 6px; width: 10px; height: 6px;
+	border-left: 2px solid var(--brand); border-bottom: 2px solid var(--brand); transform: rotate(-45deg);
+}
+
+.more-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.more-grid div { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.more-grid strong { font-size: 13.5px; }
+.more-grid span { font-size: 12.5px; color: var(--muted); }
+
+.offer {
+	display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: space-between;
+	padding: 24px 28px; border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--brand) 40%, transparent);
+	background: linear-gradient(120deg, var(--brand-soft), var(--surface));
+}
+.offer h2 { margin-bottom: 4px; font-size: 18px; }
+.offer p { color: var(--muted); }
+.code {
+	font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+	padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--brand);
+	color: var(--fg); background: var(--bg); user-select: all;
+}
+
+@media (max-width: 860px) {
+	.panel { grid-template-columns: 1fr; }
+	.more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+	.page { padding: 32px 16px 48px; }
+	.more-grid { grid-template-columns: 1fr; }
+	h1 { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.btn { transition: none; }
+	.btn:hover { transform: none; }
+}
