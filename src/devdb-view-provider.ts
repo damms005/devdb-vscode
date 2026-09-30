@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { plural } from 'pluralize';
 import Case from 'case';
-import { getWebviewHtml } from './services/html';
+import { FRONTEND_FOLDER_NAME, getWebviewHtml } from './services/html';
 import { handleIncomingMessage, isTablesLoaded, reply, sendMessageToWebview, tableExists } from './services/messenger';
 import { getWordUnderCursor } from './services/document-service';
 import { showEmptyTablesNotification } from './services/error-notification-service';
@@ -36,7 +36,7 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.options = {
 			enableScripts: true,
-			localResourceRoots: [this._extensionUri],
+			localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, FRONTEND_FOLDER_NAME, 'dist')],
 		};
 
 		webviewView.webview.html = getWebviewHtml(webviewView.webview, this.jsFile, this.cssFile, this._extensionUri);

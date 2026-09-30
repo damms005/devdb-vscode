@@ -96,7 +96,7 @@ export class DevWorkspaceProRecommendationService {
 	}
 
 	private async openPurchasePageWithDiscount(): Promise<void> {
-		const purchaseUrl = 'https://devworkspacepro.com';
+		const purchaseUrl = 'https://devworkspacepro.com/?ref=ide';
 		await vscode.env.openExternal(vscode.Uri.parse(purchaseUrl));
 
 		const discountMessage = 'Use discount code GIFTFORDEVDBUSERS25 for 25% off your DevWorkspace Pro license!';

@@ -1,31 +1,45 @@
 import * as vscode from 'vscode';
+import { buildNoticeCsp, getNonce } from './html';
 import { isDdevProject } from './workspace';
 
 const NOTICE_SHOWN_KEY = 'devworkspacepro.notice.shown';
 const NOTICE_DISMISSED_KEY = 'devworkspacepro.notice.dismissed';
+const PRICING_URL = 'https://devworkspacepro.com/?ref=ide#pricing';
+const LEARN_MORE_URL = 'https://devworkspacepro.com/?ref=ide';
 
-export function showDevWorkspaceProNoticeForDdevWorkspaces(context: vscode.ExtensionContext, version: string, isNewInstall: boolean = false) {
+/**
+ * Shows the DevWorkspace Pro full-page notice for DDEV workspaces.
+ * Returns true when the notice will show on this launch.
+ */
+export async function showDevWorkspaceProNoticeForDdevWorkspaces(context: vscode.ExtensionContext, version: string, isNewInstall: boolean = false): Promise<boolean> {
     if (!isDdevProject()) {
-        return;
+        return false;
     }
 
     const isDismissed = context.globalState.get<boolean>(NOTICE_DISMISSED_KEY, false);
     if (isDismissed) {
-        return;
+        return false;
     }
 
     if (!isNewInstall) {
         const shownForVersion = context.globalState.get<string>(NOTICE_SHOWN_KEY);
         if (shownForVersion === version) {
-            return;
+            return false;
         }
     }
 
-    context.globalState.update(NOTICE_SHOWN_KEY, version);
+    await context.globalState.update(NOTICE_SHOWN_KEY, version);
 
     setTimeout(() => {
         createDevWorkspaceProWebview(context, isNewInstall);
     }, 1000);
+
+    return true;
+}
+
+/** Dev preview: shows the notice without any gating. */
+export function previewDevWorkspaceProNotice(context: vscode.ExtensionContext, isNewInstall: boolean = false) {
+    createDevWorkspaceProWebview(context, isNewInstall);
 }
 
 function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewInstall: boolean = false) {
@@ -40,7 +54,7 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
         }
     );
 
-    panel.webview.html = getNoticeHtml(isNewInstall);
+    panel.webview.html = getNoticeHtml(panel.webview.cspSource, getNonce(), isNewInstall);
 
     panel.iconPath = {
         light: vscode.Uri.file(context.asAbsolutePath('resources/devdb.png')),
@@ -50,11 +64,11 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
         message => {
             switch (message.command) {
                 case 'getLicense':
-                    vscode.env.openExternal(vscode.Uri.parse('https://devworkspacepro.com/#pricing'));
+                    vscode.env.openExternal(vscode.Uri.parse(PRICING_URL));
                     panel.dispose();
                     break;
                 case 'learnMore':
-                    vscode.env.openExternal(vscode.Uri.parse('https://devworkspacepro.com'));
+                    vscode.env.openExternal(vscode.Uri.parse(LEARN_MORE_URL));
                     break;
                 case 'close':
                     panel.dispose();
@@ -65,17 +79,17 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
         context.subscriptions
     );
 
-    // Removed auto-disposal - let user decide when to close the promotional tab
 }
 
-function getNoticeHtml(isNewInstall: boolean = false): string {
+export function getNoticeHtml(cspSource: string, nonce: string, isNewInstall: boolean = false): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="${buildNoticeCsp(cspSource, nonce)}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevWorkspace Pro - The Best GUI for DDEV</title>
-    <style>
+    <style nonce="${nonce}">
         * {
             margin: 0;
             padding: 0;
@@ -285,7 +299,7 @@ function getNoticeHtml(isNewInstall: boolean = false): string {
     </style>
 </head>
 <body>
-    <button class="close-btn" onclick="closeNotice()">×</button>
+    <button class="close-btn" data-command="close" aria-label="Close">×</button>
 
     <div class="header">
         <h1 class="title">DevWorkspace Pro (DevDb user discount)</h1>
@@ -294,10 +308,10 @@ function getNoticeHtml(isNewInstall: boolean = false): string {
         </p>
     </div>
 
-    <img src="http://devworkspacepro.com/images/screenshots/project-overview-tab-light.png"
+    <img src="https://devworkspacepro.com/images/screenshots/project-overview-tab-light.png"
          alt="DevWorkspace Pro Screenshot"
          class="screenshot"
-         onerror="this.style.display='none'">
+         id="screenshot">
 
     <div class="features">
         <h3>Powerful Features for DDEV Developers</h3>
@@ -319,35 +333,24 @@ function getNoticeHtml(isNewInstall: boolean = false): string {
     </div>
 
     <div class="cta-section">
-        <button class="btn btn-primary" onclick="getLicense()">
+        <button class="btn btn-primary" data-command="getLicense">
             Get Your License Now
         </button>
-        <button class="btn btn-secondary" onclick="learnMore()">
+        <button class="btn btn-secondary" data-command="learnMore">
             Learn More
         </button>
         <br><br>
     </div>
 
-    <script>
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
-        function getLicense() {
-            vscode.postMessage({
-                command: 'getLicense'
-            });
-        }
+        document.querySelectorAll('[data-command]').forEach(button => {
+            button.addEventListener('click', () => vscode.postMessage({ command: button.dataset.command }));
+        });
 
-        function learnMore() {
-            vscode.postMessage({
-                command: 'learnMore'
-            });
-        }
-
-        function closeNotice() {
-            vscode.postMessage({
-                command: 'close'
-            });
-        }
+        const screenshot = document.getElementById('screenshot');
+        screenshot.addEventListener('error', () => { screenshot.style.display = 'none'; });
     </script>
 </body>
 </html>`;
