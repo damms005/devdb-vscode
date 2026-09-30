@@ -1,0 +1,61 @@
+<div class="mock-ui fe">
+  <aside class="fe-side">
+    <div class="fe-panes">
+      <span class="fe-pane fe-pane-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1ZM20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1ZM3 5a2 2 0 0 0 2 2h3M3 3v13a2 2 0 0 0 2 2h3"/></svg>Files</span>
+      <span class="fe-pane"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 6H3M10 12H3M10 18H3"/><circle cx="17" cy="15" r="3"/><path d="m21 19-1.9-1.9"/></svg>Search</span>
+      <span class="gc-spacer"></span>
+      <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M12 12v6M9 15h6"/></svg>
+      <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2ZM12 10v6M9 13h6"/></svg>
+    </div>
+    <div class="fe-goto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Go to file…</span><kbd>⌘P</kbd></div>
+    <div class="fe-tree">
+      <div class="tr"><span class="chev">▾</span>app</div>
+      <div class="tr tr-2"><span class="chev">▾</span>Http/Controllers</div>
+      <div class="tr tr-3 tr-mod tr-on">InvoiceExportController.php</div>
+      <div class="tr tr-3">UserController.php</div>
+      <div class="tr tr-2 tr-new"><span class="chev">▸</span>Jobs</div>
+      <div class="tr tr-2"><span class="chev">▸</span>Models</div>
+      <div class="tr"><span class="chev">▸</span>config</div>
+      <div class="tr"><span class="chev">▸</span>database</div>
+      <div class="tr"><span class="chev">▸</span>resources</div>
+      <div class="tr tr-mod"><span class="chev">▸</span>routes</div>
+      <div class="tr tr-dim"><span class="chev">▸</span>vendor</div>
+      <div class="tr tr-leaf">.env</div>
+      <div class="tr tr-leaf">composer.json</div>
+    </div>
+  </aside>
+
+  <section class="fe-main">
+    <div class="fe-tabs">
+      <span class="fe-tab fe-tab-on">InvoiceExportController.php<span class="fe-dot"></span></span>
+      <span class="fe-tab fe-tab-preview">web.php</span>
+    </div>
+    <div class="fe-crumbs">
+      <span>app</span><b>›</b><span>Http</span><b>›</b><span>Controllers</span><b>›</b><span class="fe-crumb-on">InvoiceExportController.php</span>
+      <span class="gc-spacer"></span>
+      <span class="fe-ready"><span class="fe-led"></span>IntelliSense ready</span>
+      <span>⌘S to save</span>
+    </div>
+    <div class="fe-code">
+      <div class="cl"><i>12</i><span>    <span class="k">public function</span> <span class="f">store</span>(<span class="t">Request</span> <span class="v">$request</span>)</span></div>
+      <div class="cl"><i>13</i><span>    {</span></div>
+      <div class="cl"><i>14</i><span>        <span class="v">$ids</span> = <span class="v">$request</span>-&gt;<span class="f">validate</span>([<span class="s">'ids'</span> =&gt; <span class="s">'required|array'</span>])[<span class="s">'ids'</span>];</span></div>
+      <div class="cl"><i>15</i><span></span></div>
+      <div class="cl"><i>16</i><span>        <span class="v">$invoice</span> = <span class="t">Invoice</span>::<span class="f">findOrFail</span>(<span class="v">$ids</span>[<span class="n">0</span>]);</span></div>
+      <div class="cl cl-on"><i>17</i><span>        <span class="v">$invoice</span>-&gt;<span class="caret"></span></span></div>
+      <div class="cl"><i>18</i><span></span></div>
+      <div class="cl"><i>19</i><span>        <span class="t">ExportInvoicesJob</span>::<span class="f">dispatch</span>(<span class="v">$ids</span>, <span class="v">$request</span>-&gt;<span class="f">user</span>());</span></div>
+      <div class="cl"><i>20</i><span></span></div>
+      <div class="cl"><i>21</i><span>        <span class="k">return</span> <span class="f">back</span>()-&gt;<span class="f">with</span>(<span class="s">'status'</span>, <span class="s">'Export started.'</span>);</span></div>
+      <div class="cl"><i>22</i><span>    }</span></div>
+      <div class="cl"><i>23</i><span>}</span></div>
+      <div class="fe-suggest">
+        <div class="sg sg-on"><span class="sg-kind">P</span>customer<span class="sg-type">Customer</span></div>
+        <div class="sg"><span class="sg-kind">P</span>total<span class="sg-type">decimal:2</span></div>
+        <div class="sg"><span class="sg-kind">P</span>issued_at<span class="sg-type">Carbon</span></div>
+        <div class="sg"><span class="sg-kind">M</span>lines()<span class="sg-type">HasMany</span></div>
+        <div class="sg"><span class="sg-kind">M</span>markAsSent()<span class="sg-type">void</span></div>
+      </div>
+    </div>
+  </section>
+</div>

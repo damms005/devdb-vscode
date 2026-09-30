@@ -349,11 +349,30 @@ describe('Promo notices', function () {
 			assert.ok(!page.includes('data-tab'), 'no tabs');
 		});
 
-		it('the DevWorkspace Pro notice leads with the New AI session shortcut', () => {
+		it('the DevWorkspace Pro deck leads with AI sessions, then Scratchpad, Git Changes and the file editor', () => {
 			const page = devWorkSpaceProHtml(html.getNonce(), false);
 			assert.match(page, /class="key key-letter">J</);
-			const highlights = page.slice(page.indexOf('class="highlights"'));
-			assert.ok(highlights.indexOf('New AI session') < highlights.indexOf('<li>'), 'New AI session is the first highlight');
+			const titles = [...page.matchAll(/data-deck-item><strong>([^<]+)<\/strong>/g)].map(match => match[1]);
+			assert.deepStrictEqual(titles.slice(0, 4), ['AI sessions', 'Scratchpad', 'Git Changes', 'File editor']);
+			assert.ok(!titles.includes('Session resume'), 'resume is part of AI sessions');
+		});
+
+		it('the DevWorkspace Pro deck has one window per strip item', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false);
+			const tabs = [...page.matchAll(/role="tab" aria-selected="(?:true|false)" aria-controls="([^"]+)"/g)].map(match => match[1]);
+			const cards = [...page.matchAll(/<figure class="win [^"]*" id="([^"]+)"[^>]*data-deck-card/g)].map(match => match[1]);
+			assert.strictEqual(tabs.length, 6);
+			assert.deepStrictEqual(cards, tabs);
+			assert.strictEqual((page.match(/aria-selected="true"/g) || []).length, 1);
+		});
+
+		it('the deck honors reduced motion', () => {
+			const script = fs.readFileSync(path.join(extensionPath, 'resources/notices/notice.js'), 'utf8');
+			const css = fs.readFileSync(path.join(extensionPath, 'resources/notices/devworkspacepro/notice.css'), 'utf8');
+			assert.ok(script.includes("matchMedia('(prefers-reduced-motion: reduce)')"));
+			const reduced = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+			assert.match(reduced, /\.win[^{]*\{[^}]*transition: none/);
+			assert.match(reduced, /\.tab\.is-running::after \{ animation: none; \}/);
 		});
 
 		it('the DevWorkspace Pro hero names v2 and says it is a desktop app', () => {

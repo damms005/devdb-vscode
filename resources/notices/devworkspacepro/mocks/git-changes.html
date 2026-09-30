@@ -1,0 +1,63 @@
+<div class="mock-ui gc">
+  <div class="gc-top">
+    <div class="seg">
+      <span class="seg-item seg-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M12 10v6M9 13h6"/></svg>Changes<span class="seg-count">5</span></span>
+      <span class="seg-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>History</span>
+    </div>
+    <span class="gc-branch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-6 3-10 7"/></svg>feature/bulk-export</span>
+    <span class="gc-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>2</span>
+    <span class="gc-spacer"></span>
+    <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>
+  </div>
+
+  <div class="gc-body">
+    <aside class="gc-side">
+      <div class="gc-sel">
+        <span class="cb cb-mixed"></span>
+        <span><b>3</b> of 5 changes selected</span>
+        <span class="gc-spacer"></span>
+        <span class="gc-num"><span class="add">+128</span> <span class="del">−14</span></span>
+      </div>
+      <div class="gc-list">
+        <div class="gc-row gc-row-on"><span class="cb cb-on"></span><span class="st st-m">M</span><span class="gc-name">InvoiceExportController.php<i>app/Http/Controllers</i></span><span class="gc-num"><span class="add">+42</span> <span class="del">−6</span></span></div>
+        <div class="gc-row"><span class="cb cb-on"></span><span class="st st-a">A</span><span class="gc-name">ExportInvoicesJob.php<i>app/Jobs</i></span><span class="gc-num"><span class="add">+58</span></span></div>
+        <div class="gc-row"><span class="cb cb-on"></span><span class="st st-m">M</span><span class="gc-name">web.php<i>routes</i></span><span class="gc-num"><span class="add">+3</span> <span class="del">−1</span></span></div>
+        <div class="gc-row"><span class="cb"></span><span class="st st-u">U</span><span class="gc-name">export.blade.php<i>resources/views/invoices</i></span><span class="gc-num"><span class="add">+21</span></span></div>
+        <div class="gc-row"><span class="cb"></span><span class="st st-m">M</span><span class="gc-name">composer.lock</span><span class="gc-num"><span class="add">+4</span> <span class="del">−7</span></span></div>
+      </div>
+      <div class="gc-commit">
+        <div class="gc-msg">Add bulk invoice export<span class="caret"></span></div>
+        <div class="gc-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg>Commit 3 files<kbd>⌘↵</kbd></div>
+      </div>
+    </aside>
+
+    <section class="gc-diff">
+      <div class="gc-diffbar"><span class="gc-spacer"></span><span class="seg seg-sm"><span class="seg-item seg-on">Unified</span><span class="seg-item">Split</span></span></div>
+      <div class="df-file">
+        <span class="df-path">app/Http/Controllers/<b>InvoiceExportController.php</b></span>
+        <span class="gc-num"><span class="add">+42</span> <span class="del">−6</span></span>
+      </div>
+      <div class="df-hunk">@@ -12,9 +12,17 @@ class InvoiceExportController</div>
+      <div class="df-line"><i>12</i><i>12</i><span>    <span class="k">public function</span> <span class="f">store</span>(<span class="t">Request</span> <span class="v">$request</span>)</span></div>
+      <div class="df-line"><i>13</i><i>13</i><span>    {</span></div>
+      <div class="df-line df-del"><i>14</i><i></i><span>        <span class="v">$ids</span> = <span class="v">$request</span>-&gt;<span class="f">input</span>(<span class="s">'ids'</span>);</span></div>
+      <div class="df-line df-del"><i>15</i><i></i><span>        <span class="k">return</span> <span class="t">Excel</span>::<span class="f">download</span>(<span class="v">$ids</span>);</span></div>
+      <div class="df-line df-add"><i></i><i>14</i><span>        <span class="v">$ids</span> = <span class="v">$request</span>-&gt;<span class="f">validate</span>([<span class="s">'ids'</span> =&gt; <span class="s">'required|array'</span>])[<span class="s">'ids'</span>];</span></div>
+      <div class="df-line df-add"><i></i><i>15</i><span></span></div>
+      <div class="df-line df-add"><i></i><i>16</i><span>        <span class="t">ExportInvoicesJob</span>::<span class="f">dispatch</span>(<span class="v">$ids</span>, <span class="v">$request</span>-&gt;<span class="f">user</span>());</span></div>
+      <div class="df-line df-add"><i></i><i>17</i><span></span></div>
+      <div class="df-line df-add"><i></i><i>18</i><span>        <span class="k">return</span> <span class="f">back</span>()-&gt;<span class="f">with</span>(<span class="s">'status'</span>, <span class="s">'Export started.'</span>);</span></div>
+      <div class="df-line"><i>16</i><i>19</i><span>    }</span></div>
+      <div class="df-line"><i>17</i><i>20</i><span></span></div>
+      <div class="df-line"><i>18</i><i>21</i><span>    <span class="k">public function</span> <span class="f">show</span>(<span class="t">Export</span> <span class="v">$export</span>)</span></div>
+      <div class="df-file df-file-next">
+        <span class="df-path">app/Jobs/<b>ExportInvoicesJob.php</b></span>
+        <span class="gc-num"><span class="add">+58</span></span>
+      </div>
+      <div class="df-hunk">@@ -0,0 +1,58 @@</div>
+      <div class="df-line df-add"><i></i><i>1</i><span><span class="k">&lt;?php</span></span></div>
+      <div class="df-line df-add"><i></i><i>2</i><span></span></div>
+      <div class="df-line df-add"><i></i><i>3</i><span><span class="k">namespace</span> <span class="t">App\Jobs</span>;</span></div>
+    </section>
+  </div>
+</div>

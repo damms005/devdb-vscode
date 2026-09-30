@@ -2,6 +2,7 @@
 /**
  * Builds the DevWorkspace Pro showcase mocks for the IDE notice
  * (resources/notices/devworkspacepro/mocks/*.html + mocks.css).
+ * ai-launcher, git-changes and files are hand-written mocks styled in notice.css; this script leaves them alone.
  *
  * 1. Render the site's Blade mocks to HTML (in a scratch copy of the devworkspacepro.com repo):
  *      php artisan tinker --execute 'file_put_contents("out/focus-pad.html", Blade::render("<x-mock-ui.focus-pad />"));'
@@ -13,10 +14,10 @@
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const MOCKS = ['overview', 'status-bar', 'focus-pad', 'voice-to-text', 'github-issues', 'scratchpad', 'recipes'];
+const MOCKS = ['overview', 'status-bar', 'focus-pad', 'voice-to-text', 'github-issues', 'scratchpad'];
 
 const [renderedDir, tailwindDir] = process.argv.slice(2);
 if (!renderedDir || !tailwindDir) {
@@ -26,7 +27,6 @@ if (!renderedDir || !tailwindDir) {
 
 const outDir = resolve('resources/notices/devworkspacepro');
 const mocksDir = join(outDir, 'mocks');
-rmSync(mocksDir, { recursive: true, force: true });
 mkdirSync(mocksDir, { recursive: true });
 
 const styleRules = new Map();
