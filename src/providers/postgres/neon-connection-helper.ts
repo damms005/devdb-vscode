@@ -60,14 +60,28 @@ export interface NeonConnectionOptions {
 }
 
 /**
- * Returns true if the given connection string points at a Neon Postgres endpoint.
+ * Returns true if the hostname is `neon.tech` or a subdomain of it.
+ */
+export function isNeonHostname(hostname: string | undefined): boolean {
+	const host = String(hostname ?? '').toLowerCase().replace(/\.$/, '');
+
+	return host === NEON_HOST_MARKER || host.endsWith(`.${NEON_HOST_MARKER}`);
+}
+
+/**
+ * Returns true if the given connection string's host is a Neon Postgres endpoint
+ * (hostname ends with `.neon.tech`; `neon.tech` elsewhere in the URL does not count).
  */
 export function isNeonConnectionString(url: string | undefined): boolean {
 	if (!url) {
 		return false;
 	}
 
-	return url.includes(NEON_HOST_MARKER);
+	try {
+		return isNeonHostname(new URL(url).hostname);
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -107,7 +121,7 @@ export function extractDatabaseUrlFromEnv(
 		return undefined;
 	}
 
-	return values.find((value) => value.includes(NEON_HOST_MARKER)) ?? values[0];
+	return values.find((value) => isNeonConnectionString(value)) ?? values[0];
 }
 
 /**
@@ -119,9 +133,11 @@ export function findNeonConnectionStringIn(contents: string | undefined): string
 		return undefined;
 	}
 
-	const match = contents.match(/postgres(?:ql)?:\/\/[^\s"'`]+neon\.tech[^\s"'`]*/i);
+	const candidates = contents.match(/postgres(?:ql)?:\/\/[^\s"'`]+/gi) ?? [];
 
-	return match ? stripSurroundingQuotes(match[0]) : undefined;
+	return candidates
+		.map((candidate) => stripSurroundingQuotes(candidate))
+		.find((candidate) => isNeonConnectionString(candidate));
 }
 
 /**

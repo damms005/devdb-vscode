@@ -25,6 +25,16 @@ const ENV_FILES_TO_SCAN = ['.env', '.env.local'] as const;
 const COLD_START_MAX_ATTEMPTS = 3;
 const COLD_START_BACKOFF_MS = 750;
 
+/**
+ * Neon is a Pro provider. When a license checker is set and reports no Pro license, the
+ * provider does not probe (no TLS connection attempts to Neon).
+ */
+let hasProLicense: (() => boolean) | null = null;
+
+export function setNeonLicenseChecker(checker: () => boolean): void {
+	hasProLicense = checker;
+}
+
 export const NeonPostgresProvider: DatabaseEngineProvider = {
 	name: 'Neon - PostgreSQL',
 	type: 'postgres',
@@ -33,6 +43,11 @@ export const NeonPostgresProvider: DatabaseEngineProvider = {
 	engine: undefined as PostgresEngine | undefined,
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
+		if (hasProLicense && !hasProLicense()) {
+			logToOutput('Neon provider needs a DevDb Pro license; skipping the Neon probe', 'Neon Postgres');
+			return false;
+		}
+
 		try {
 			const connectionString = resolveNeonConnectionString();
 			if (!connectionString) {
