@@ -641,7 +641,7 @@ const READ_PRAGMAS_WITH_ARGUMENT = ['table_info', 'table_xinfo', 'index_list', '
  */
 const READ_PRAGMAS_WITHOUT_ARGUMENT = ['database_list', 'compile_options', 'collation_list', 'function_list', 'pragma_list', 'module_list', 'table_list', 'user_version', 'schema_version', 'application_id', 'page_count', 'page_size', 'freelist_count', 'encoding', 'journal_mode', 'foreign_keys', 'data_version'];
 
-function assertReadOnlyPragma(statement: string): void {
+export function assertReadOnlyPragma(statement: string): void {
   const match = statement.match(/^PRAGMA\s+(?:\w+\s*\.\s*)?(\w+)\s*([\s\S]*)$/i);
   const name = match?.[1]?.toLowerCase() ?? '';
   const argument = (match?.[2] ?? '').trim();

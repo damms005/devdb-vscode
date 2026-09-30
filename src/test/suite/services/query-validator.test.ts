@@ -153,6 +153,23 @@ describe('Query Validator', () => {
 			assert.strictEqual(allowed.destructive, true);
 		});
 
+		for (const engine of ['sqlite', 'd1', 'libsql']) {
+			it(`applies SQL and SQLite rules to ${engine}`, () => {
+				assert.strictEqual(validateQuery('SELECT * FROM users', engine).allowed, true);
+				assert.strictEqual(validateQuery('DELETE FROM users WHERE id = 1', engine).allowed, false);
+				assert.strictEqual(validateQuery('WITH x AS (SELECT 1) DELETE FROM users', engine).allowed, false);
+				for (const query of ['VACUUM', "VACUUM INTO '/tmp/copy.db'", 'REINDEX', "SELECT load_extension('/tmp/x.so')", "SELECT readfile('/etc/passwd')", "SELECT writefile('/tmp/x', 'y')", 'SELECT * FROM _cf_KV', "ATTACH DATABASE '/tmp/x.db' AS x", 'PRAGMA writable_schema = ON']) {
+					assert.strictEqual(validateQuery(query, engine, writes).allowed, false, query);
+				}
+				const update = validateQuery('UPDATE users SET name = 1 WHERE id = 2', engine, writes);
+				assert.deepStrictEqual([update.allowed, update.destructive], [true, true]);
+			});
+		}
+
+		it('keeps SQLite-only rules off other engines', () => {
+			assert.strictEqual(validateQuery('SELECT edit(1)', 'postgres').allowed, true);
+		});
+
 		it('allows MongoDB reads and blocks $out / $merge / unknown operations', () => {
 			assert.strictEqual(validateQuery('{"collection":"c","operation":"find","query":{"filter":{}}}', 'mongodb').allowed, true);
 			assert.strictEqual(validateQuery('{"collection":"c","operation":"aggregate","query":{"pipeline":[{"$out":"x"}]}}', 'mongodb').allowed, false);

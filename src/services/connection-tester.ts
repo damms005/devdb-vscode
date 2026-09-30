@@ -9,6 +9,9 @@ import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
 import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { RedisEngine } from '../database-engines/redis-engine';
 import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
+import { CloudflareD1Engine } from '../database-engines/cloudflare-d1-engine';
+import { LibsqlEngine } from '../database-engines/libsql-engine';
+import { RemoteSqliteEngine } from '../database-engines/remote-sqlite-engine';
 import { errorMessage, remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
 import { buildSslPostgresKnexConnection, isNeonConnectionString } from '../providers/postgres/neon-connection-helper';
@@ -25,6 +28,8 @@ export type RemoteEngineResult = { engine: DatabaseEngine, error?: undefined } |
 export function proFeatureOf(connection: Pick<StoredRemoteConnection, 'type' | 'host'>): string | undefined {
 	if (connection.type === 'redis') return 'Redis / Valkey'
 	if (connection.type === 'clickhouse') return 'ClickHouse'
+	if (connection.type === 'cloudflare-d1') return 'Cloudflare D1 (remote)'
+	if (connection.type === 'turso') return 'Turso / libSQL'
 	if ((connection.type === 'postgres' || connection.type === 'postgres-ssh') && isNeonConnectionString(connection.host)) return 'Neon'
 	return undefined
 }
@@ -115,6 +120,12 @@ export async function createRemoteEngine(connection: StoredRemoteConnection, sec
 
 		case 'clickhouse':
 			return createClickhouseEngine(connection, secrets)
+
+		case 'cloudflare-d1':
+			return createCloudflareD1Engine(connection, secrets)
+
+		case 'turso':
+			return createLibsqlEngine(connection, secrets)
 	}
 
 	return { error: `Unsupported connection type: ${connection.type}` }
@@ -282,6 +293,52 @@ async function createClickhouseEngine(connection: StoredRemoteConnection, secret
 	}
 
 	return { engine }
+}
+
+/**
+ * Overrides the Cloudflare API base URL, for tests against a local mock of the D1 API.
+ */
+let cloudflareApiBase: string | undefined
+
+export function setCloudflareApiBaseForTests(apiBase: string | undefined): void {
+	cloudflareApiBase = apiBase
+}
+
+async function probeSqliteEngine(engine: RemoteSqliteEngine, label: string): Promise<RemoteEngineResult> {
+	try {
+		await engine.rawQuery('SELECT 1', { readOnly: true })
+		return { engine }
+	} catch (error) {
+		await engine.disconnect().catch(() => { })
+		return { error: `Failed to connect to ${label}: ${errorMessage(error)}` }
+	}
+}
+
+async function createCloudflareD1Engine(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): Promise<RemoteEngineResult> {
+	if (!connection.accountId || !connection.database) {
+		return { error: 'Cloudflare D1 needs an account ID and a database ID' }
+	}
+	if (!secrets.password) {
+		return { error: `The API token for "${connection.name}" was not found. Edit the connection and enter the token again.` }
+	}
+
+	const engine = new CloudflareD1Engine({
+		accountId: connection.accountId,
+		databaseId: connection.database,
+		apiToken: secrets.password,
+		apiBase: cloudflareApiBase,
+		timeoutMs: PROBE_TIMEOUT_MS * 3,
+	})
+
+	return probeSqliteEngine(engine, 'Cloudflare D1')
+}
+
+async function createLibsqlEngine(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): Promise<RemoteEngineResult> {
+	if (!connection.host || !/^(libsql|https?|wss?):\/\//i.test(connection.host)) {
+		return { error: 'Turso / libSQL needs a libsql://, https:// or http:// URL' }
+	}
+
+	return probeSqliteEngine(new LibsqlEngine({ url: connection.host, authToken: secrets.password }), 'Turso / libSQL')
 }
 
 export async function testRemoteConnection(formData: RemoteConnectionFormData): Promise<{ success: boolean; message: string }> {

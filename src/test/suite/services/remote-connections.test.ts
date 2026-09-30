@@ -71,7 +71,37 @@ describe('Remote connection storage', () => {
 			type: 'clickhouse',
 			expected: { connectionType: 'clickhouse', protocol: 'https', dbPort: 8443, dbName: 'analytics' },
 		},
+		{
+			title: 'Cloudflare D1 with an API token',
+			form: { connectionType: 'cloudflare-d1', connectionName: 'd1', accountId: ' acc-123 ', databaseId: 'db-uuid', dbPassword: 'secret' },
+			type: 'cloudflare-d1',
+			expected: { connectionType: 'cloudflare-d1', accountId: 'acc-123', databaseId: 'db-uuid', libsqlUrl: undefined },
+		},
+		{
+			title: 'Turso / libSQL with an auth token',
+			form: { connectionType: 'turso', connectionName: 'turso', libsqlUrl: 'libsql://app-org.turso.io', dbPassword: 'secret' },
+			type: 'turso',
+			expected: { connectionType: 'turso', libsqlUrl: 'libsql://app-org.turso.io', accountId: undefined },
+		},
 	]
+
+	it('moves a libSQL authToken query parameter from the URL to SecretStorage', async () => {
+		const saved = await saveForm({ connectionType: 'turso', connectionName: 't', libsqlUrl: 'libsql://app-org.turso.io?tls=1&authToken=s3cret' })
+		assert.strictEqual(saved.host, 'libsql://app-org.turso.io?tls=1')
+		assert.ok(!JSON.stringify(storedRaw()).includes('s3cret'))
+		assert.strictEqual((await remoteConnectionStorageService.getSecrets(saved)).password, 's3cret')
+	})
+
+	it('lists D1 connections by database id', async () => {
+		await saveForm({ connectionType: 'cloudflare-d1', connectionName: 'd1', accountId: 'acc', databaseId: 'db-uuid', dbPassword: 'tok' })
+		const [item] = await remoteConnectionStorageService.getListItems()
+		assert.deepStrictEqual({ type: item.type, host: item.host }, { type: 'cloudflare-d1', host: 'D1 db-uuid' })
+	})
+
+	it('redacts libSQL tokens and bearer tokens in messages', () => {
+		assert.strictEqual(redactSecrets('libsql://db.turso.io?authToken=abc.def'), 'libsql://db.turso.io?authToken=****')
+		assert.strictEqual(redactSecrets('Authorization: Bearer eyJhbGciOi.xyz'), 'Authorization: Bearer ****')
+	})
 
 	for (const testCase of cases) {
 		it(`round-trips ${testCase.title}`, async () => {

@@ -2,9 +2,9 @@ import * as vscode from 'vscode'
 import { redactSecrets, remoteCredentialService } from './remote-credential-service'
 import { getRandomString } from './random-string-generator'
 
-export type RemoteConnectionType = 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres' | 'redis' | 'clickhouse'
+export type RemoteConnectionType = 'mysql-ssh' | 'postgres-ssh' | 'mongodb' | 'mysql' | 'postgres' | 'redis' | 'clickhouse' | 'cloudflare-d1' | 'turso'
 
-export const REMOTE_CONNECTION_TYPES: readonly RemoteConnectionType[] = ['mysql-ssh', 'postgres-ssh', 'mongodb', 'mysql', 'postgres', 'redis', 'clickhouse']
+export const REMOTE_CONNECTION_TYPES: readonly RemoteConnectionType[] = ['mysql-ssh', 'postgres-ssh', 'mongodb', 'mysql', 'postgres', 'redis', 'clickhouse', 'cloudflare-d1', 'turso']
 
 export interface StoredRemoteConnection {
 	id: string
@@ -38,6 +38,8 @@ export interface StoredRemoteConnection {
 	ssl?: boolean
 	/** Skip TLS certificate verification (self-signed / private CA) */
 	allowUnauthorizedCertificate?: boolean
+	/** Cloudflare account id (D1). The D1 database id is kept in `database`; the API token is the `password` secret. */
+	accountId?: string
 	lastConnected?: string
 }
 
@@ -75,6 +77,11 @@ export interface RemoteConnectionFormData {
 	tls?: boolean
 	ssl?: boolean
 	allowUnauthorizedCertificate?: boolean
+	/** Cloudflare D1: account id, database id. The API token comes in `dbPassword`. */
+	accountId?: string
+	databaseId?: string
+	/** Turso / libSQL URL. The auth token comes in `dbPassword`. */
+	libsqlUrl?: string
 }
 
 export interface RemoteConnectionSecrets {
@@ -115,6 +122,27 @@ function toBoolean(value: unknown): boolean | undefined {
 }
 
 /**
+ * Splits an `authToken` query parameter off a libSQL URL, so the token goes to SecretStorage.
+ */
+export function splitLibsqlUrl(url: string): { url: string, authToken?: string } {
+	const match = url.match(/[?&]authToken=([^&#]*)/i)
+	if (!match) return { url }
+
+	const stripped = url
+		.replace(/([?&])authToken=[^&#]*&?/i, '$1')
+		.replace(/[?&]$/, '')
+
+	return { url: stripped, authToken: decodeURIComponent(match[1]) || undefined }
+}
+
+function hostFor(formData: RemoteConnectionFormData, type: RemoteConnectionType): string {
+	if (type === 'cloudflare-d1') return 'api.cloudflare.com'
+	if (type === 'turso') return splitLibsqlUrl(formData.libsqlUrl?.trim() ?? '').url
+
+	return formData.dbHost || 'localhost'
+}
+
+/**
  * Converts dialog form data to a stored connection plus the secrets that must go to
  * SecretStorage. The stored connection never holds a password.
  */
@@ -128,10 +156,13 @@ export function connectionFromFormData(formData: RemoteConnectionFormData): { co
 		id: formData.id || getRandomString('rc-'),
 		name: formData.connectionName,
 		type,
-		host: formData.dbHost || 'localhost',
-		port,
+		host: hostFor(formData, type),
+		port: type === 'cloudflare-d1' || type === 'turso' ? undefined : port,
 		username: formData.dbUsername || undefined,
-		database: formData.dbName !== undefined && formData.dbName !== null && String(formData.dbName) !== '' ? String(formData.dbName) : undefined,
+		database: type === 'cloudflare-d1'
+			? formData.databaseId?.trim() || undefined
+			: formData.dbName !== undefined && formData.dbName !== null && String(formData.dbName) !== '' ? String(formData.dbName) : undefined,
+		accountId: type === 'cloudflare-d1' ? formData.accountId?.trim() || undefined : undefined,
 		sshHost: type.endsWith('-ssh') ? formData.sshHost || undefined : undefined,
 		sshPort: type.endsWith('-ssh') && formData.sshPort ? Number(formData.sshPort) : undefined,
 		sshUsername: type.endsWith('-ssh') ? formData.sshUsername || undefined : undefined,
@@ -152,7 +183,7 @@ export function connectionFromFormData(formData: RemoteConnectionFormData): { co
 	return {
 		connection,
 		secrets: {
-			password: formData.dbPassword || undefined,
+			password: formData.dbPassword || (type === 'turso' ? splitLibsqlUrl(formData.libsqlUrl?.trim() ?? '').authToken : undefined) || undefined,
 			connectionString,
 		},
 	}
@@ -196,7 +227,17 @@ export function connectionToFormData(stored: StoredRemoteConnection): RemoteConn
 		tls: stored.tls ?? false,
 		ssl: stored.ssl ?? false,
 		allowUnauthorizedCertificate: stored.allowUnauthorizedCertificate ?? false,
+		accountId: stored.type === 'cloudflare-d1' ? stored.accountId : undefined,
+		databaseId: stored.type === 'cloudflare-d1' ? stored.database : undefined,
+		libsqlUrl: stored.type === 'turso' ? stored.host : undefined,
 	}
+}
+
+function listHostOf(connection: StoredRemoteConnection): string {
+	if (connection.type === 'cloudflare-d1') return `D1 ${connection.database ?? ''}`.trim()
+	if (connection.sshHost) return `${connection.sshHost} → ${connection.host || '127.0.0.1'}`
+
+	return connection.host || 'localhost'
 }
 
 class RemoteConnectionStorageService {
@@ -263,7 +304,7 @@ class RemoteConnectionStorageService {
 			id: conn.id,
 			name: conn.name,
 			type: conn.type,
-			host: conn.sshHost ? `${conn.sshHost} → ${conn.host || '127.0.0.1'}` : (conn.host || 'localhost'),
+			host: listHostOf(conn),
 			lastConnected: conn.lastConnected,
 		}))
 	}

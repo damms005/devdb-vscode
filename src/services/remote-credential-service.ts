@@ -19,7 +19,8 @@ const credentialLabels: Record<CredentialType, string> = {
 export function redactSecrets(text: string): string {
 	return text
 		.replace(/([a-z][a-z0-9+.-]*:\/\/[^\s:/@]*:)[^\s@/]+@/gi, '$1****@')
-		.replace(/((?:^|[?&;\s])(?:password|pwd|pass)=)[^&;\s]+/gi, '$1****')
+		.replace(/((?:^|[?&;\s])(?:password|pwd|pass|authToken|auth_token)=)[^&;\s]+/gi, '$1****')
+		.replace(/(\bBearer\s+)[A-Za-z0-9._~+/=-]+/g, '$1****')
 }
 
 export function errorMessage(error: unknown): string {

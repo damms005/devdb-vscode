@@ -4,6 +4,9 @@ import { LaravelLocalSqliteProvider } from '../providers/sqlite/laravel-local-sq
 import { FilePickerSqliteProvider } from '../providers/sqlite/file-picker-sqlite-provider';
 import { FilePickerDuckDbProvider } from '../providers/duckdb/file-picker-duckdb-provider';
 import { NeonPostgresProvider } from '../providers/postgres/neon-postgres-provider';
+import { CloudflareD1LocalProvider } from '../providers/sqlite/cloudflare-d1-local-provider';
+import { TursoProvider } from '../providers/sqlite/turso-provider';
+import { findD1Suggestions } from '../providers/cloudflare/d1-suggestions';
 import { ConfigFileProvider } from '../providers/config-file-provider';
 import { LaravelMysqlProvider } from '../providers/mysql/laravel-mysql-provider';
 import { getPaginationFor } from './pagination';
@@ -83,6 +86,7 @@ async function withPro<T>(feature: string, refusal: (message: string) => T, hand
 const providers: DatabaseEngineProvider[] = [
 	LaravelLocalSqliteProvider,
 	FilePickerSqliteProvider,
+	CloudflareD1LocalProvider,
 	FilePickerDuckDbProvider,
 	LaravelMysqlProvider,
 	LaravelPostgresProvider,
@@ -99,6 +103,7 @@ const providers: DatabaseEngineProvider[] = [
 	AdonisPostgresProvider,
 	SupabasePostgresProvider,
 	NeonPostgresProvider,
+	TursoProvider,
 ]
 
 let database: DatabaseEngine | null = null;
@@ -135,6 +140,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:connect-to-remote': async () => await connectToRemoteConnection(data.value),
 		'request:get-remote-connection': async () => await getRemoteConnectionFormData(data.value),
 		'request:test-remote-connection': async () => await testRemoteConnection(data.value),
+		'request:get-d1-suggestions': async () => findD1Suggestions(),
 		'request:delete-remote-connection': async () => {
 			await remoteConnectionStorageService.delete(data.value)
 			return await remoteConnectionStorageService.getListItems()
@@ -316,14 +322,22 @@ async function selectProviderOption(option: EngineProviderOption): Promise<boole
 	return true
 }
 
+const PRO_ENGINE_LABELS: Record<string, string> = {
+	duckdb: 'DuckDB',
+	redis: 'Redis / Valkey',
+	clickhouse: 'ClickHouse',
+	d1: 'Cloudflare D1 (remote)',
+	libsql: 'Turso / libSQL',
+}
+
 /**
- * Refuses engines of Pro datastore types (Redis, ClickHouse, DuckDB) without a DevDb Pro license.
+ * Refuses engines of Pro datastore types (Redis, ClickHouse, DuckDB, remote D1, libSQL) without a DevDb Pro license.
  */
 function ensureProEngineAllowed(engine: DatabaseEngine): boolean {
 	const type = engine.getType()
 	if (!PRO_ENGINE_TYPES.includes(type) || hasProLicense()) return true
 
-	vscode.window.showErrorMessage(proRequiredMessage(type === 'duckdb' ? 'DuckDB' : type === 'redis' ? 'Redis / Valkey' : 'ClickHouse'))
+	vscode.window.showErrorMessage(proRequiredMessage(PRO_ENGINE_LABELS[type] ?? type))
 	return false
 }
 
