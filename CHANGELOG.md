@@ -16,6 +16,7 @@
 - DuckDB shows DECIMAL, UUID, DATE, TIMESTAMPTZ, MAP and BLOB values as readable text. SUMMARIZE works when one column fails. Raw queries stop at 10,000 rows. Cancel works.
 - The new-datastores notice shows once, on 3.2.x only. Pro users get a short toast.
 - `npm test` runs the Mocha suite.
+- SQLite loads on linux-arm64, linux-armhf and Alpine. New win32-arm64 and alpine-arm64 packages.
 
 ### Security
 

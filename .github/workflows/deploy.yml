@@ -79,11 +79,15 @@ jobs:
             platform: win32
             arch: x64
             npm_config_arch: x64
+          - os: windows-2022
+            platform: win32
+            arch: arm64
+            npm_config_arch: arm64
           - os: ubuntu-22.04
             platform: linux
             arch: x64
             npm_config_arch: x64
-          - os: ubuntu-22.04
+          - os: ubuntu-22.04-arm
             platform: linux
             arch: arm64
             npm_config_arch: arm64
@@ -95,6 +99,10 @@ jobs:
             platform: alpine
             arch: x64
             npm_config_arch: x64
+          - os: ubuntu-22.04-arm
+            platform: alpine
+            arch: arm64
+            npm_config_arch: arm64
           - os: macos-latest
             platform: darwin
             arch: x64
@@ -123,6 +131,16 @@ jobs:
       - name: Set target
         shell: pwsh
         run: echo "target=${{ matrix.platform && format('{0}-{1}', matrix.platform, matrix.arch) }}" >> $env:GITHUB_ENV
+      # bun builds node-gyp addons (@vscode/sqlite3, ssh2, cpu-features) for the runner: rebuild them for the target.
+      # Linux targets build in a container of the target platform (armhf through QEMU); win32-arm64 cross-compiles.
+      - name: Set up QEMU
+        if: matrix.arch == 'armhf'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm
+      - name: Rebuild native addons for target
+        shell: bash
+        run: .github/scripts/rebuild-native.sh "${{ env.target }}"
       # bun installs the DuckDB binding for the runner, not for the target. Replace it with the
       # target's binding (exact lockfile version) and remove the others. No binding for armhf/universal.
       - name: Install DuckDB binding for target
