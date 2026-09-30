@@ -1,0 +1,10 @@
+{
+  "name": "devdb-driver-bridge",
+  "displayName": "DevDb Driver Bridge (test only)",
+  "publisher": "devdb-driver",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "activationEvents": ["*"],
+  "main": "./extension.js"
+}

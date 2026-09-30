@@ -1,0 +1,106 @@
+# DevDb local datastore test stack. Run ./up.sh (generates certs + DuckDB files, starts, seeds).
+name: devdb-local-datastores
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: devdb-local-redis
+    command: ["redis-server", "--appendonly", "no"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 2s
+      retries: 30
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: devdb-local-valkey
+    # password auth (default user) + an ACL user "devdb"/"devdbpass"
+    command: ["valkey-server", "--requirepass", "valkeypass", "--user", "devdb", "on", ">devdbpass", "~*", "&*", "+@all"]
+    ports: ["6380:6379"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "valkeypass", "--no-auth-warning", "PING"]
+      interval: 2s
+      retries: 30
+
+  redis-seed:            # one-shot; run with: docker compose run --rm redis-seed
+    image: redis:7-alpine
+    profiles: ["seed"]
+    depends_on:
+      redis: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    volumes: ["./redis/seed.sh:/seed.sh:ro"]
+    entrypoint: ["sh", "-c", "sh /seed.sh redis 6379 && sh /seed.sh valkey 6379 valkeypass"]
+    restart: "no"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: devdb-local-clickhouse
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: devdb
+      CLICKHOUSE_DB: devdb
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports: ["8123:8123"]
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - ./clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8123/ping"]
+      interval: 2s
+      retries: 60
+
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: devdb-local-pgvector
+    environment:
+      POSTGRES_USER: devdb
+      POSTGRES_PASSWORD: devdb
+      POSTGRES_DB: vectors
+    ports: ["5433:5432"]
+    volumes:
+      - ./pgvector/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - pgvector-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devdb -d vectors"]
+      interval: 2s
+      retries: 30
+
+  # "Neon-like": TLS only (non-TLS rejected by pg_hba), cert signed by a private CA in ./certs.
+  # Port 5432 on purpose: the remote-connection dialog only treats port 5432 as Postgres.
+  neon-tls:
+    image: postgres:16-alpine
+    container_name: devdb-local-neon-tls
+    environment:
+      POSTGRES_USER: neondb_owner
+      POSTGRES_PASSWORD: npg_localpass
+      POSTGRES_DB: neondb
+    ports: ["5432:5432"]
+    volumes:
+      - ./certs:/certs:ro
+      - ./neon/pg_hba.conf:/etc/pg/pg_hba.conf:ro
+      - ./neon/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - neon-data:/var/lib/postgresql/data
+    entrypoint: ["sh", "-c"]
+    command:
+      - >
+        cp /certs/server.crt /certs/server.key /certs/ca.crt /var/lib/postgresql/ &&
+        chown postgres:postgres /var/lib/postgresql/server.* /var/lib/postgresql/ca.crt &&
+        chmod 600 /var/lib/postgresql/server.key &&
+        exec docker-entrypoint.sh postgres
+        -c ssl=on
+        -c ssl_cert_file=/var/lib/postgresql/server.crt
+        -c ssl_key_file=/var/lib/postgresql/server.key
+        -c ssl_min_protocol_version=TLSv1.2
+        -c hba_file=/etc/pg/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U neondb_owner -d neondb"]
+      interval: 2s
+      retries: 30
+
+volumes:
+  clickhouse-data:
+  pgvector-data:
+  neon-data:

@@ -1,0 +1,21 @@
+[
+	{ "type": "duckdb", "path": "__DATA_DIR__/sample.duckdb" },
+	{
+		"name": "pgvector-local",
+		"type": "postgres",
+		"host": "localhost",
+		"port": 5433,
+		"username": "devdb",
+		"password": "devdb",
+		"database": "vectors"
+	},
+	{
+		"name": "neon-tls-via-config-file (expected to FAIL: config file has no ssl option)",
+		"type": "postgres",
+		"host": "localhost",
+		"port": 5432,
+		"username": "neondb_owner",
+		"password": "npg_localpass",
+		"database": "neondb"
+	}
+]

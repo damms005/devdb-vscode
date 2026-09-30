@@ -1,0 +1,9 @@
+{
+  "name": "run-devdb-driver",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vscode/test-electron": "^2.5.2",
+    "playwright-core": "^1.63.0"
+  }
+}
