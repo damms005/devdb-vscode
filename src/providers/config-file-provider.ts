@@ -226,8 +226,7 @@ async function mssqlConfigResolver(mssqlConfig: MssqlConfig): Promise<EngineProv
 /**
  * A relative `path` in .devdbrc is relative to the folder of the .devdbrc file.
  */
-function resolveConfigPath(path: string): string {
-	const configFile = getConfigFilePath()
+export function resolveConfigPath(path: string, configFile: string | undefined = getConfigFilePath()): string {
 	return isAbsolute(path) || !configFile ? path : resolve(dirname(configFile), path)
 }
 

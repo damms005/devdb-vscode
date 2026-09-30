@@ -1,7 +1,7 @@
 import { createFakeExtensionContext } from '../vscode-stub';
 import * as assert from 'assert';
 import { tmpdir } from 'os';
-import { basename, join } from 'path';
+import { join } from 'path';
 import { rmSync } from 'fs';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';
@@ -10,7 +10,7 @@ import { testRemoteConnection } from '../../../services/connection-tester';
 import { remoteConnectionStorageService } from '../../../services/remote-connection-storage-service';
 import { remoteCredentialService } from '../../../services/remote-credential-service';
 import { setProLicenseChecker } from '../../../services/pro-gate';
-import { ConfigFileProvider } from '../../../providers/config-file-provider';
+import { ConfigFileProvider, resolveConfigPath } from '../../../providers/config-file-provider';
 import { DuckDbEngine } from '../../../database-engines/duckdb-engine';
 
 /**
@@ -193,19 +193,11 @@ describe('Remote connection tester', () => {
 			await assert.rejects(() => engine.rawQuery('INSERT INTO t VALUES (1)'))
 		})
 
-		it('resolves a relative path against the .devdbrc folder', async () => {
-			// Other suites may load a vscode stub whose workspaceFolders is a getter.
-			const workspace = require('vscode').workspace
-			const previous = Object.getOwnPropertyDescriptor(workspace, 'workspaceFolders')
-			Object.defineProperty(workspace, 'workspaceFolders', { value: [{ uri: { fsPath: tmpdir() } }], configurable: true, writable: true })
-			try {
-				await ConfigFileProvider.resolveConfiguration!({ type: 'duckdb', path: basename(dbPath) })
-				assert.strictEqual(ConfigFileProvider.cache?.length, 1)
-				assert.strictEqual(ConfigFileProvider.cache![0].id, dbPath)
-			} finally {
-				if (previous) Object.defineProperty(workspace, 'workspaceFolders', previous)
-				else delete workspace.workspaceFolders
-			}
+		it('resolves a relative path against the .devdbrc folder', () => {
+			const configFile = join(tmpdir(), 'project', '.devdbrc')
+			assert.strictEqual(resolveConfigPath('data/app.duckdb', configFile), join(tmpdir(), 'project', 'data', 'app.duckdb'))
+			assert.strictEqual(resolveConfigPath(dbPath, configFile), dbPath)
+			assert.strictEqual(resolveConfigPath('data/app.duckdb', undefined), 'data/app.duckdb')
 		})
 
 		it('opens writable with readOnly: false', async () => {
