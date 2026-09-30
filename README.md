@@ -396,7 +396,7 @@ Your AI assistant can now access your database schema and run queries.
 - The MCP server listens on `localhost` only. Connections from other hosts are rejected.
 - Each request must send the access token that is included in the copied MCP configuration. Do not share it.
 - Queries are **read-only by default**. The database engine enforces this (for example, a read-only transaction in PostgreSQL and MySQL).
-- To let MCP clients run write queries, enable `devdb.mcp.allowWrites` in your user settings. DevDb then asks you to confirm each write query. This setting has machine scope, so a workspace cannot enable it.
+- To let MCP clients run write queries, enable `Devdb.mcp.allowWrites` in your user settings. DevDb then asks you to confirm each write query. This setting has machine scope, so a workspace cannot enable it.
 - To turn off the MCP server, set `Devdb.enableMcpServer` to `false`.
 
 ## URI Handler
