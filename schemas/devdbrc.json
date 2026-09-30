@@ -43,8 +43,14 @@
           "path": {
             "type": "string",
             "description": "Path to DuckDB database file"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Open the DuckDB file read-only. Set to false to allow writes.",
+            "default": true
           }
-        }
+        },
+        "description": "DuckDB database file (DevDb Pro). Opened read-only unless readOnly is false."
       },
       {
         "title": "MySQL/MariaDB Configuration",
@@ -181,6 +187,116 @@
           "database": {
             "type": "string",
             "description": "Database name"
+          }
+        }
+      },
+      {
+        "title": "Redis / Valkey Configuration",
+        "description": "Redis or Valkey key-value store (DevDb Pro)",
+        "required": [
+          "type",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name for this connection"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "redis"
+            ],
+            "description": "Database type - Redis or Valkey"
+          },
+          "connectionString": {
+            "type": "string",
+            "description": "Connection URL, e.g. redis://user:pass@host:6379/0 or rediss:// for TLS. When set, the host, port and credential fields are ignored."
+          },
+          "host": {
+            "type": "string",
+            "description": "Server host",
+            "default": "localhost"
+          },
+          "port": {
+            "type": "number",
+            "description": "Server port",
+            "default": 6379
+          },
+          "username": {
+            "type": "string",
+            "description": "ACL username"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password"
+          },
+          "database": {
+            "type": "number",
+            "description": "Database index",
+            "default": 0
+          },
+          "keyPrefix": {
+            "type": "string",
+            "description": "Only show keys that start with this prefix"
+          },
+          "tls": {
+            "type": "boolean",
+            "description": "Connect over TLS",
+            "default": false
+          }
+        }
+      },
+      {
+        "title": "ClickHouse Configuration",
+        "description": "ClickHouse OLAP database over HTTP(S) (DevDb Pro)",
+        "required": [
+          "type",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name for this connection"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "clickhouse"
+            ],
+            "description": "Database type - ClickHouse"
+          },
+          "host": {
+            "type": "string",
+            "description": "Server host",
+            "default": "localhost"
+          },
+          "port": {
+            "type": "number",
+            "description": "HTTP(S) port",
+            "default": 8123
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "http",
+              "https"
+            ],
+            "description": "HTTP protocol. Defaults to https on port 8443, else http."
+          },
+          "username": {
+            "type": "string",
+            "description": "Username",
+            "default": "default"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password"
+          },
+          "database": {
+            "type": "string",
+            "description": "Database name",
+            "default": "default"
           }
         }
       }

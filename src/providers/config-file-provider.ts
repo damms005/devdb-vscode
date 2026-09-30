@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { SqliteEngine } from '../database-engines/sqlite-engine';
 import { getConfigFileContent } from '../services/config-service';
 import { brief } from '../services/string';
-import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig, DuckDbConfig } from '../types';
+import { DatabaseEngine, DatabaseEngineProvider, EngineProviderCache, EngineProviderOption, MysqlConfig, PostgresConfig, SqliteConfig, MssqlConfig, DuckDbConfig, RedisConfig, ClickhouseConfig } from '../types';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { DuckDbEngine } from '../database-engines/duckdb-engine';
 import { getConnectionFor } from '../services/connector';
@@ -11,6 +11,16 @@ import { PostgresEngine } from '../database-engines/postgres-engine';
 import { MssqlEngine } from '../database-engines/mssql-engine';
 import { showErrorWithConfigFileButton } from '../services/config-error-service';
 import { reportError } from '../services/initialization-error-service';
+import { hasProLicense, proRequiredMessage } from '../services/pro-gate';
+import { createRemoteEngine } from '../services/connection-tester';
+
+type ConfigFileEntry = SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig | RedisConfig | ClickhouseConfig
+
+/**
+ * Config entries already warned about a missing Pro license in this session, so the
+ * warning is not repeated on every provider refresh.
+ */
+const proWarningsShown = new Set<string>()
 
 export const ConfigFileProvider: DatabaseEngineProvider = {
 	name: 'Config File',
@@ -27,7 +37,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 
 	async canBeUsedInCurrentWorkspace(): Promise<boolean> {
 
-		const configContent: (SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig)[] | undefined = await getConfigFileContent()
+		const configContent = await getConfigFileContent() as ConfigFileEntry[] | undefined
 		if (!configContent) return false
 		if (!configContent.length) return false
 		if (!this.cache) this.cache = []
@@ -35,7 +45,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 		for (const config of configContent) {
 
 			try {
-				await this.resolveConfiguration!(config)
+				await resolveConfigFileEntry(this, config)
 			} catch (error) {
 				reportError(String(error))
 			}
@@ -45,39 +55,7 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 	},
 
 	async resolveConfiguration(config: SqliteConfig | MysqlConfig | PostgresConfig | MssqlConfig | DuckDbConfig): Promise<boolean> {
-		if (!this.cache) this.cache = []
-
-		if (config.type === 'sqlite') {
-			const connection = await sqliteConfigResolver(config)
-			if (connection) this.cache.push(connection)
-		}
-
-		if (config.type === 'duckdb') {
-			const connection = await duckdbConfigResolver(config)
-			if (connection) this.cache.push(connection)
-		}
-
-		const requiresName = config.type === 'mysql' || config.type === 'mariadb' || config.type === 'postgres' || config.type === 'mssql'
-		if (requiresName && !config.name) {
-			return await reportNameError(config);
-		}
-
-		if (config.type === 'mysql' || config.type === 'mariadb') {
-			const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)
-			if (connection) this.cache?.push(connection)
-		}
-
-		if (config.type === 'postgres') {
-			const connection: EngineProviderCache | undefined = await postgresConfigResolver(config)
-			if (connection) this.cache?.push(connection)
-		}
-
-		if (config.type === 'mssql') {
-			const connection: EngineProviderCache | undefined = await mssqlConfigResolver(config)
-			if (connection) this.cache?.push(connection)
-		}
-
-		return true
+		return resolveConfigFileEntry(this, config)
 	},
 
 	reconnect(): Promise<boolean> {
@@ -99,7 +77,102 @@ export const ConfigFileProvider: DatabaseEngineProvider = {
 	}
 }
 
-async function reportNameError(config: MysqlConfig | PostgresConfig | MssqlConfig) {
+async function resolveConfigFileEntry(provider: DatabaseEngineProvider, config: ConfigFileEntry): Promise<boolean> {
+	if (!provider.cache) provider.cache = []
+
+	if (config.type === 'sqlite') {
+		const connection = await sqliteConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	if (config.type === 'duckdb') {
+		const connection = await duckdbConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	const requiresName = config.type === 'mysql' || config.type === 'mariadb' || config.type === 'postgres' || config.type === 'mssql' || config.type === 'redis' || config.type === 'clickhouse'
+	if (requiresName && !config.name) {
+		return await reportNameError(config);
+	}
+
+	if (config.type === 'mysql' || config.type === 'mariadb') {
+		const connection: EngineProviderCache | undefined = await mysqlConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	if (config.type === 'postgres') {
+		const connection: EngineProviderCache | undefined = await postgresConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	if (config.type === 'mssql') {
+		const connection: EngineProviderCache | undefined = await mssqlConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	if (config.type === 'redis' || config.type === 'clickhouse') {
+		const connection: EngineProviderCache | undefined = await remoteDatastoreConfigResolver(config)
+		if (connection) provider.cache.push(connection)
+	}
+
+	return true
+}
+
+/**
+ * Returns false (and warns once per entry) when a Pro datastore entry is used without a DevDb Pro license.
+ */
+function allowProConfigEntry(feature: string, entryKey: string): boolean {
+	if (hasProLicense()) return true
+
+	if (!proWarningsShown.has(entryKey)) {
+		proWarningsShown.add(entryKey)
+		vscode.window.showWarningMessage(`${proRequiredMessage(feature)} (.devdbrc entry: ${entryKey})`)
+	}
+
+	return false
+}
+
+async function remoteDatastoreConfigResolver(config: RedisConfig | ClickhouseConfig): Promise<EngineProviderCache | undefined> {
+	const label = config.type === 'redis' ? 'Redis / Valkey' : 'ClickHouse'
+	if (!allowProConfigEntry(label, config.name)) return
+
+	const result = config.type === 'redis'
+		? await createRemoteEngine({
+			id: `config-file:${config.name}`,
+			name: config.name,
+			type: 'redis',
+			host: config.host ?? 'localhost',
+			port: config.port,
+			username: config.username,
+			database: config.database !== undefined ? String(config.database) : undefined,
+			keyPrefix: config.keyPrefix,
+			tls: config.tls,
+		}, { password: config.password, connectionString: config.connectionString })
+		: await createRemoteEngine({
+			id: `config-file:${config.name}`,
+			name: config.name,
+			type: 'clickhouse',
+			host: config.host ?? 'localhost',
+			port: config.port,
+			protocol: config.protocol,
+			username: config.username,
+			database: config.database,
+		}, { password: config.password })
+
+	if (!result.engine) {
+		vscode.window.showErrorMessage(`The ${label} connection ${config.name} specified in your config file is not valid: ${result.error}`)
+		return
+	}
+
+	return {
+		id: config.name,
+		description: config.name,
+		type: config.type,
+		engine: result.engine,
+	}
+}
+
+async function reportNameError(config: MysqlConfig | PostgresConfig | MssqlConfig | RedisConfig | ClickhouseConfig) {
 	let typeName;
 
 	switch (config.type) {
@@ -114,6 +187,12 @@ async function reportNameError(config: MysqlConfig | PostgresConfig | MssqlConfi
 			break;
 		case 'mssql':
 			typeName = 'MSSQL';
+			break;
+		case 'redis':
+			typeName = 'Redis';
+			break;
+		case 'clickhouse':
+			typeName = 'ClickHouse';
 			break;
 	}
 
@@ -174,6 +253,8 @@ async function sqliteConfigResolver(sqliteConnection: SqliteConfig): Promise<Eng
 
 async function duckdbConfigResolver(duckdbConfig: DuckDbConfig): Promise<EngineProviderCache | undefined> {
 
+	if (!allowProConfigEntry('DuckDB', duckdbConfig.path)) return
+
 	if (!existsSync(duckdbConfig.path)) {
 		await showErrorWithConfigFileButton(
 			`A path to a DuckDB database file specified in your config file is not valid: ${duckdbConfig.path}`,
@@ -182,7 +263,7 @@ async function duckdbConfigResolver(duckdbConfig: DuckDbConfig): Promise<EngineP
 		return Promise.resolve(undefined);
 	}
 
-	const engine: DuckDbEngine = new DuckDbEngine(duckdbConfig.path)
+	const engine: DuckDbEngine = new DuckDbEngine(duckdbConfig.path, { readOnly: duckdbConfig.readOnly !== false })
 	const isOkay = (await engine.isOkay())
 	if (!isOkay) {
 		await showErrorWithConfigFileButton(
