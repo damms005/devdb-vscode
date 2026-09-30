@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="{{csp}}">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>DevWorkspace Pro</title>
+	<link rel="stylesheet" href="{{asset:devworkspacepro/mocks.css}}">
+	<link rel="stylesheet" href="{{asset:devworkspacepro/notice.css}}">
+</head>
+<body>
+	<button class="close" data-command="close" aria-label="Close">
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+	</button>
+
+	<main class="page">
+		<header class="hero">
+			<span class="eyebrow">From the creator of DevDb · {{heading}}</span>
+			<h1>DevWorkspace Pro</h1>
+			<p class="lead">Your DDEV projects, terminal, SSH, GitHub, logs and AI agents in one desktop app. For Laravel, WordPress, Drupal, Symfony and more.</p>
+			<div class="actions">
+				<button class="btn btn-primary" data-command="getLicense">Get DevWorkspace Pro</button>
+				<button class="btn btn-ghost" data-command="learnMore">See all features</button>
+				<button class="btn btn-link" data-command="docs">Docs</button>
+			</div>
+			<p class="platforms"><span>macOS</span><span>Windows</span><span>Linux</span></p>
+		</header>
+
+		<figure class="hero-frame mock-frame">
+			{{include:devworkspacepro/mocks/overview.html}}
+			{{include:devworkspacepro/mocks/status-bar.html}}
+		</figure>
+		<p class="caption">Start, stop and share DDEV projects. Press <kbd>⌘J</kbd> to start a Claude Code, Codex or opencode session in the project folder.</p>
+
+		<section class="showcase" data-tabs>
+			<h2>New in DevWorkspace Pro</h2>
+			<div class="tabs" role="tablist" aria-label="Features">
+				<button class="tab" role="tab" data-tab="focus-pad">Focus Pad</button>
+				<button class="tab" role="tab" data-tab="voice">Voice-to-Text</button>
+				<button class="tab" role="tab" data-tab="github">GitHub → AI</button>
+				<button class="tab" role="tab" data-tab="scratchpad">Scratchpad</button>
+				<button class="tab" role="tab" data-tab="recipes">Recipes</button>
+			</div>
+
+			<div class="panel" role="tabpanel" data-panel="focus-pad">
+				<div class="shot mock-frame">{{include:devworkspacepro/mocks/focus-pad.html}}</div>
+				<div class="copy">
+					<h3>Focus Pad</h3>
+					<p>A Markdown checklist that stays on top of your windows. Show it from any app with one shortcut.</p>
+					<ul class="checks">
+						<li>Priorities, deadlines and collections</li>
+						<li>Send a task to your AI agent with one click</li>
+						<li>Your tasks stay on your computer</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel" role="tabpanel" data-panel="voice">
+				<div class="shot mock-frame">{{include:devworkspacepro/mocks/voice-to-text.html}}</div>
+				<div class="copy">
+					<h3>Voice-to-Text</h3>
+					<p>Hold a key, speak, release. The text goes where your cursor is, in any app.</p>
+					<ul class="checks">
+						<li>Transcription runs on your computer. No audio leaves it.</li>
+						<li>50+ languages</li>
+						<li>Hands-free mode: double-tap the key</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel" role="tabpanel" data-panel="github">
+				<div class="shot mock-frame">{{include:devworkspacepro/mocks/github-issues.html}}</div>
+				<div class="copy">
+					<h3>GitHub issues &amp; Actions</h3>
+					<p>See the issues and workflow runs of your repository next to your project.</p>
+					<ul class="checks">
+						<li>Send an issue to your AI agent</li>
+						<li>Add an issue to Focus Pad</li>
+						<li>Get notified when a workflow run ends</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel" role="tabpanel" data-panel="scratchpad">
+				<div class="shot mock-frame">{{include:devworkspacepro/mocks/scratchpad.html}}</div>
+				<div class="copy">
+					<h3>Scratchpad</h3>
+					<p>Run PHP in your booted Laravel, Symfony, Drupal or WordPress app. No route, no test.</p>
+					<ul class="checks">
+						<li>Run in the DDEV container or on a server over SSH</li>
+						<li>Formatted output and a query log</li>
+						<li>History of your last snippets</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel" role="tabpanel" data-panel="recipes">
+				<div class="shot mock-frame">{{include:devworkspacepro/mocks/recipes.html}}</div>
+				<div class="copy">
+					<h3>Recipes</h3>
+					<p>One-click workflows for common chores, with each step shown before it runs.</p>
+					<ul class="checks">
+						<li>Upgrade Laravel</li>
+						<li>Set up project sharing</li>
+						<li>Install tools and DDEV add-ons</li>
+					</ul>
+				</div>
+			</div>
+		</section>
+
+		<section class="more">
+			<h2>Also new</h2>
+			<div class="more-grid">
+				<div><strong>AI sessions</strong><span>Start and resume agent sessions per project.</span></div>
+				<div><strong>Keep Awake</strong><span>Stop sleep during long builds and AI runs.</span></div>
+				<div><strong>Git Changes</strong><span>Read diffs, commit, and browse history.</span></div>
+				<div><strong>Files</strong><span>Go to file and search in files.</span></div>
+				<div><strong>Uptime monitoring</strong><span>Get told when a site goes down.</span></div>
+				<div><strong>Remote SSH &amp; logs</strong><span>Servers, logs and scratchpad over SSH.</span></div>
+			</div>
+		</section>
+
+		<section class="offer">
+			<div>
+				<h2>{{offerTitle}}</h2>
+				<p>{{offerText}} Use this code at checkout:</p>
+			</div>
+			<code class="code">{{discountCode}}</code>
+			<button class="btn btn-primary" data-command="getLicense">Get DevWorkspace Pro</button>
+		</section>
+	</main>
+
+	<script nonce="{{nonce}}" src="{{asset:notice.js}}"></script>
+</body>
+</html>

@@ -1,40 +1,61 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
-import { buildNoticeCsp, getNonce } from './html';
+import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
+import { userWantsFewerNotifications } from './new-datastores-notification-service';
 import { isDdevProject } from './workspace';
 
-const NOTICE_SHOWN_KEY = 'devworkspacepro.notice.shown';
+/**
+ * Version of the showcase content. Bump it when the showcase changes: each
+ * content version shows once, whatever the DevDb version.
+ */
+export const NOTICE_CONTENT_VERSION = '2026-10';
+export const NOTICE_CONTENT_VERSION_KEY = 'devworkspacepro.notice.contentVersion';
+/** Set by earlier builds when the user dismissed the notice for good. */
 const NOTICE_DISMISSED_KEY = 'devworkspacepro.notice.dismissed';
-const PRICING_URL = 'https://devworkspacepro.com/?ref=ide#pricing';
-const LEARN_MORE_URL = 'https://devworkspacepro.com/?ref=ide';
+const DELAY_MS = 1000;
+
+export const NOTICE_TEMPLATE = 'devworkspacepro/notice.html';
+export const PRICING_URL = 'https://devworkspacepro.com/?ref=ide#pricing';
+export const LEARN_MORE_URL = 'https://devworkspacepro.com/?ref=ide';
+export const DOCS_URL = 'https://docs.devworkspacepro.com';
 
 /**
- * Shows the DevWorkspace Pro full-page notice for DDEV workspaces.
+ * Shows the DevWorkspace Pro showcase in DDEV workspaces, once per content version.
  * Returns true when the notice will show on this launch.
  */
-export async function showDevWorkspaceProNoticeForDdevWorkspaces(context: vscode.ExtensionContext, version: string, isNewInstall: boolean = false): Promise<boolean> {
-    if (!isDdevProject()) {
+export async function showDevWorkspaceProNoticeForDdevWorkspaces(
+    context: vscode.ExtensionContext,
+    isNewInstall: boolean = false,
+    options: { fullPagePromoShownThisLaunch?: boolean } = {},
+): Promise<boolean> {
+    // Another full-page promo showed on this launch: stay pending for a later launch.
+    if (options.fullPagePromoShownThisLaunch) {
         return false;
     }
 
-    const isDismissed = context.globalState.get<boolean>(NOTICE_DISMISSED_KEY, false);
-    if (isDismissed) {
+    if (!shouldShowDevWorkspaceProNotice(context, isDdevProject(), userWantsFewerNotifications())) {
         return false;
     }
 
-    if (!isNewInstall) {
-        const shownForVersion = context.globalState.get<string>(NOTICE_SHOWN_KEY);
-        if (shownForVersion === version) {
-            return false;
-        }
-    }
-
-    await context.globalState.update(NOTICE_SHOWN_KEY, version);
+    await context.globalState.update(NOTICE_CONTENT_VERSION_KEY, NOTICE_CONTENT_VERSION);
 
     setTimeout(() => {
         createDevWorkspaceProWebview(context, isNewInstall);
-    }, 1000);
+    }, DELAY_MS);
 
     return true;
+}
+
+export function shouldShowDevWorkspaceProNotice(context: vscode.ExtensionContext, isDdevWorkspace: boolean, fewerNotifications: boolean): boolean {
+    if (!isDdevWorkspace || fewerNotifications) {
+        return false;
+    }
+
+    if (context.globalState.get<boolean>(NOTICE_DISMISSED_KEY, false)) {
+        return false;
+    }
+
+    return context.globalState.get<string>(NOTICE_CONTENT_VERSION_KEY) !== NOTICE_CONTENT_VERSION;
 }
 
 /** Dev preview: shows the notice without any gating. */
@@ -50,11 +71,11 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
         {
             enableScripts: true,
             retainContextWhenHidden: false,
-            localResourceRoots: []
+            localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, NOTICES_FOLDER))],
         }
     );
 
-    panel.webview.html = getNoticeHtml(panel.webview.cspSource, getNonce(), isNewInstall);
+    panel.webview.html = getNoticeHtml(panel.webview, getNonce(), context.extensionPath, isNewInstall);
 
     panel.iconPath = {
         light: vscode.Uri.file(context.asAbsolutePath('resources/devdb.png')),
@@ -70,6 +91,9 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
                 case 'learnMore':
                     vscode.env.openExternal(vscode.Uri.parse(LEARN_MORE_URL));
                     break;
+                case 'docs':
+                    vscode.env.openExternal(vscode.Uri.parse(DOCS_URL));
+                    break;
                 case 'close':
                     panel.dispose();
                     break;
@@ -78,280 +102,13 @@ function createDevWorkspaceProWebview(context: vscode.ExtensionContext, isNewIns
         undefined,
         context.subscriptions
     );
-
 }
 
-export function getNoticeHtml(cspSource: string, nonce: string, isNewInstall: boolean = false): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="${buildNoticeCsp(cspSource, nonce)}">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevWorkspace Pro - The Best GUI for DDEV</title>
-    <style nonce="${nonce}">
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            padding: 32px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .title {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: var(--vscode-textLink-foreground);
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, var(--vscode-textLink-foreground), var(--vscode-textLink-activeForeground));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            font-size: 1.2em;
-            opacity: 0.9;
-            margin-bottom: 32px;
-        }
-
-        .screenshot {
-            width: 100%;
-            max-width: 600px;
-            height: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            margin: 32px auto;
-            display: block;
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .features {
-            margin: 40px 0;
-        }
-
-        .features h3 {
-            font-size: 1.4em;
-            margin-bottom: 20px;
-            color: var(--vscode-textLink-foreground);
-        }
-
-        .features ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .features li {
-            padding: 12px 0;
-            padding-left: 30px;
-            position: relative;
-            font-size: 1.1em;
-            border-bottom: 1px solid var(--vscode-panel-border);
-        }
-
-        .features li:before {
-            content: "✅";
-            position: absolute;
-            left: 0;
-            top: 12px;
-            font-size: 1.2em;
-        }
-
-        .discount-banner {
-            background: var(--vscode-editor-selectionBackground, rgba(173, 214, 255, 0.15));
-            padding: 24px;
-            border-radius: 12px;
-            text-align: center;
-            margin: 32px 0;
-            border: 2px solid var(--vscode-focusBorder);
-            color: var(--vscode-foreground);
-        }
-
-        .discount-banner h3 {
-            font-size: 1.3em;
-            margin-bottom: 8px;
-            color: var(--vscode-foreground);
-            font-weight: 600;
-        }
-
-        .discount-banner p {
-            color: var(--vscode-foreground);
-            opacity: 0.9;
-        }
-
-        .discount-code {
-            font-family: 'Courier New', monospace;
-            font-size: 1.2em;
-            font-weight: bold;
-            background: var(--vscode-input-background);
-            padding: 12px 20px;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 12px 0;
-            color: var(--vscode-input-foreground);
-            border: 2px solid var(--vscode-textLink-foreground);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            letter-spacing: 1px;
-        }
-
-        .cta-section {
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        .btn {
-            padding: 16px 32px;
-            margin: 8px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-        }
-
-        .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--vscode-textLink-foreground);
-            border: 2px solid var(--vscode-textLink-foreground);
-        }
-
-        .btn-secondary:hover {
-            background: var(--vscode-textLink-foreground);
-            color: var(--vscode-button-foreground);
-            transform: translateY(-2px);
-        }
-
-        .btn-text {
-            background: none;
-            color: var(--vscode-descriptionForeground);
-            border: none;
-            font-size: 0.9em;
-            padding: 8px 16px;
-            text-decoration: underline;
-            opacity: 0.8;
-        }
-
-        .btn-text:hover {
-            opacity: 1;
-            background: var(--vscode-button-secondaryBackground);
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--vscode-foreground);
-            opacity: 0.7;
-            padding: 4px;
-            border-radius: 4px;
-        }
-
-        .close-btn:hover {
-            opacity: 1;
-            background: var(--vscode-button-secondaryBackground);
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 16px;
-            }
-
-            .title {
-                font-size: 2em;
-            }
-
-            .btn {
-                display: block;
-                margin: 8px 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <button class="close-btn" data-command="close" aria-label="Close">×</button>
-
-    <div class="header">
-        <h1 class="title">DevWorkspace Pro (DevDb user discount)</h1>
-        <p class="subtitle">
-            The Ultimate GUI for DDEV with focus on Workflow Productivity
-        </p>
-    </div>
-
-    <img src="https://devworkspacepro.com/images/screenshots/project-overview-tab-light.png"
-         alt="DevWorkspace Pro Screenshot"
-         class="screenshot"
-         id="screenshot">
-
-    <div class="features">
-        <h3>Powerful Features for DDEV Developers</h3>
-        <ul>
-            <li>Intuitive project overview and management</li>
-            <li>One-click DDEV container control (start, stop, restart)</li>
-            <li>Built-in database management and visualization</li>
-            <li>Integrated terminal with DDEV commands</li>
-            <li>Real-time project status monitoring</li>
-            <li>Seamless multi-project workspace support</li>
-            <li>Beautiful, modern interface designed for productivity</li>
-        </ul>
-    </div>
-
-    <div class="discount-banner">
-        <h3>🎉 Special ${isNewInstall ? 'Welcome' : 'Launch'} Offer for DevDb Users!</h3>
-        <p>Get ${isNewInstall ? '25%' : '30%'} off your first yearly license</p>
-        <div class="discount-code">${isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'LAUNCHDAYGIFTFORDEVDBUSERS'}</div>
-    </div>
-
-    <div class="cta-section">
-        <button class="btn btn-primary" data-command="getLicense">
-            Get Your License Now
-        </button>
-        <button class="btn btn-secondary" data-command="learnMore">
-            Learn More
-        </button>
-        <br><br>
-    </div>
-
-    <script nonce="${nonce}">
-        const vscode = acquireVsCodeApi();
-
-        document.querySelectorAll('[data-command]').forEach(button => {
-            button.addEventListener('click', () => vscode.postMessage({ command: button.dataset.command }));
-        });
-
-        const screenshot = document.getElementById('screenshot');
-        screenshot.addEventListener('error', () => { screenshot.style.display = 'none'; });
-    </script>
-</body>
-</html>`;
+export function getNoticeHtml(webview: NoticeWebview, nonce: string, extensionPath: string, isNewInstall: boolean = false): string {
+    return renderNoticeTemplate(extensionPath, webview, nonce, NOTICE_TEMPLATE, {
+        heading: isNewInstall ? 'Welcome gift' : 'DevDb user discount',
+        offerTitle: isNewInstall ? 'Welcome offer for DevDb users' : 'Special offer for DevDb users',
+        offerText: isNewInstall ? 'Get 25% off your first yearly license.' : 'Get 30% off your first yearly license.',
+        discountCode: isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'LAUNCHDAYGIFTFORDEVDBUSERS',
+    });
 }
