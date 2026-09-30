@@ -157,6 +157,7 @@ Currently supported databases:
 - ClickHouse **[Pro]**
 - DuckDB **[Pro]**
 - Neon **[Pro]**
+- DynamoDB **[Pro]** (also DynamoDB Local and LocalStack)
 
 ## Loading Databases
 
@@ -289,6 +290,21 @@ These datastores need a DevDb Pro license. Add a connection from the DevDb panel
 
 - DevDb detects a Neon connection string (`*.neon.tech`) in `.env` or `.env.local` and offers to connect. You can also add one manually.
 - TLS is always on and the server certificate is verified. DevDb retries the first query to let a suspended Neon compute start.
+
+#### DynamoDB
+
+- **Connect:** Remote Connections → **DynamoDB**. Enter the region and select the authentication:
+  - **AWS profile**: DevDb lists the profiles in `~/.aws/config` and `~/.aws/credentials`. SSO, `credential_process` and assume-role profiles work through the AWS SDK. If the SSO session expired, DevDb tells you to run `aws sso login --profile <name>`.
+  - **Access key**: access key ID, secret access key and an optional session token. DevDb keeps them in VS Code secret storage and never logs them.
+  - **Custom endpoint** (optional): for DynamoDB Local (`http://localhost:8000`) or LocalStack (`http://localhost:4566`). Keys are optional with an endpoint.
+- **Zero-config:** DevDb finds DynamoDB Local in the workspace `docker-compose.yml`/`compose.yml` (`amazon/dynamodb-local`, or `localstack/localstack` with DynamoDB enabled) and in `.env` (`AWS_ENDPOINT_URL_DYNAMODB` or `DYNAMODB_ENDPOINT`). Without `-sharedDb`, DynamoDB Local keeps one database for each access key ID and region: put `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_REGION` in `.env` so DevDb sees the same tables as your app.
+- **Columns:** the partition key (`PK`) and sort key (`SK`) come first, then every attribute found in the first 200 items. Types are DynamoDB types (`S`, `N`, `B`, `BOOL`, `M`, `L`, `SS`, `NS`, `BS`, `NULL`). Tables with a sort key get a `_key` column (the full primary key as JSON) that edits and deletes use.
+- **Values:** maps, lists and sets show as JSON. Binary shows as base64. Numbers that JavaScript cannot hold exactly (for example larger than 2^53) stay as text.
+- **Pagination:** DynamoDB pages with a start key, not an offset. DevDb remembers the start key of each page it has read. When you jump far ahead, DevDb scans forward from the nearest known page, which reads all items in between.
+- **Row count:** tables up to 10 MB get an exact count. For larger tables DevDb shows the DynamoDB `ItemCount`, which AWS updates about every 6 hours; the footer says the count is approximate.
+- **Filters:** a filter on the partition key runs a **Query** (exact match; a sort-key filter then matches the start of the value). Other filters run a **Scan**: text attributes match when they contain the value, numbers and booleans must be equal.
+- **Edits and deletes** use the full primary key and fail if the item no longer exists. Key attributes cannot be edited.
+- **MCP / raw queries:** PartiQL through `ExecuteStatement`. Read-only mode (the default) allows only `SELECT`. `INSERT`, `UPDATE` and `DELETE` need `Devdb.mcp.allowWrites`.
 
 #### PostgreSQL vector search (pgvector)
 

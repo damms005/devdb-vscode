@@ -33,7 +33,9 @@ import { connectionToFormData, RemoteConnectionFormData, remoteConnectionStorage
 import { errorMessage } from './remote-credential-service';
 import { embeddingService, EmbeddingConfigInput } from './embedding-service';
 import { createRemoteEngine, testRemoteConnection } from './connection-tester';
-import { hasProLicense, proRequiredMessage, PRO_ENGINE_TYPES, PRO_PROVIDER_IDS, setProLicenseChecker } from './pro-gate';
+import { hasProLicense, proEngineLabel, proRequiredMessage, PRO_ENGINE_TYPES, PRO_PROVIDER_IDS, setProLicenseChecker } from './pro-gate';
+import { listAwsProfiles } from './aws-profiles';
+import { DynamoDbLocalProvider } from '../providers/dynamodb/dynamodb-local-provider';
 import { createGiftLink } from './gift-service';
 
 let workspaceTables: string[] = [];
@@ -99,6 +101,7 @@ const providers: DatabaseEngineProvider[] = [
 	AdonisPostgresProvider,
 	SupabasePostgresProvider,
 	NeonPostgresProvider,
+	DynamoDbLocalProvider,
 ]
 
 let database: DatabaseEngine | null = null;
@@ -135,6 +138,7 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:connect-to-remote': async () => await connectToRemoteConnection(data.value),
 		'request:get-remote-connection': async () => await getRemoteConnectionFormData(data.value),
 		'request:test-remote-connection': async () => await testRemoteConnection(data.value),
+		'request:get-aws-profiles': async () => ({ profiles: listAwsProfiles() }),
 		'request:delete-remote-connection': async () => {
 			await remoteConnectionStorageService.delete(data.value)
 			return await remoteConnectionStorageService.getListItems()
@@ -323,7 +327,7 @@ function ensureProEngineAllowed(engine: DatabaseEngine): boolean {
 	const type = engine.getType()
 	if (!PRO_ENGINE_TYPES.includes(type) || hasProLicense()) return true
 
-	vscode.window.showErrorMessage(proRequiredMessage(type === 'duckdb' ? 'DuckDB' : type === 'redis' ? 'Redis / Valkey' : 'ClickHouse'))
+	vscode.window.showErrorMessage(proRequiredMessage(proEngineLabel(type)))
 	return false
 }
 

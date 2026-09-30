@@ -4,12 +4,12 @@ let licenseChecker: (() => boolean) | null = null
  * Engine types that need a DevDb Pro license, wherever they are opened from
  * (remote connection, .devdbrc entry, or local provider).
  */
-export const PRO_ENGINE_TYPES: readonly string[] = ['redis', 'clickhouse', 'duckdb']
+export const PRO_ENGINE_TYPES: readonly string[] = ['redis', 'clickhouse', 'duckdb', 'dynamodb']
 
 /**
  * Local providers that open Pro datastores.
  */
-export const PRO_PROVIDER_IDS: readonly string[] = ['file-picker-duckdb', 'neon-postgres']
+export const PRO_PROVIDER_IDS: readonly string[] = ['file-picker-duckdb', 'neon-postgres', 'dynamodb-local']
 
 export function setProLicenseChecker(checker: () => boolean): void {
 	licenseChecker = checker
@@ -21,6 +21,20 @@ export function hasProLicense(): boolean {
 	} catch {
 		return false
 	}
+}
+
+const PRO_ENGINE_LABELS: Record<string, string> = {
+	redis: 'Redis / Valkey',
+	clickhouse: 'ClickHouse',
+	duckdb: 'DuckDB',
+	dynamodb: 'DynamoDB',
+}
+
+/**
+ * Display name of a Pro engine type, for refusal messages.
+ */
+export function proEngineLabel(type: string): string {
+	return PRO_ENGINE_LABELS[type] ?? type
 }
 
 export function proRequiredMessage(feature: string): string {

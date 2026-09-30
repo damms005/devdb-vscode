@@ -21,4 +21,7 @@ echo "== neon-tls (cert chain vs system trust store => must NOT verify)"
 openssl s_client -starttls postgres -connect localhost:5432 -servername localhost </dev/null 2>/dev/null | grep -E "Verify return code"
 echo "== neon-tls (cert chain vs private CA => must verify)"
 openssl s_client -starttls postgres -connect localhost:5432 -servername localhost -CAfile certs/ca.crt </dev/null 2>/dev/null | grep -E "Verify return code"
+echo "== dynamodb (DynamoDB Local on :8000)"
+curl -s -X POST http://localhost:8000 -H 'Content-Type: application/x-amz-json-1.0' -H 'X-Amz-Target: DynamoDB_20120810.ListTables' \
+  -H 'Authorization: AWS4-HMAC-SHA256 Credential=devdblocal/20260101/us-east-1/dynamodb/aws4_request, SignedHeaders=host, Signature=x' -d '{}'; echo
 echo "== duckdb"; ls -1 data

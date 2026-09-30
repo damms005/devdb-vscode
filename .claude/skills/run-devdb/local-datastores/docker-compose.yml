@@ -100,6 +100,17 @@ services:
       interval: 2s
       retries: 30
 
+  # DynamoDB Local, in memory (up.sh reseeds). -sharedDb: one database for every access key/region.
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: devdb-local-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000 || exit 1"]
+      interval: 2s
+      retries: 30
+
 volumes:
   clickhouse-data:
   pgvector-data:

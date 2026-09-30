@@ -468,6 +468,10 @@ function handleGetRedisNamespaces() {
 	vscode.value.postMessage({ type: 'request:get-redis-namespaces' })
 }
 
+function handleGetAwsProfiles() {
+	vscode.value.postMessage({ type: 'request:get-aws-profiles' })
+}
+
 function notify(title) {
 	message.value = title
 
@@ -532,6 +536,7 @@ function notify(title) {
 			@cancel-query="handleCancelQuery"
 			@run-raw-command="handleRunRawCommand"
 			@get-redis-namespaces="handleGetRedisNamespaces"
+			@get-aws-profiles="handleGetAwsProfiles"
 		/>
 	</div>
 	 <RouterView />

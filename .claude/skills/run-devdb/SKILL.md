@@ -1,6 +1,6 @@
 ---
 name: run-devdb
-description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the new-datastores promo, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB).
+description: Build, launch and drive the DevDb VS Code extension end to end in a separate, throwaway VS Code (open the DevDb panel, click and type in its webview, run commands, read toasts and editor tabs, screenshot, tail the DevDb log). Use when asked to run the extension, check a UI change, take a screenshot, test the new-datastores promo, or connect to a local datastore (Redis, Valkey, ClickHouse, pgvector, Neon-like TLS Postgres, DuckDB, DynamoDB Local).
 ---
 
 # Run and drive DevDb
@@ -135,6 +135,7 @@ When the test is done, close every VS Code that you started with the driver, bef
 | ClickHouse (HTTP) | 8123 | `default` / `devdb`, database `devdb` |
 | pgvector (Postgres 16) | 5433 | `devdb` / `devdb`, database `vectors` |
 | Neon-like TLS Postgres | 5432 | `neondb_owner` / `npg_localpass`, database `neondb`, TLS only, private CA `certs/ca.crt` |
+| DynamoDB Local | 8000 | any access key (`-sharedDb`, in memory; `up.sh` reseeds `users`, `orders`, `events`) |
 | DuckDB | files | `data/sample.duckdb`, `data/*.parquet|csv|json|ndjson|tsv` |
 
 Container names are fixed (`devdb-local-*`), so only one copy of the stack runs at a time. Check first: `docker ps --filter name=devdb-local`. When `workspace/.devdbrc` is missing, the driver writes it from `.devdbrc.template` (DuckDB path in this folder).
@@ -232,6 +233,27 @@ The `.devdbrc` entry `neon-tls-via-config-file` fails on purpose (the config fil
 ```
 
 Real Neon behaviour (cold start after autosuspend, the `-pooler` host, the public certificate) needs a free Neon branch: put its URL in a scratch workspace `.env` and run the same batch without a host map.
+
+### DynamoDB (zero-config and remote dialog)
+
+Needs the `dynamodb` service (`docker compose up -d --wait dynamodb && node dynamodb/seed.mjs` in `local-datastores/`). Tables: `users` (PK only; maps, lists, sets, binary, a number > 2^53), `orders` (PK + SK, GSI `status-index`), `events` (PK + numeric SK, 5,000 items). Zero-config: `DEVDB_WORKSPACE=$PWD/.claude/skills/run-devdb/local-datastores/workspace-dynamodb` (its `.env` sets `AWS_ENDPOINT_URL_DYNAMODB`). Free shows a locked "DynamoDB Local" row; after `license` it connects:
+
+```json
+[["panel","max"],["sleep","3000"],["webview","view"],["webview-wait","Local Databases"],["license"],["sleep","4000"],["webview","view"],
+ ["webview-wait","DynamoDB Local"],["webview-click","DynamoDB Local"],["webview-wait","users"],["webview-click","users"],["sleep","3000"],["shot","dyn-users"],
+ ["webview-click","events"],["sleep","3000"],["webview-assert","5,000"],["webview-assert","N SK"],["shot","dyn-events"]]
+```
+
+Remote dialog (keys are optional with an endpoint):
+
+```json
+[PRO,["webview-wait","Remote Connections"],
+ ["webview-click-css","[data-testid=add-remote-connection-btn]"],["webview-click-css","[data-testid=connection-option-dynamodb]"],
+ ["webview-click-css","[data-testid=aws-auth-keys]"],["webview-fill","css:[data-testid=aws-endpoint-input]","http://localhost:8000"],
+ ["webview-fill","My Production DB","local-dynamo"],["webview-click-css","[data-testid=test-connection-button]"],["sleep","3000"],
+ ["webview-assert","Connection successful"],["webview-click-css","[data-testid=connect-button]"],["sleep","2500"],
+ ["webview-click","local-dynamo"],["webview-wait","orders"],["webview-click","orders"],["sleep","3000"],["webview-assert","S SK"],["shot","dyn-orders"]]
+```
 
 Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list.
 

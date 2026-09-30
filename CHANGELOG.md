@@ -1,3 +1,9 @@
+## 4.0.0
+
+### Added
+
+- Pro: DynamoDB (AWS profiles incl. SSO, access keys, DynamoDB Local and LocalStack). Zero-config detection from `docker-compose.yml` and `.env`. Query/Scan filters, edits and deletes by full key, PartiQL for MCP (read-only by default).
+
 ## 3.2.0
 
 ### Added

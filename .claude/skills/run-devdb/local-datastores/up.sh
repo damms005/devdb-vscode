@@ -8,4 +8,5 @@ sed "s#__DATA_DIR__#$(pwd)/data#" workspace/.devdbrc.template > workspace/.devdb
 docker compose up -d --wait
 docker compose run --rm redis-seed
 python3 pgvector/seed-embeddings.py
+node dynamodb/seed.mjs
 ./verify.sh

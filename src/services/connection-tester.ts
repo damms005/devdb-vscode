@@ -1,7 +1,7 @@
 import knexlib from 'knex';
 import { createClient as createRedisClient } from 'redis';
 import { createClient as createClickhouseClient, ClickHouseLogLevel } from '@clickhouse/client';
-import { ClickhouseConfig, DatabaseEngine, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig } from '../types';
+import { ClickhouseConfig, DatabaseEngine, DynamodbConfig, MongodbConfig, MysqlSshConfigFile, PostgresSshConfigFile, RedisConfig } from '../types';
 import { MongodbEngine } from '../database-engines/mongodb-engine';
 import { MysqlEngine } from '../database-engines/mysql-engine';
 import { PostgresEngine } from '../database-engines/postgres-engine';
@@ -9,6 +9,7 @@ import { MysqlSshEngine } from '../database-engines/mysql-ssh-engine';
 import { PostgresSshEngine } from '../database-engines/postgres-ssh-engine';
 import { RedisEngine } from '../database-engines/redis-engine';
 import { ClickhouseEngine } from '../database-engines/clickhouse-engine';
+import { DynamodbEngine } from '../database-engines/dynamodb-engine';
 import { errorMessage, remoteCredentialService } from './remote-credential-service';
 import { getConnectionFor } from './connector';
 import { buildSslPostgresKnexConnection, isNeonConnectionString } from '../providers/postgres/neon-connection-helper';
@@ -25,6 +26,7 @@ export type RemoteEngineResult = { engine: DatabaseEngine, error?: undefined } |
 export function proFeatureOf(connection: Pick<StoredRemoteConnection, 'type' | 'host'>): string | undefined {
 	if (connection.type === 'redis') return 'Redis / Valkey'
 	if (connection.type === 'clickhouse') return 'ClickHouse'
+	if (connection.type === 'dynamodb') return 'DynamoDB'
 	if ((connection.type === 'postgres' || connection.type === 'postgres-ssh') && isNeonConnectionString(connection.host)) return 'Neon'
 	return undefined
 }
@@ -115,6 +117,9 @@ export async function createRemoteEngine(connection: StoredRemoteConnection, sec
 
 		case 'clickhouse':
 			return createClickhouseEngine(connection, secrets)
+
+		case 'dynamodb':
+			return createDynamodbEngine(connection, secrets)
 	}
 
 	return { error: `Unsupported connection type: ${connection.type}` }
@@ -279,6 +284,36 @@ async function createClickhouseEngine(connection: StoredRemoteConnection, secret
 	const engine = new ClickhouseEngine(config)
 	if (!(await engine.connect())) {
 		return { error: `Failed to connect to ClickHouse: ${connection.name}` }
+	}
+
+	return { engine }
+}
+
+export function dynamodbConfigFor(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): DynamodbConfig {
+	return {
+		name: connection.name,
+		type: 'dynamodb',
+		region: connection.awsRegion,
+		endpoint: connection.awsEndpoint,
+		authMethod: connection.awsAuthMethod ?? 'profile',
+		profile: connection.awsProfile,
+		accessKeyId: secrets.awsAccessKeyId,
+		secretAccessKey: secrets.password,
+		sessionToken: secrets.awsSessionToken,
+	}
+}
+
+async function createDynamodbEngine(connection: StoredRemoteConnection, secrets: RemoteConnectionSecrets): Promise<RemoteEngineResult> {
+	const config = dynamodbConfigFor(connection, secrets)
+	if (config.authMethod === 'keys' && (!config.accessKeyId || !config.secretAccessKey) && !config.endpoint) {
+		return { error: 'Failed to connect to DynamoDB: enter an access key ID and a secret access key' }
+	}
+
+	const engine = new DynamodbEngine(config)
+	try {
+		await engine.connect()
+	} catch (error) {
+		return { error: `Failed to connect to DynamoDB: ${errorMessage(error)}` }
 	}
 
 	return { engine }
