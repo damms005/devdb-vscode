@@ -607,8 +607,14 @@ async function connectToRemoteConnection(remoteConnectionId: string) {
 		return { connected: false, error: 'Connection not found' }
 	}
 
+	const secrets = await remoteConnectionStorageService.getSecrets(connection)
+	// getSecrets() falls back to the redacted display copy when the secret is gone.
+	if (secrets.connectionString?.includes(':****@')) {
+		return { connected: false, error: `The saved password for "${connection.name}" was not found. Edit the connection and enter the connection string again.` }
+	}
+
 	try {
-		const result = await createRemoteEngine(connection, await remoteConnectionStorageService.getSecrets(connection))
+		const result = await createRemoteEngine(connection, secrets)
 		if (!result.engine) {
 			return { connected: false, error: result.error }
 		}

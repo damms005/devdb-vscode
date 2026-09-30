@@ -557,7 +557,8 @@ export class DuckDbEngine implements DatabaseEngine {
 			if (signal?.aborted) {
 				throw err;
 			}
-			reportError(`DuckDB summarize error, summarizing per column: ${err}`);
+			// Expected fallback (e.g. HUGEINT overflow): each column row carries a note, so no toast.
+			console.warn(`DuckDB summarize failed, summarizing per column: ${err}`);
 		}
 
 		const columns = await this.getColumns(table);
