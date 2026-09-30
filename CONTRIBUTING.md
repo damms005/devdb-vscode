@@ -54,4 +54,34 @@ We adhere to [Spatie's JavaScript guidelines](https://spatie.be/guidelines/javas
 
 - **Send coherent history** - Make sure each individual commit in your pull request is meaningful. If you had to make multiple intermediate commits while developing, please [squash them](http://www.git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Changing-Multiple-Commit-Messages) before submitting.
 
+## Running Tests
+
+Tests use [Mocha](https://mochajs.org) and [Testcontainers](https://testcontainers.com). You need Docker running.
+
+```bash
+bun install            # or: npm install
+npm run check-types    # tsc --noEmit
+npm run lint
+npm test               # runs every suite in src/test/suite/**
+```
+
+Run one suite:
+
+```bash
+npx mocha --timeout 180000 --require ts-node/register 'src/test/suite/engines/redis.test.ts'
+```
+
+- Containers have fixed names (`devdb-test-container-*`) and use `withReuse()`, so later runs start fast. The first run downloads images and can take several minutes.
+- If a run stops with "container name already in use" (HTTP 409), wait for the other run to finish or remove the container with `docker rm -f <name>`.
+- `publish.sh` removes all `devdb-test-container-*` containers before it runs the tests. When you add a container, add its name to `cleanup_test_containers` in `publish.sh`.
+
+## Adding a Database Engine
+
+1. **Engine**: add `src/database-engines/<name>-engine.ts` that implements `DatabaseEngine` from `src/types.ts`. `rawQuery(sql, options)` must enforce `options.readOnly` at the database level (MCP queries use it).
+2. **Config type**: add the config type to `src/types.ts`. For file or config-based loading, add the schema to `schemas/devdbrc.json` and a snippet to `snippets/devdbrc.json`.
+3. **Provider or connection form**: add a provider in `src/providers/<name>/` and register it in the `providers` list in `src/services/messenger.ts`, or add a remote connection type in `src/services/remote-connection-storage-service.ts`.
+4. **Native drivers**: bundle the driver with esbuild when possible. If it has a native `.node` binding that esbuild cannot bundle, add it to `external` in `esbuild.js`, allow it in `.vscodeignore`, and make sure `.github/scripts/prepare-native-deps.js` ships the correct binding for each VSIX target.
+5. **Tests**: add `src/test/suite/engines/<name>.test.ts` with a Testcontainers container named `devdb-test-container-<name>`.
+6. **Docs**: update `README.md` (Supported Databases and setup) and `CHANGELOG.md`.
+
 **Happy coding**!

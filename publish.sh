@@ -65,6 +65,9 @@ cleanup_test_containers() {
     devdb-test-container-mysql \
     devdb-test-container-postgres \
     devdb-test-container-for-general-sql-tests \
+    devdb-test-container-redis \
+    devdb-test-container-clickhouse \
+    devdb-test-container-pgvector \
     2>/dev/null || true
   echo "Cleanup complete."
 }

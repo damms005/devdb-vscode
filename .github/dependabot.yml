@@ -4,3 +4,29 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # Root extension: CI installs from bun.lock (text lockfile), so Dependabot uses the bun ecosystem.
+  # package-lock.json is refreshed with `npm install` when merging these PRs.
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ui-shell uses the binary bun.lockb, which the bun ecosystem does not read.
+  - package-ecosystem: "npm"
+    directory: "/ui-shell"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Local sibling repo (file:../../devdb-ui), not on the registry.
+      - dependency-name: "devdb-ui"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
