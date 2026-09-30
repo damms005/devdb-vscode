@@ -1,6 +1,7 @@
 {
 	"exclude": [
-		"**/ui-shell/**"
+		"**/ui-shell/**",
+		"src/test/fixtures/**"
 	],
 	"compilerOptions": {
 		"module": "Node16",

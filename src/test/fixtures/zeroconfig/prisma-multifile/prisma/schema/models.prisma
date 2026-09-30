@@ -1,0 +1,1 @@
+model Post { id Int @id }

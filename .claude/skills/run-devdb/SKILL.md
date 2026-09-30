@@ -258,6 +258,18 @@ Remote dialog (keys are optional with an endpoint):
  ["webview-click","local-dynamo"],["webview-wait","orders"],["webview-click","orders"],["sleep","3000"],["webview-assert","S SK"],["shot","dyn-orders"]]
 ```
 
+### Zero-config detection (DATABASE_URL, Prisma, Drizzle, docker-compose)
+
+`DEVDB_WORKSPACE=$PWD/.claude/skills/run-devdb/local-datastores/workspace-zeroconfig`. Its `docker-compose.yml` describes the running stack (do not start it), `.env` has `DATABASE_URL` for pgvector, and `prisma/schema.prisma` and `drizzle.config.ts` point at pgvector too. The workspace has no `.devdbrc`, and the first panel load can take more than 10 s, so open the panel with `exec` and wait:
+
+```json
+[["exec","devdb.focus"],["sleep","15000"],["webview","view"],["webview-wait","Postgres (Prisma)"],["shot","zc-free"],
+ ["license"],["sleep","4000"],["webview","view"],["webview-wait","Redis (docker-compose: valkey)"],["shot","zc-pro"],
+ ["webview-click","Redis (docker-compose: valkey)"],["sleep","5000"],["webview-assert","Namespaces"],["shot","zc-valkey"]]
+```
+
+Expected: one `Postgres (Prisma)` row with "also in Drizzle, DATABASE_URL, docker-compose: pgvector". Free: `Redis (docker-compose: redis)`, `Redis (docker-compose: valkey)` and `ClickHouse (docker-compose: clickhouse)` are locked rows under "Available with Pro". Pro: the same three are normal rows and connect. The DevDb log (`["log","devdb"]`) shows `… needs DevDb Pro; listed as locked` for each locked row.
+
 Saved remote connections stay in the profile. Use `DEVDB_FRESH_PROFILE=1` for a clean list.
 
 ### Cloudflare D1 (local) and Turso / libSQL (`workspace-edge`)

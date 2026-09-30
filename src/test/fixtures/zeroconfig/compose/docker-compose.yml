@@ -1,0 +1,56 @@
+x-pg-env: &pg-env
+  POSTGRES_USER: app
+  POSTGRES_PASSWORD: ${PG_PASSWORD:-fallback}
+
+services:
+  web:
+    build: .
+    ports: ["3000:3000"]
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      <<: *pg-env
+      POSTGRES_DB: vectors
+    ports:
+      - "127.0.0.1:${PG_PORT:-5433}:5432"
+  mysql:
+    image: docker.io/library/mariadb:11
+    environment:
+      - MARIADB_ROOT_PASSWORD=rootpw
+      - MARIADB_DATABASE=shop
+    ports:
+      - target: 3306
+        published: "3307"
+        protocol: tcp
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Str0ng!Passw0rd"
+    ports: ["1434:1433"]
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports: ["27018:27017"]
+  mongo-express:
+    image: mongo-express
+    ports: ["8081:8081"]
+  cache:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--requirepass", "valkeypass"]
+    ports: ["6380:6379"]
+  analytics:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: devdb
+      CLICKHOUSE_DB: devdb
+    ports: ["8123:8123", "9000:9000"]
+  internal-pg:
+    image: postgres:16
+    expose: ["5432"]
+  ephemeral-redis:
+    image: redis:7
+    ports: ["6379"]

@@ -6,6 +6,7 @@
 - Cloudflare D1 (remote), Pro: connect with account ID, database ID and API token over the Cloudflare REST API.
 - Turso / libSQL, Pro: detected from `TURSO_DATABASE_URL` in `.env` or a `drizzle.config` with `dialect: 'turso'`, or added as a remote connection.
 - Pro: DynamoDB (AWS profiles incl. SSO, access keys, DynamoDB Local and LocalStack). Zero-config detection from `docker-compose.yml` and `.env`. Query/Scan filters, edits and deletes by full key, PartiQL for MCP (read-only by default).
+- Zero-config detection from `DATABASE_URL` (and similar variables), Prisma, Drizzle, docker-compose services, and Laravel SQL Server/Redis/MongoDB. Detected Redis and ClickHouse show as locked Pro rows without a license.
 
 ### Fixed
 
