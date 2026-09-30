@@ -18,16 +18,11 @@ export async function showWelcomeMessage(context: vscode.ExtensionContext, hasLi
 	const isVersionUpdate = !isNewInstall && !!currentVersion && currentVersion !== previousVersion
 		&& isUpdate(previousVersion, currentVersion);
 
-	// Max one full-page promo per launch: the DevWorkspace Pro notice goes first,
-	// the new-datastores notice is deferred to a later launch when it shows.
-	let fullPagePromoShown = false;
-	if (currentVersion && (isNewInstall || isVersionUpdate)) {
-		fullPagePromoShown = await showDevWorkspaceProNoticeForDdevWorkspaces(context, currentVersion, isNewInstall);
-	}
-
-	if (currentVersion) {
-		await showNewDatastoresNotice(context, currentVersion, { hasLicense, fullPagePromoShownThisLaunch: fullPagePromoShown });
-	}
+	// Max one full-page promo per launch: the DevDb 4 notice goes first, the
+	// DevWorkspace Pro showcase is deferred to a later launch when it shows.
+	// Licensed users get a toast for DevDb 4, so the showcase can still show.
+	const launchNotice = currentVersion ? await showNewDatastoresNotice(context, currentVersion, { hasLicense }) : 'none';
+	await showDevWorkspaceProNoticeForDdevWorkspaces(context, isNewInstall, { fullPagePromoShownThisLaunch: launchNotice === 'webview' });
 
 	if (isNewInstall) {
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
@@ -45,7 +40,7 @@ export function getUpdateMessage(currentVersion: string): string {
 	const lines = [`DevDb updated to ${currentVersion}.`];
 
 	if (isNoticeReleaseLine(currentVersion)) {
-		lines.push('✨ New in Pro: Vector search (pgvector), Redis/Valkey, ClickHouse, DuckDB & Neon.');
+		lines.push('✨ New in 4.0: Redis/Valkey, ClickHouse, DuckDB, DynamoDB, Turso, Cloudflare D1, Neon & pgvector.');
 	}
 
 	lines.push('✨ Gift DevDb Pro to your colleagues and friends!');
