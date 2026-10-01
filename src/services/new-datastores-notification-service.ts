@@ -1,9 +1,14 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
+import { honorsFullPageNoticeOptOuts } from './notice-opt-outs';
 import { parseVersion } from './version';
 
 export const NOTICE_SHOWN_KEY = 'devdb.v4.notice.shown';
+/** Time (ms) the v4 full-page notice showed. Starts the wait for the next full-page notice. */
+export const FULL_PAGE_SHOWN_AT_KEY = 'devdb.v4.notice.fullPageShownAt';
+/** Time (ms) of the first start on 4.x. Starts the wait when the v4 notice was a toast. */
+export const FIRST_START_AT_KEY = 'devdb.v4.firstStartAt';
 /** Keys used by earlier builds; cleared by the dev preview command. */
 export const LEGACY_NOTICE_KEYS = ['newDatastores.notice.shown', 'newDatastores.notice.shownForVersion', 'newDatastores.notice.dismissed'];
 
@@ -28,6 +33,7 @@ export interface NewDatastoresNoticeOptions {
 	fullPagePromoShownThisLaunch?: boolean;
 	/** Dev preview: ignore the shown flag, release line and settings. */
 	forcePreview?: boolean;
+	now?: Date;
 }
 
 export function isNoticeReleaseLine(version: string): boolean {
@@ -62,7 +68,11 @@ export function getNewDatastoresNoticeAction(
 		return 'none';
 	}
 
-	if (kind === 'webview' && (options.fewerNotifications || options.fullPagePromoShownThisLaunch)) {
+	if (kind === 'webview' && options.fullPagePromoShownThisLaunch) {
+		return 'none';
+	}
+
+	if (kind === 'webview' && options.fewerNotifications && honorsFullPageNoticeOptOuts(options.now)) {
 		return 'none';
 	}
 
@@ -78,8 +88,14 @@ export async function showNewDatastoresNotice(
 	version: string,
 	options: NewDatastoresNoticeOptions = {},
 ): Promise<NewDatastoresNoticeAction> {
+	const now = options.now ?? new Date();
+	if (!options.forcePreview && isNoticeReleaseLine(version) && context.globalState.get<number>(FIRST_START_AT_KEY) === undefined) {
+		await context.globalState.update(FIRST_START_AT_KEY, now.getTime());
+	}
+
 	const action = getNewDatastoresNoticeAction(context, version, {
 		...options,
+		now,
 		fewerNotifications: options.forcePreview ? false : userWantsFewerNotifications(),
 	});
 
@@ -94,6 +110,10 @@ export async function showNewDatastoresNotice(
 		return action;
 	}
 
+	if (!options.forcePreview) {
+		await context.globalState.update(FULL_PAGE_SHOWN_AT_KEY, now.getTime());
+	}
+
 	setTimeout(() => {
 		createNewDatastoresWebview(context);
 	}, options.forcePreview ? 0 : DELAY_MS);
@@ -103,7 +123,7 @@ export async function showNewDatastoresNotice(
 
 /** Clears the notice state so the dev preview command can show it again. */
 export async function resetNewDatastoresNotice(context: vscode.ExtensionContext): Promise<void> {
-	for (const key of [NOTICE_SHOWN_KEY, ...LEGACY_NOTICE_KEYS]) {
+	for (const key of [NOTICE_SHOWN_KEY, FULL_PAGE_SHOWN_AT_KEY, ...LEGACY_NOTICE_KEYS]) {
 		await context.globalState.update(key, undefined);
 	}
 }

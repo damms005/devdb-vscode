@@ -54,6 +54,12 @@ const welcome = require('../../../services/welcome-message-service');
 const version = require('../../../services/version');
 const html = require('../../../services/html');
 const devWorkspacePro = require('../../../services/devworkspacepro-notification-service');
+const optOuts = require('../../../services/notice-opt-outs');
+
+/** Dates around the end of the launch window, when opt-outs start to count again. */
+const BEFORE_OPT_OUTS = new Date(2026, 11, 24, 23, 59);
+const AFTER_OPT_OUTS = new Date(2026, 11, 25, 0, 0);
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function makeFakeContext(initial: Record<string, any> = {}) {
 	const store = new Map<string, any>(Object.entries(initial));
@@ -176,12 +182,36 @@ describe('Promo notices', function () {
 			assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0'), 'webview');
 		});
 
-		it('respects showFewerUpdateNotificationActions and dontShowNewVersionMessage', async () => {
+		it('respects showFewerUpdateNotificationActions and dontShowNewVersionMessage from the opt-out date', async () => {
 			settings.showFewerUpdateNotificationActions = true;
-			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0'), 'none');
+			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: AFTER_OPT_OUTS }), 'none');
 			delete settings.showFewerUpdateNotificationActions;
 			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0'), 'none');
+			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: AFTER_OPT_OUTS }), 'none');
+		});
+
+		it('ignores the fewer-notifications settings before the opt-out date', async () => {
+			settings.showFewerUpdateNotificationActions = true;
+			settings.dontShowNewVersionMessage = true;
+			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: BEFORE_OPT_OUTS }), 'webview');
+		});
+
+		it('records when the full page showed, and the first 4.x start', async () => {
+			const now = new Date(2026, 9, 1);
+			const free = makeFakeContext();
+			await newDatastores.showNewDatastoresNotice(free, '4.0.0', { now });
+			assert.strictEqual(free.store.get(newDatastores.FULL_PAGE_SHOWN_AT_KEY), now.getTime());
+			assert.strictEqual(free.store.get(newDatastores.FIRST_START_AT_KEY), now.getTime());
+
+			const pro = makeFakeContext();
+			await newDatastores.showNewDatastoresNotice(pro, '4.0.0', { now, hasLicense: true });
+			assert.strictEqual(pro.store.has(newDatastores.FULL_PAGE_SHOWN_AT_KEY), false, 'a toast is not a full page');
+			await newDatastores.showNewDatastoresNotice(pro, '4.0.1', { now: new Date(now.getTime() + DAY_MS) });
+			assert.strictEqual(pro.store.get(newDatastores.FIRST_START_AT_KEY), now.getTime(), 'keeps the first start');
+
+			const old = makeFakeContext();
+			await newDatastores.showNewDatastoresNotice(old, '3.2.0', { now });
+			assert.strictEqual(old.store.has(newDatastores.FIRST_START_AT_KEY), false);
 		});
 
 		it('forcePreview bypasses gating and reset clears the flag', async () => {
@@ -214,14 +244,23 @@ describe('Promo notices', function () {
 			assert.ok(!shouldShow(makeFakeContext({ [devWorkspacePro.NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NOTICE_CONTENT_VERSION })));
 		});
 
-		it('needs a DDEV workspace, and respects the fewer-notifications settings and an old dismissal', async () => {
+		it('needs a DDEV workspace, and respects the fewer-notifications settings and an old dismissal from the opt-out date', async () => {
 			assert.ok(!shouldShow(makeFakeContext(), false));
-			assert.ok(!shouldShow(makeFakeContext(), true, true));
-			assert.ok(!shouldShow(makeFakeContext({ 'devworkspacepro.notice.dismissed': true })));
+			assert.ok(!devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext(), true, true, AFTER_OPT_OUTS));
+			assert.ok(!devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), true, false, AFTER_OPT_OUTS));
 
 			const ddevRoot = makeDdevWorkspace();
 			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext()), false);
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext(), false, { now: AFTER_OPT_OUTS }), false);
+			fs.rmSync(ddevRoot, { recursive: true, force: true });
+		});
+
+		it('ignores the fewer-notifications settings and an old dismissal before the opt-out date', async () => {
+			assert.ok(devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), true, true, BEFORE_OPT_OUTS));
+
+			const ddevRoot = makeDdevWorkspace();
+			settings.dontShowNewVersionMessage = true;
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), false, { now: BEFORE_OPT_OUTS }), true);
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
@@ -231,6 +270,75 @@ describe('Promo notices', function () {
 			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(context, false, { fullPagePromoShownThisLaunch: true }), false);
 			assert.strictEqual(context.store.has(devWorkspacePro.NOTICE_CONTENT_VERSION_KEY), false);
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
+		});
+	});
+
+	describe('full-page notice opt-out date', () => {
+		it('honors opt-outs from 2026-12-25 local time, not before', () => {
+			assert.strictEqual(optOuts.HONOR_FULL_PAGE_NOTICE_OPT_OUTS_FROM, '2026-12-25');
+			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(new Date(2026, 9, 1)), false);
+			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(BEFORE_OPT_OUTS), false);
+			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(AFTER_OPT_OUTS), true);
+			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(new Date(2027, 5, 1)), true);
+		});
+	});
+
+	describe('DevWorkspace Pro showcase for PHP projects without DDEV', () => {
+		const t0 = new Date(2026, 9, 1).getTime();
+		const at = (days: number) => new Date(t0 + days * DAY_MS);
+		const shown = (extra: Record<string, any> = {}) => makeFakeContext({ [newDatastores.FULL_PAGE_SHOWN_AT_KEY]: t0, ...extra });
+		const shouldShow = (context: any, php = true, fewer = false, now = at(7)) => devWorkspacePro.shouldShowNonDdevNotice(context, php, fewer, now);
+
+		it('targets composer.json or artisan projects without .ddev', () => {
+			const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-php-'));
+			workspaceFolders = [{ uri: { fsPath: root } }];
+			const workspace = require('../../../services/workspace');
+			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), false, 'not a PHP project');
+			fs.writeFileSync(path.join(root, 'artisan'), '');
+			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), true);
+			fs.rmSync(path.join(root, 'artisan'));
+			fs.writeFileSync(path.join(root, 'composer.json'), '{}');
+			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), true);
+			fs.mkdirSync(path.join(root, '.ddev'));
+			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), false, 'DDEV projects get the DDEV showcase');
+			fs.rmSync(root, { recursive: true, force: true });
+		});
+
+		it('waits 7 days after the DevDb v4 full page', () => {
+			assert.ok(!shouldShow(shown(), true, false, at(6.99)));
+			assert.ok(shouldShow(shown(), true, false, at(7)));
+			assert.ok(!shouldShow(shown(), false));
+		});
+
+		it('waits 7 days after the first 4.x start when DevDb v4 was a toast, and never without either', () => {
+			assert.ok(!shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), true, false, at(6)));
+			assert.ok(shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), true, false, at(7)));
+			assert.ok(!shouldShow(makeFakeContext(), true, false, at(400)));
+		});
+
+		it('shows once per content version, and not after the DDEV showcase of the same release', () => {
+			assert.ok(!shouldShow(shown({ [devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION })));
+			assert.ok(shouldShow(shown({ [devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY]: '2025-01' })));
+			assert.ok(!shouldShow(shown({ [devWorkspacePro.NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NOTICE_CONTENT_VERSION })));
+		});
+
+		it('ignores opt-outs before 2026-12-25 and honors them from then on', () => {
+			const dismissed = { [devWorkspacePro.NOTICE_DISMISSED_KEY]: true };
+			assert.ok(shouldShow(shown(dismissed), true, true, BEFORE_OPT_OUTS));
+			assert.ok(!shouldShow(shown(), true, true, AFTER_OPT_OUTS));
+			assert.ok(!shouldShow(shown(dismissed), true, false, AFTER_OPT_OUTS));
+			assert.ok(shouldShow(shown(), true, false, AFTER_OPT_OUTS));
+		});
+
+		it('stays pending when another full-page promo showed this launch', async () => {
+			const root = makePhpWorkspace();
+			const context = shown();
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForNonDdevWorkspaces(context, false, { fullPagePromoShownThisLaunch: true, now: at(8) }), false);
+			assert.strictEqual(context.store.has(devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY), false);
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForNonDdevWorkspaces(context, false, { now: at(8) }), true);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devworkspacepro-non-ddev-notice']);
+			fs.rmSync(root, { recursive: true, force: true });
 		});
 	});
 
@@ -271,6 +379,43 @@ describe('Promo notices', function () {
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
+		it('PHP projects without DDEV: DevDb v4 first, the showcase on a start 7 days later, one full page per start', async () => {
+			const root = makePhpWorkspace();
+			const context = makeFakeContext({ 'devdb-version': '3.1.0' });
+
+			await welcome.showWelcomeMessage(context, false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devdb-new-datastores-notice']);
+
+			createdPanels.length = 0;
+			await welcome.showWelcomeMessage(context, false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, [], 'too soon after the DevDb v4 notice');
+
+			// A week later.
+			context.store.set(newDatastores.FULL_PAGE_SHOWN_AT_KEY, Date.now() - 7 * DAY_MS);
+			await welcome.showWelcomeMessage(context, false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devworkspacepro-non-ddev-notice']);
+
+			createdPanels.length = 0;
+			await welcome.showWelcomeMessage(context, false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, []);
+
+			fs.rmSync(root, { recursive: true, force: true });
+		});
+
+		it('never shows the non-DDEV showcase on the start that shows DevDb v4', async () => {
+			const root = makePhpWorkspace();
+			// The wait from the first 4.x start has passed, but the v4 notice is still pending.
+			const context = makeFakeContext({ 'devdb-version': '3.1.0', [newDatastores.FIRST_START_AT_KEY]: Date.now() - 30 * DAY_MS });
+			await welcome.showWelcomeMessage(context, false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devdb-new-datastores-notice']);
+			fs.rmSync(root, { recursive: true, force: true });
+		});
+
 		it('mentions the new engines on 4.x only', () => {
 			assert.ok(welcome.getUpdateMessage('4.0.0').includes('New in 4.0'));
 			assert.ok(!welcome.getUpdateMessage('3.3.0').includes('New in 4.0'));
@@ -295,6 +440,7 @@ describe('Promo notices', function () {
 			['devdb-4', (nonce: string) => newDatastores.getNoticeHtml(webview, nonce, extensionPath)],
 			['devworkspacepro', (nonce: string) => devWorkSpaceProHtml(nonce, false)],
 			['devworkspacepro (new install)', (nonce: string) => devWorkSpaceProHtml(nonce, true)],
+			['devworkspacepro (non-DDEV)', (nonce: string) => devWorkSpaceProHtml(nonce, false, 'non-ddev')],
 		] as const) {
 			it(`${name} notice has a strict CSP, no inline handlers or styles, and only local assets that exist`, () => {
 				const nonce = html.getNonce();
@@ -396,7 +542,7 @@ describe('Promo notices', function () {
 		}
 
 		it('notice styles use no linear gradients or gradient text, and glass only on the v4 numeral', () => {
-			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css']) {
+			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css', 'devworkspacepro/non-ddev.css']) {
 				const css = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
 				assert.ok(!/(linear|conic)-gradient\(|background-clip:\s*text/i.test(css), `${file} uses a gradient`);
 				for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -412,6 +558,34 @@ describe('Promo notices', function () {
 			assert.ok(page.includes('<span class="eight-plate">8</span>'));
 			assert.ok(page.includes('8 new engines.'));
 			assert.ok(!/Eight new engines/i.test(page));
+		});
+
+		it('the non-DDEV showcase leads with what works without DDEV, one window per strip item', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false, 'non-ddev');
+			const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="visual"'));
+			assert.ok(hero.includes('DevWorkspace Pro v2') && /desktop app/i.test(hero) && hero.includes('No DDEV needed'));
+			assert.ok(hero.includes('data-command="copyCode"') && hero.includes(devWorkspacePro.getOffer(false).discountCode));
+
+			const titles = [...page.matchAll(/data-deck-item><strong>([^<]+)<\/strong>/g)].map(match => match[1]);
+			assert.deepStrictEqual(titles, ['AI sessions', 'Git Changes', 'File editor', 'Terminal', 'Issues and tasks to AI', 'Voice-to-Text']);
+
+			const tabs = [...page.matchAll(/role="tab" aria-selected="(?:true|false)" aria-controls="([^"]+)"/g)].map(match => match[1]);
+			const cards = [...page.matchAll(/<figure class="win [^"]*" id="([^"]+)"[^>]*data-deck-card/g)].map(match => match[1]);
+			assert.deepStrictEqual(cards, tabs);
+			assert.ok(!/one click/i.test(page), 'DevWorkspace Pro has no one-click move to DDEV');
+		});
+
+		it('the non-DDEV mocks show an imported project as the app does', () => {
+			const read = (file: string) => fs.readFileSync(path.join(extensionPath, 'resources/notices/devworkspacepro/mocks', file), 'utf8');
+			const overview = read('overview-non-ddev.html');
+			const tabs = [...overview.matchAll(/rounded-md px-3 text-sm font-medium">\s*([A-Za-z ]+?)\s*</g)].map(match => match[1]);
+			// ProjectDetails.vue: allProjectTabs minus ddevExclusiveTabs.
+			assert.deepStrictEqual(tabs, ['Overview', 'Terminal', 'Files', 'Git Changes', 'GitHub', 'Monitoring', 'Recipes']);
+			for (const ddevOnly of ['RUNNING', 'Stop', 'Restart', 'Share', 'Start All', 'Quick Actions', 'phpMyAdmin', 'Mailpit', 'PHP Version', '>Laravel<']) {
+				assert.ok(!overview.includes(ddevOnly), `external projects do not show ${ddevOnly}`);
+			}
+			assert.ok(overview.includes('New AI session'), 'the AI session button shows for every project');
+			assert.ok(read('status-bar-non-ddev.html').includes('None running'), 'the footer counts DDEV projects only');
 		});
 
 		it('rejects unknown placeholders and paths outside resources/notices', () => {
@@ -430,8 +604,15 @@ describe('Promo notices', function () {
 	});
 });
 
-function devWorkSpaceProHtml(nonce: string, isNewInstall: boolean): string {
-	return devWorkspacePro.getNoticeHtml({ cspSource: 'vscode-resource:', asWebviewUri }, nonce, extensionPath, isNewInstall);
+function devWorkSpaceProHtml(nonce: string, isNewInstall: boolean, variant: 'ddev' | 'non-ddev' = 'ddev'): string {
+	return devWorkspacePro.getNoticeHtml({ cspSource: 'vscode-resource:', asWebviewUri }, nonce, extensionPath, isNewInstall, variant);
+}
+
+function makePhpWorkspace(): string {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-php-'));
+	fs.writeFileSync(path.join(root, 'composer.json'), '{}');
+	workspaceFolders = [{ uri: { fsPath: root } }];
+	return root;
 }
 
 function makeDdevWorkspace(): string {
