@@ -8,467 +8,93 @@
 </p>
 
 <p align="center">
-    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb">VS Code Marketplace page</a>
-		⋅
-    <a href="https://open-vsx.org/extension/damms005/devdb">Open VSX Registry page</a>
+    <a href="https://docs.devdbpro.com"><strong>Documentation</strong></a>
+    ⋅
+    <a href="https://marketplace.visualstudio.com/items?itemName=damms005.devdb">VS Code Marketplace</a>
+    ⋅
+    <a href="https://open-vsx.org/extension/damms005/devdb">Open VSX Registry</a>
 </p>
 
-A lightweight VS Code extension that auto-loads your database and provides affordances from your database to aid development and debugging.
+DevDb finds the database of your project and shows it in a panel in VS Code, Cursor and Windsurf. You do not write a connection.
 
-Built with 💖 for developers.
-
-## Featured In
-
-<table>
-<tr><td>
-<a title="Laravel News" href="https://laravel-news.com/devdb">
-<img alt="Laravel News" height="40" src="resources/featured/laravel-new.png" /></a>
-</td>
-<td>
-<a title="DDEV documentation" href="https://ddev.readthedocs.io/en/latest/users/usage/database-management/#database-guis">
-<img alt="DDEV documentation" height="40" src="resources/featured/ddev.png" />
-</a>
-</td>
-<td>
-<a title="Daily dev" href="https://app.daily.dev/posts/JAhlsLY2E">
-<img alt="Daily dev" height="20" src="resources/featured/daily-dev.png" />
-</a>
-</td>
-<td>
-<a title="TestDevTools" href="https://testdev.tools/dev-db">
-<img alt="TestDevTools" height="40" src="resources/featured/test-dev-tools.png" />
-</a>
-</td>
-</tr>
-</table>
-
-## Latest Features
-
-1. **[Pro]** Vector search for PostgreSQL (pgvector) — inspect embeddings and find similar rows
-1. **[Pro]** Redis / Valkey support
-1. **[Pro]** ClickHouse support
-1. **[Pro]** DuckDB support
-1. **[Pro]** Neon (serverless Postgres) support
-1. Zero-config auto-detection for local Supabase projects
-1. Fix issues with Django projects zero-config support
-1. Correctly report MariaDB in DDEV projects
-1. **[Pro]** MongoDB support with automatic schema inference
-1. **[Pro]** MySQL/MariaDB over SSH tunnel
-1. **[Pro]** PostgreSQL over SSH tunnel
-
-## Sponsors
-
-We are genuinely grateful to the following sponsors of DevDb:
-
-- [DevWorkspace Pro](https://devworkspacepro.com) - Easily build and manage web apps, with conveniences that supercharge your productivity
-- [Traycer AI](https://traycer.ai) - A Powerful AI assistance, natively integrated into your VS Code workflow.
+![DevDb panel](resources/screenshots/new/main-light-dark.png)
 
 ## Features
 
-- **MCP Server:** Provide your database information to AI-powered IDEs and MCP clients like Cursor, Windsurf, etc.
+- **Zero-config detection.** DevDb reads Laravel, Rails, Django, AdonisJS, DDEV, Supabase, Prisma, Drizzle, docker-compose, Wrangler and `DATABASE_URL` setups. [More](https://docs.devdbpro.com/zero-config.html)
+- **Browse and edit.** Filter rows, edit values, set `null`, delete rows. Undo, redo and save with `Cmd+Z`, `Cmd+Y` and `Cmd+S`. [More](https://docs.devdbpro.com/getting-started.html#use-the-panel)
+- **Editor features.** Go to a table (`Cmd+K Cmd+G`), open the table at the cursor, generate Laravel factories from real data, explain MySQL queries, export as JSON or SQL. [More](https://docs.devdbpro.com/features.html)
+- **MCP server.** Claude Code, Cursor, Windsurf and other MCP clients can read your schema and run queries. Localhost only, with a token, read-only by default. [More](https://docs.devdbpro.com/mcp.html)
+- **Remote connections** (Pro). Direct with TLS, SSH tunnels with host key checks, and MongoDB. [More](https://docs.devdbpro.com/remote-connections.html)
 
-- **Quick table open command:** Press `Cmd+K Cmd+G` (Mac) or `Ctrl+K Ctrl+G` (Windows/Linux) to quickly open any table.
+## Supported datastores
 
-- **Zero-config Database Auto-discovery:** Automatically discover and load your database ― no manual configuration required. Supports environments like DDEV, Adonis, Laravel, containerized setups (Laravel Sail), etc.
-
-- **Database affordances for Local Development:** Because of a deep understanding of your database schema, DevDb is able to provide affordances that aid development and debugging, such as one-click generation of Eloquent Model factories, etc.
-
-- **Powerful IDE Integrations:** DevDb nicely integrates your database with your IDE to provide very useful IDE-powered features like Context Menu & CodeLens Integrations directly in your editor, providing features like opening tables from code, invoking [SQL query explainer](https://mysqlexplain.com) when working on query optimization tasks, etc.
-
-- **Rich Database Client with Intuitive UX:** Dedicated database client view with one-click data browsing, inline editing, deletion, one-click reconnection, etc. Easily modify, set values to null, preview complex JSON data, all within a responsive interface.
-
-- **Data Export:** Export table data as well-formatted JSON or SQL INSERT statements copied to your clipboard or saved to file.
-
-- **Comprehensive Multi-database Support:** Seamlessly interface with SQLite, MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, MongoDB, Redis/Valkey, ClickHouse, DuckDB, and Neon, plus PostgreSQL vector search (pgvector). Connect to remote MySQL/MariaDB and PostgreSQL databases securely via SSH tunnels.
-
-- **Intuitive Configuration System:** In environments where automatic [zero-config](#1-zero-config-automatic-database-loading) is unavailable, DevDb provides quick snippets that produce well-formatted templates, as well as JSON Schema validation IntelliSense, which altogether makes creating configuration file for connecting to your database an awesome experience.
-
-- **Integrated Framework & Tool Support:** Tailored support for popular frameworks and tools including Laravel, DDEV, Ruby on Rails, and Adonis ensures a seamless development experience. Need special feature(s) for your environment? [We're listening!](https://github.com/damms005/devdb-vscode/discussions/new?category=ideas).
-
-- **Cross-platform Compatibility:** Engineered to perform consistently on Linux, macOS, and Windows, ensuring maximum flexibility as you can carry on your work across all these platforms.
-
-## Screenshots
-
-![image](resources/screenshots/new/providers-light-dark.png)
-![image](resources/screenshots/new/main-light-dark.png)
-
-## Requirements
-
-- VS Code 1.90 or newer
-- A VS Code project using any of the [supported databases](#supported-databases)
-
-## OS/Platform Support
-
-- Linux \*(Linux-x64, Linux-arm64, Linux-arm, Alpine-x64)
-- macOS (Darwin-x64, Darwin-arm64 Apple Silicon)
-- Windows (Win32-x64)
-
-SQLite works on every platform: when the native SQLite driver cannot load (for example the universal package from Open VSX in Cursor, Windsurf or VSCodium), DevDb uses a WebAssembly SQLite. The DevDb output channel shows `SQLite backend: native` or `SQLite backend: wasm`. In WASM mode, WAL-mode databases (Rails 7.1+ default) open read-only, and DevDb does not share file locks with other processes: do not write from DevDb while your app writes to the same file.
-
----
-
-<small>
-Ubuntu 20.04 (including equivalent distors) and below are not supported because they have reached EOL and no longer supported runners in GitHub Actions. See https://github.com/actions/runner-images/issues/11101
-</small>
-
----
-
-## Quick Start
-
-- In a VS Code project using any of the [supported databases](#supported-databases), ensure your database is properly configured and accessible from your application code.
-- For [zero-config environments](#1-zero-config-automatic-database-loading), DevDb automatically discovers and [auto-loads your database](#loading-databases). View your database by opening the DevDb view like in the screenshot shown, or by [using the shortcut](#keybinding).
-
-> [!NOTE]
-> DevDb also provides several [Language and Framework Integrations](#language-and-framework-integrations)
-
-### UI Actions and Key Map
-
-- `Cmd + K + D` to toggle the view panel
-- `Cmd + K + G` to go to a table
-- `Cmd + Click` table name in the sidebar to open the table in the current tab
-- `Cmd + Click` on a database value to edit it
-- Click any value to preview it in the pane (useful for viewing prettified JSON string values)
-- The right pane offers options to view the current table schema or selected value
-- During edit sessions (activated during data edit/delete), the control box appears as shown in the screenshot
-- During edit sessions: `Cmd + Z` to undo changes, `Cmd + Y` to redo changes, and `Cmd + S` to save changes
-- Added new "Suggest New Feature" button
-
-### One-click Actions (Data Manipulation)
-
-- Click the trash icon on a table row to delete it
-- Click the `Set null` button on a database value to set the value to `null`
-
-![image](resources/screenshots/new/ui-actions-preview.png)
-
-## Supported Databases
-
-Currently supported databases:
-
-- SQLite
-- MySQL
-- MariaDB
-- PostgreSQL
-- Microsoft SQL Server
-- Supabase
-- MongoDB **[Pro]**
-- MySQL over SSH **[Pro]** (also supports MariaDB)
-- PostgreSQL over SSH **[Pro]**
-- Supabase Cloud **[Pro]**
-- PostgreSQL vector search — pgvector **[Pro]**
-- Redis / Valkey **[Pro]**
-- ClickHouse **[Pro]**
-- DuckDB **[Pro]**
-- Neon **[Pro]**
-- DynamoDB **[Pro]** (also DynamoDB Local and LocalStack)
-
-## Loading Databases
-
-DevDb can automatically discover and load your database using connection details from your VS Code workspace ([zero-config](#1-zero-config-automatic-database-loading) mode). When this zero-config auto-discovery isn't available, a [configuration file](#2-config-based-database-loading) option is provided.
-
-### 1. Zero-config (Automatic Database Discovery)
-
-No [configuration file](#2-config-based-database-loading) is needed when the workspace root contains any of the following:
-
-1. Applications managed by [DDEV](https://ddev.com)
-1. Local [Supabase](https://supabase.com) projects (detected via `supabase/config.toml`)
-1. [Adonis](https://adonisjs.com) using default .env config for MySQL and PostgreSQL (with Lucid ORM)
-1. [Django](https://www.djangoproject.com) with settings.py for SQLite, MySQL, and PostgreSQL
-1. [Ruby on Rails](https://rubyonrails.org) with config/database.yml for SQLite, MySQL, and PostgreSQL
-1. [Laravel](https://laravel.com) with default local SQLite database
-1. Laravel with default .env config for MySQL/MariaDB, PostgreSQL, and Microsoft SQL Server
-1. Containerized Laravel MySQL (Laravel Sail) with default .env/docker-compose.yml config (including [dev containers](https://code.visualstudio.com/docs/devcontainers/containers) support)
-
-#### More zero-config sources (4.0)
-
-DevDb reads these files in each workspace folder. It never runs them. Each database gets its own row, named after its source, e.g. `Postgres (Prisma)` or `Redis (docker-compose: cache)`. When several sources point at the same database, DevDb shows one row and lists the other sources under it.
-
-| Source | Files | Engines |
+| Datastore | Free | Pro |
 |---|---|---|
-| Connection URL | `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`, `REDIS_URL`, `CLICKHOUSE_URL` in `.env`, `.env.local`, `.env.development` (the first file that sets a variable wins) | PostgreSQL, MySQL/MariaDB, SQL Server (URL or `Server=...;` string), MongoDB, Redis/Valkey, ClickHouse (`http(s)://` only in `CLICKHOUSE_URL`), SQLite (`file:`) |
-| Prisma | `prisma/schema.prisma`, `schema.prisma`, `prisma/schema/*.prisma`, `prisma.config.ts` (Prisma 7) | PostgreSQL, CockroachDB, MySQL, SQL Server, MongoDB, SQLite (path relative to the schema) |
-| Drizzle | `drizzle.config.ts`/`.js`/`.mjs` (`dbCredentials.url` or `host`/`port`/`user`/`password`/`database`, literals or `process.env.X`) | PostgreSQL, MySQL, SingleStore, SQLite |
-| docker-compose | `compose.yaml`/`.yml`, `docker-compose.yaml`/`.yml` and the `.override` file. Services with a published port. Credentials from `environment` and `${VAR:-default}` from `.env` | postgres/pgvector/postgis/timescaledb, mysql/mariadb/percona, SQL Server, mongo, redis/valkey/redis-stack/keydb/dragonfly, clickhouse |
-| Laravel | `.env`: `DB_CONNECTION=sqlsrv`; `REDIS_*` when a cache/session/queue/broadcast driver is `redis`; `mongodb/laravel-mongodb` with `DB_CONNECTION=mongodb` or `MONGODB_URI` | SQL Server, Redis, MongoDB |
-
-- `sslmode=require` turns on TLS without certificate checks (as in libpq). `verify-full` checks the certificate.
-- Neon (`*.neon.tech`) and Supabase (`*.supabase.co`) hosts stay with their own providers. libSQL/Turso and Cloudflare D1 are not detected here.
-- Laravel MySQL/PostgreSQL compose services stay with the Laravel provider.
-- Redis and ClickHouse need DevDb Pro. Without a license, DevDb shows them as locked rows and does not connect to them.
-
-### 2. Config-based Database Loading
-
-If [zero-config](#1-zero-config-automatic-database-loading) support isn't available for your environment, create a `.devdbrc` file in your project root with your database connection details.
-
-> [!WARNING]
-> Exclude the `.devdbrc` config file from version control by adding it to `.gitignore`. This protects sensitive information and allows team members to use different database configurations.
-
-The configuration file should contain a single array of database connection objects. DevDb provides rich editing features for `.devdbrc`:
-
-- **JSON Schema Validation**: Automatic configuration validation
-- **IntelliSense**: Autocompletion for all fields, including `type`
-- **Snippets**: Quick configuration templates:
-  - `devdb mysql`: MySQL configuration
-  - `devdb mariadb`: MariaDB configuration
-  - `devdb postgres`: PostgreSQL configuration
-  - `devdb sqlite`: SQLite configuration
-  - `devdb mssql`: Microsoft SQL Server configuration
-
-#### Configuration File Example
-
-```json
-[
-	{
-		"name": "My test MySQL database",
-		"type": "mysql",
-		"host": "127.0.0.1",
-		"port": "3306",
-		"username": "root",
-		"password": "12345",
-		"database": "test" // <-- the database to show in VS Code DevDb view
-	},
-	{
-		"type": "sqlite",
-		"path": "/path/to/database.sqlite"
-	},
-	{
-		"name": "My MSSQL database",
-		"type": "mssql",
-		"host": "localhost",
-		"port": "1433",
-		"username": "sa",
-		"password": "YourPassword123",
-		"database": "master",
-		"options": {
-			"trustServerCertificate": true
-		}
-	}
-]
-```
-
-### 3. Remote & NoSQL Connections [Pro]
-
-With DevDb Pro License, you can connect to remote databases and NoSQL databases directly from your editor.
-
-#### SSH Tunnel Connections (MySQL/MariaDB & PostgreSQL)
-
-Connects to a remote database by forwarding traffic through an SSH tunnel. Authentication supports:
-
-- **Private key** (recommended): Provide the path to your SSH private key (e.g. `~/.ssh/id_rsa` or `~/.ssh/id_ed25519`). If the key is passphrase-protected, you will be prompted for it on first connection.
-- **Password**: If no private key is provided, you will be prompted for the SSH password.
-
-> [!NOTE]
-> The remote server's SSH daemon must have `AllowTcpForwarding` set to `yes` (or `local`) in `/etc/ssh/sshd_config`. Without this, the SSH tunnel will fail to establish. The remote database host/port default to `127.0.0.1:3306` (MySQL) or `127.0.0.1:5432` (PostgreSQL) — change these if your database binds to a different address or port on the remote machine.
-
-#### MongoDB
-
-Connects via either individual fields (host, port, username, database) or a full connection string URI (`mongodb://...` or `mongodb+srv://...`). When using authentication, provide credentials and set the `authSource` (defaults to `admin`).
-
-#### Supabase Cloud
-
-Connect to your Supabase cloud project using the **Direct Connection** type. Use the connection details from your Supabase dashboard (Settings > Database):
-
-- **Host**: Your project's database host (e.g. `db.<project-ref>.supabase.co`)
-- **Port**: `5432`
-- **Username**: `postgres`
-- **Password**: Your database password
-- **Database**: `postgres`
-
-### 4. Pro Datastores [Pro]
-
-These datastores need a DevDb Pro license. Add a connection from the DevDb panel, or use `.devdbrc` where shown. SSH tunnels are not available for these datastores.
-
-#### Redis / Valkey
-
-- Enter host, port, optional username (ACL user) and password, database index (default `0`), and TLS on/off. You can also paste a `redis://` or `rediss://` connection string.
-- DevDb shows keys by namespace (prefix before `:`) and includes a command console.
-
-#### ClickHouse
-
-- Enter host, port, username, password, database, and protocol: `http` (default, port `8123`) or `https` (usually port `8443`, for example ClickHouse Cloud).
-
-#### DuckDB
-
-- Open a `.duckdb`/`.ddb`/`.db` file, or a Parquet, CSV, TSV, JSON, or NDJSON file. DevDb reads data files as tables.
-- Files open **read-only** by default, so DevDb does not lock them. Select read-write only when you must change data.
-- External access (network, `INSTALL`/`LOAD` of extensions, `ATTACH`, `COPY`) is disabled.
-- Config-based loading:
-
-```json
-[
-	{
-		"type": "duckdb",
-		"path": "data/analytics.duckdb",
-		"readOnly": true
-	}
-]
-```
-
-- DuckDB is available on Windows (x64, arm64), macOS (x64, arm64), Linux (x64, arm64) and Alpine (x64, arm64). It is not available on Linux ARMv7 (`armhf`). There, DevDb shows "DuckDB is not supported on this platform".
-
-#### Neon
-
-- DevDb detects a Neon connection string (`*.neon.tech`) in `.env` or `.env.local` and offers to connect. You can also add one manually.
-- TLS is always on and the server certificate is verified. DevDb retries the first query to let a suspended Neon compute start.
-
-#### DynamoDB
-
-- **Connect:** Remote Connections → **DynamoDB**. Enter the region and select the authentication:
-  - **AWS profile**: DevDb lists the profiles in `~/.aws/config` and `~/.aws/credentials`. SSO, `credential_process` and assume-role profiles work through the AWS SDK. If the SSO session expired, DevDb tells you to run `aws sso login --profile <name>`.
-  - **Access key**: access key ID, secret access key and an optional session token. DevDb keeps them in VS Code secret storage and never logs them.
-  - **Custom endpoint** (optional): for DynamoDB Local (`http://localhost:8000`) or LocalStack (`http://localhost:4566`). Keys are optional with an endpoint.
-- **Zero-config:** DevDb finds DynamoDB Local in the workspace `docker-compose.yml`/`compose.yml` (`amazon/dynamodb-local`, or `localstack/localstack` with DynamoDB enabled) and in `.env` (`AWS_ENDPOINT_URL_DYNAMODB` or `DYNAMODB_ENDPOINT`). Without `-sharedDb`, DynamoDB Local keeps one database for each access key ID and region: put `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_REGION` in `.env` so DevDb sees the same tables as your app.
-- **Columns:** the partition key (`PK`) and sort key (`SK`) come first, then every attribute found in the first 200 items. Types are DynamoDB types (`S`, `N`, `B`, `BOOL`, `M`, `L`, `SS`, `NS`, `BS`, `NULL`). Tables with a sort key get a `_key` column (the full primary key as JSON) that edits and deletes use.
-- **Values:** maps, lists and sets show as JSON. Binary shows as base64. Numbers that JavaScript cannot hold exactly (for example larger than 2^53) stay as text.
-- **Pagination:** DynamoDB pages with a start key, not an offset. DevDb remembers the start key of each page it has read. When you jump far ahead, DevDb scans forward from the nearest known page, which reads all items in between.
-- **Row count:** tables up to 10 MB get an exact count. For larger tables DevDb shows the DynamoDB `ItemCount`, which AWS updates about every 6 hours; the footer says the count is approximate.
-- **Filters:** a filter on the partition key runs a **Query** (exact match; a sort-key filter then matches the start of the value). Other filters run a **Scan**: text attributes match when they contain the value, numbers and booleans must be equal.
-- **Edits and deletes** use the full primary key and fail if the item no longer exists. Key attributes cannot be edited.
-- **MCP / raw queries:** PartiQL through `ExecuteStatement`. Read-only mode (the default) allows only `SELECT`. `INSERT`, `UPDATE` and `DELETE` need `Devdb.mcp.allowWrites`.
-
-#### PostgreSQL vector search (pgvector)
-
-- DevDb detects `vector` columns in any PostgreSQL or Neon database and shows embeddings in a readable form.
-- **Find similar rows**: select a cell to run a similarity search (cosine, L2, L1, or inner product) against that row's vector.
-- **Search by text**: add an embedding endpoint, then type text to find the nearest rows. Supported endpoints:
-  - OpenAI-compatible `/v1/embeddings` (OpenAI, Azure OpenAI, LM Studio, Together, and similar)
-  - Ollama (`/api/embeddings`, for example `http://localhost:11434`)
-- API keys are kept in VS Code secret storage and are not sent to the webview.
-
-### 5. Cloudflare D1 and Turso
-
-| Database | Where DevDb finds it | License |
-|---|---|---|
-| Cloudflare D1 (local) | `wrangler.json`, `wrangler.jsonc` or `wrangler.toml` with `d1_databases` | Free |
-| Cloudflare D1 (remote) | Remote connection: account ID, database ID, API token | Pro |
-| Turso / libSQL | `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`, `drizzle.config` with `dialect: 'turso'`, or a remote connection | Pro |
-
-- **D1 (local)**: DevDb opens the SQLite file that `wrangler dev` and `wrangler d1 ... --local` write to `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<id>.sqlite`. Each binding shows as "Cloudflare D1 (local) — `<binding>` binding". DevDb also reads `--persist-to` from your `package.json` scripts. When a binding has no local file yet, run `wrangler d1 migrations apply <database> --local` or `wrangler dev` first. Files that no binding maps to are listed with their table names.
-- **D1 (remote)**: uses the Cloudflare REST API. Use an API token with the "D1 Read" permission for read-only access, or "D1 Edit" to change data. The token is kept in VS Code SecretStorage. The dialog offers the `database_id` values from your wrangler config.
-- **Turso / libSQL**: `libsql://`, `https://` and `http://` URLs (for example a local `sqld`). The auth token is kept in VS Code SecretStorage.
-- MCP queries on D1 and libSQL are read-only unless `Devdb.mcp.allowWrites` is on.
-
-## Troubleshooting Remote Connections
-
-### SSH Tunnels
-
-- `AllowTcpForwarding` must be `yes` or `local` in `/etc/ssh/sshd_config` on the remote server
-- You may need to change private key permissions to `600` (e.g. `chmod 600 ~/.ssh/id_rsa`)
-- DB host/port fields refer to the address **on the remote machine** (e.g. `127.0.0.1:3306`), not your local machine
-- SSH logs: `/var/log/auth.log` (Debian/Ubuntu) or `/var/log/secure` (RHEL/CentOS)
-
-### MongoDB
-
-- `authSource` must match the database where the user was created (typically `admin`)
-- Credentials in connection string URIs must be [URL-encoded](https://www.mongodb.com/docs/manual/reference/connection-string/#std-label-connections-standard-connection-string-format) if they contain special characters
-
-### Supabase Cloud
-
-- Use **Direct Connection** details from Supabase dashboard, not the connection pooler
-- Check Settings > Database > Network Bans if connections are refused
-
-## Tools and Framework Integrations
-
-### Context Menu Entry
-
-Open any database table in DevDb by right-clicking its name/model/entity from the editor in **any** framework/programming language.
-
-Example from a Node.js app
-
-![image](resources/screenshots/new/context-menu-contributions.png)
-
-### Laravel
-
-#### Eloquent Model Code Lens
-
-DevDb provides Code Lens features for:
-
-- Viewing the underlying table for the Eloquent model
-- Generating a factory for the model (automatically pre-filled with real data from the underlying table)
-
-![image](resources/screenshots/new/laravel-eloquent-code-lens.png)
-
-> [!NOTE]
-> Factory Generation is also available via the context menu
-
-#### Query Explainer
-
-The Query Explainer integrates with [MySQL Visual Explain](https://mysqlexplain.com) to optimize SQL queries by analyzing MySQL's query execution plan. Usage:
-
-1. Open a Laravel PHP file containing SQL query (Eloquent or `DB` facade)
-2. Select the SQL query to analyze
-3. Click the `Explain query` Code Lens or select `Explain query` from the context menu
-4. View the explanation in your browser or copy the URL
-
-![image](resources/screenshots/new/mysql-explain.png)
-
-> [!NOTE]
-> VS Code [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) support is in development. Track progress [here](https://github.com/damms005/devdb-vscode/issues/68).
-
-<!-- TODO: update when completed -->
-
-### MCP Integration
-
-DevDb exposes your database to AI-powered IDEs and MCP clients. You only need to configure once, and then you can query your database naturally through AI.
-
-#### For Claude Code
-
-1. Open your project in VS Code with DevDb active
-2. Click the hammer icon in DevDb view to copy the server script path
-   ![Copy MCP settings](resources/screenshots/new/mcp-setup.png)
-3. Add the MCP server using CLI (substitute the path you copied in step 2):
-
-```bash
-claude mcp add --transport stdio devdb-mcp-server node "<paste-script-path-here>"
-```
-
-4. Claude Code can now query your database using tools like `get-tables`, `get-schema`, `get-database-type`, and `run-query`
-
-#### For VS Code-based IDEs (Cursor, Windsurf, Cline, etc.)
-
-1. Click the hammer icon in DevDb view to copy the MCP configuration JSON
-2. Open your IDE's MCP config file:
-   - **[VS Code](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_other-options-to-add-an-mcp-server)**: `.vscode/mcp.json`
-   - **[Cursor](https://cursor.com/docs/context/mcp#configuration-locations)**: `~/.cursor/mcp.json`
-   - **[Windsurf](https://docs.windsurf.com/windsurf/cascade/mcp#mcp_config-json)**: `~/.codeium/windsurf/mcp_config.json`
-3. Paste the copied JSON under the appropriate key and reload your IDE
-
-Your AI assistant can now access your database schema and run queries.
-
-![MCP Usage](resources/screenshots/new/mcp-usage.png)
-
-> [!NOTE]
-> You should update the config when you update to a new version of DevDb because the version number may change.
-
-#### MCP Security
-
-- The MCP server listens on `localhost` only. Connections from other hosts are rejected.
-- Each request must send a per-session access token. DevDb writes the token and port to `~/.devdb/mcp.json` (readable only by you), and the DevDb MCP server script reads it from there. Restart VS Code after you update DevDb so that MCP clients get the new token.
-- Queries are **read-only by default**. The database engine enforces this (for example, a read-only transaction in PostgreSQL and MySQL).
-- To let MCP clients run write queries, enable `Devdb.mcp.allowWrites` in your user settings. DevDb then asks you to confirm each write query. This setting has machine scope, so a workspace cannot enable it.
-- To turn off the MCP server, set `Devdb.enableMcpServer` to `false`.
-
+| SQLite, MySQL, MariaDB, PostgreSQL, SQL Server | Yes | Yes |
+| MongoDB that zero-config detection finds | Yes | Yes |
+| [Cloudflare D1](https://docs.devdbpro.com/datastores/d1.html) local | Yes | Yes |
+| Remote MySQL, MariaDB, PostgreSQL (direct or SSH), remote MongoDB, Supabase Cloud | — | Yes |
+| [Redis / Valkey](https://docs.devdbpro.com/datastores/redis.html), [ClickHouse](https://docs.devdbpro.com/datastores/clickhouse.html), [DuckDB](https://docs.devdbpro.com/datastores/duckdb.html), [Neon](https://docs.devdbpro.com/datastores/neon.html) | — | Yes |
+| [pgvector search](https://docs.devdbpro.com/datastores/pgvector.html), [Cloudflare D1](https://docs.devdbpro.com/datastores/d1.html) remote, [Turso / libSQL](https://docs.devdbpro.com/datastores/turso.html), [DynamoDB](https://docs.devdbpro.com/datastores/dynamodb.html) | — | Yes |
+
+DevDb Pro is a one-time payment for a lifetime license. See [devdbpro.com](https://devdbpro.com/?ref=ide) and [Pro and Licensing](https://docs.devdbpro.com/pro-and-licensing.html).
+
+## Quick start
+
+1. Install DevDb from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=damms005.devdb) or [Open VSX](https://open-vsx.org/extension/damms005/devdb).
+2. Open your project. Trust the workspace when VS Code asks.
+3. Press `Cmd+K Cmd+D` (macOS) or `Ctrl+K Ctrl+D` (Windows, Linux) to open the DevDb panel.
+4. Click your database under **Local Databases**.
+
+If DevDb does not find your database, add a [`.devdbrc` file](https://docs.devdbpro.com/config-file.html). Type `devdb` in it to get snippets. Add `.devdbrc` to `.gitignore`, because it can contain passwords.
+
+Requirements: VS Code 1.90 or later. DevDb runs on macOS, Windows, Linux and Alpine (x64 and arm64) and Linux armhf. See [Getting Started](https://docs.devdbpro.com/getting-started.html).
+
+## Documentation
+
+| Topic | Link |
+|---|---|
+| Install and set up | [Getting Started](https://docs.devdbpro.com/getting-started.html) |
+| Frameworks and tools that DevDb detects | [Zero-Config Detection](https://docs.devdbpro.com/zero-config.html) |
+| `.devdbrc` reference | [Config File](https://docs.devdbpro.com/config-file.html) |
+| SSH tunnels, TLS, MongoDB, Supabase Cloud | [Remote Connections](https://docs.devdbpro.com/remote-connections.html) |
+| MCP setup and security | [MCP Server](https://docs.devdbpro.com/mcp.html) |
+| All settings | [Settings](https://docs.devdbpro.com/settings.html) |
+| Errors and logs | [Troubleshooting](https://docs.devdbpro.com/troubleshooting.html) |
+| Report a security problem | [Security](https://docs.devdbpro.com/security.html) |
+| Release notes | [Changelog](https://docs.devdbpro.com/changelog.html) |
+
+## Featured in
+
+<a title="Laravel News" href="https://laravel-news.com/devdb"><img alt="Laravel News" height="32" src="resources/featured/laravel-new.png" /></a>
+&nbsp;
+<a title="DDEV documentation" href="https://ddev.readthedocs.io/en/latest/users/usage/database-management/#database-guis"><img alt="DDEV documentation" height="32" src="resources/featured/ddev.png" /></a>
+&nbsp;
+<a title="Daily dev" href="https://app.daily.dev/posts/JAhlsLY2E"><img alt="Daily dev" height="18" src="resources/featured/daily-dev.png" /></a>
+&nbsp;
+<a title="TestDevTools" href="https://testdev.tools/dev-db"><img alt="TestDevTools" height="32" src="resources/featured/test-dev-tools.png" /></a>
+
+## Sponsors
+
+- [DevWorkspace Pro](https://devworkspacepro.com): build and manage web apps on your computer, with DDEV, terminal, SSH, GitHub and AI sessions in one desktop app.
+- [Traycer AI](https://traycer.ai): AI help in your VS Code workflow.
+
+To support DevDb, [sponsor the project](https://github.com/sponsors/damms005), buy [DevDb Pro](https://devdbpro.com/?ref=ide), or see [other projects](https://damms005.dev/projects).
 
 ## Support
 
-You can support the development of DevDb by [contributing](#contribution) features and submitting PRs, or by [sponsoring the development](https://github.com/sponsors/damms005). We appreciate your DevDb sponsorships with perks and you can check the [sponsorship page](https://github.com/sponsors/damms005) for available sponsorship options.
-
-You can also support this project by using the services offered by our sponsors:
-
-- [Traycer AI](https://traycer.ai/#pricing1)
-- [DevWorkspace Pro](https://devworkspacepro.com)
-
-Please do check out [other projects](https://damms005.dev/projects) by Damilola Olowookere for other sponsorship options.
+- Questions and ideas: [GitHub Discussions](https://github.com/damms005/devdb-vscode/discussions)
+- Bugs: [GitHub Issues](https://github.com/damms005/devdb-vscode/issues). Add the log from the **DevDb** output channel.
+- License and billing: [hi@devdbpro.com](mailto:hi@devdbpro.com)
 
 ## Contribution
 
 > [!IMPORTANT]
-> Contributions are currently limited to the extension core code. UI code is not available for public contribution.
+> You can contribute to the extension core code only. The UI code is not public.
 
-1. Fork this repository and clone your fork locally
-1. Run `bun install` to install dependencies
-1. Make your contributions to the codebase
-1. Press `F5` to launch the debugger and test changes locally
-1. Run test suites with `bun run test-services` and ensure all tests pass
-1. Push changes to your fork
-1. Open a PR to this repository
-1. Take your flowers! 💐🌺🌹
+1. Fork this repository and clone your fork.
+2. Run `bun install`.
+3. Make your changes. Press `F5` to test them in VS Code.
+4. Run `bun run test-services`. All tests must pass.
+5. Push to your fork and open a pull request.

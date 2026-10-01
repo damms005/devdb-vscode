@@ -40,7 +40,7 @@
 	},
 	"preview": false,
 	"main": "./dist/extension.js",
-	"homepage": "https://github.com/damms005/devdb-vscode/blob/main/README.md",
+	"homepage": "https://docs.devdbpro.com",
 	"bugs": {
 		"url": "https://github.com/damms005/devdb-vscode/discussions",
 		"email": "damms005@gmail.com"
