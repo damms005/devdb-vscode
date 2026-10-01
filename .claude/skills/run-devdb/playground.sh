@@ -39,9 +39,14 @@ send() {
 for _ in $(seq 1 90); do grep -q READY "$PLAY/out" 2>/dev/null && break; sleep 1; done
 grep -q READY "$PLAY/out" || { echo "VS Code did not start. Log: $PLAY/out"; exit 1; }
 
-add() { send "webview-click-css [data-testid=add-remote-connection-btn]"; send "webview-click-css [data-testid=connection-option-$1]"; }
-save() { send "webview-fill [\"My Production DB\",\"$1\"]"; send "webview-click-css [data-testid=connect-button]"; sleep 2; }
-
+# Saves the connections directly (dev-only command), not through the add-connection dialog.
+CONNECTIONS='[
+ {"connectionType":"redis","connectionName":"Redis (local)","redisConnectionString":"redis://localhost:6379/0"},
+ {"connectionType":"redis","connectionName":"Valkey (local)","redisConnectionString":"redis://:valkeypass@localhost:6380/0"},
+ {"connectionType":"clickhouse","connectionName":"ClickHouse (local)","dbHost":"localhost","dbPort":8123,"dbUsername":"default","dbPassword":"devdb","dbName":"devdb","protocol":"http"},
+ {"connectionType":"direct","dbEngine":"postgres","connectionName":"Neon-like TLS (local)","dbHost":"localhost","dbPort":5432,"dbUsername":"neondb_owner","dbPassword":"npg_localpass","dbName":"neondb","ssl":true}
+]'
+send "exec-wait devdb.dev.saveRemoteConnections [$(printf '%s' "$CONNECTIONS" | tr -d '\n')]"
 send "exec workbench.action.closeAllEditors"
 send "panel"
 send "webview-wait Config File"
@@ -49,18 +54,6 @@ send "license"
 sleep 3
 send "webview view"
 send "webview-wait Remote Connections"
-
-add redis;  send 'webview-fill ["redis://user:pass@host:6379/0","redis://localhost:6379/0"]';            save "Redis (local)"
-add redis;  send 'webview-fill ["redis://user:pass@host:6379/0","redis://:valkeypass@localhost:6380/0"]'; save "Valkey (local)"
-add clickhouse
-send 'webview-fill ["css:input[placeholder=localhost]","localhost"]'
-send 'webview-fill ["css:input[type=password]","devdb"]'
-send 'webview-fill ["css:input[placeholder=default] >> nth=1","devdb"]'
-save "ClickHouse (local)"
-add direct
-send 'webview-fill ["postgres://user:pass@host:5432/db?sslmode=require","postgres://neondb_owner:npg_localpass@localhost:5432/neondb?sslmode=require"]'
-send "webview-eval document.querySelector('input[placeholder^=postgres]').dispatchEvent(new Event('blur'))"
-save "Neon-like TLS (local)"
 send "exec notifications.clearAll"
 
 if grep -q 'ERROR' "$PLAY/out"; then echo "Some setup steps failed:"; grep ERROR "$PLAY/out"; fi

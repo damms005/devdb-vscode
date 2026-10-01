@@ -15,7 +15,7 @@ import { initializeDevWorkspaceProRecommendations } from './services/devworkspac
 import { logToOutput } from './services/output-service';
 import { LicenseService } from './services/license/license-service';
 import { remoteCredentialService } from './services/remote-credential-service';
-import { remoteConnectionStorageService } from './services/remote-connection-storage-service';
+import { RemoteConnectionFormData, remoteConnectionStorageService } from './services/remote-connection-storage-service';
 import { embeddingService } from './services/embedding-service';
 import { sqlEditorStateStore } from './services/sql-editor/sql-editor-service';
 import { setSshHostKeyStore } from './services/ssh-host-key-prompt';
@@ -187,6 +187,17 @@ function registerDevCommands(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProAnyProjectNotice', (args?: { newInstall?: boolean }) => {
 			previewDevWorkspaceProNotice(context, args?.newInstall ?? false, 'any-project');
+		})
+	);
+
+	// Test tooling (run-devdb playground): saves remote connections without the add-connection dialog.
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.dev.saveRemoteConnections', async (connections: RemoteConnectionFormData[] = []) => {
+			for (const formData of connections) {
+				const { connection, update } = await remoteConnectionStorageService.prepareFromForm(formData);
+				await remoteConnectionStorageService.save(connection, update);
+			}
+			return connections.length;
 		})
 	);
 }
