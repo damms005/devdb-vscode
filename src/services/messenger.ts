@@ -47,6 +47,8 @@ import { hasProLicense, proEngineLabel, proRequiredMessage, PRO_ENGINE_TYPES, PR
 import { listAwsProfiles } from './aws-profiles';
 import { DynamoDbLocalProvider } from '../providers/dynamodb/dynamodb-local-provider';
 import { createGiftLink } from './gift-service';
+import { EditorRunResponse, getEditorSchema, runEditorQuery, sqlEditorStateStore } from './sql-editor/sql-editor-service';
+import { classifyStatement, EditorStatementInfo } from './sql-editor/statement-classifier';
 
 let workspaceTables: string[] = [];
 
@@ -192,7 +194,14 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:delete-embedding-config': async () => ({ configs: await embeddingService.deleteConfig(data.value.id as string) }),
 		'request:test-embedding-config': async () => await withPro('Vector similarity search', error => ({ ok: false, error }), () => embeddingService.testConfig(data.value)),
 		'request:summarize-table': async () => await withPro('DuckDB', error => ({ error }), () => summarizeTable(data.value)),
-		'request:run-raw-command': async () => await withPro('Redis / Valkey', error => ({ error }), () => runRawCommand(data.value)),
+		'request:run-raw-command': async () => await withPro(database?.getType() === 'redis' ? 'Redis / Valkey' : 'SQL Editor', error => ({ error, runId: data.value?.runId }), () => runRawCommand(data.value)),
+		'request:get-sql-editor-schema': async () => await withPro('SQL Editor', error => ({ tables: {}, error }), () => getSqlEditorSchema()),
+		'request:get-sql-editor-state': async () => ({ key: data.value?.key, state: sqlEditorStateStore.get(data.value?.key) }),
+		'request:save-sql-editor-state': async () => {
+			await sqlEditorStateStore.save(data.value?.key, data.value?.state)
+			return undefined
+		},
+		'request:refresh-tables': async () => await getTables(),
 		'request:get-redis-namespaces': async () => await withPro('Redis / Valkey', error => ({ error }), () => getRedisNamespaces()),
 		'request:cancel-query': async () => {
 			cancelActiveQuery()
@@ -500,30 +509,55 @@ async function summarizeTable(payload: { table: string }): Promise<{ rows?: Reco
 	}
 }
 
-async function runRawCommand(payload: { command: string }): Promise<{ result?: string, error?: string }> {
+/**
+ * Runs SQL Editor text (any engine with `rawQuery`) or one Redis RESP command. Writes
+ * run only when the webview says the user confirmed them.
+ */
+async function runRawCommand(payload: { command?: string, code?: string, runId?: string, confirmed?: boolean }): Promise<EditorRunResponse | { result?: string, error?: string, needsConfirmation?: EditorStatementInfo[] }> {
 	if (!database) {
-		return { error: 'No database selected' }
+		return { error: 'No database selected', runId: payload?.runId } as EditorRunResponse
 	}
 
-	const engine = database as RedisEngine
-	if (typeof engine.rawQuery !== 'function') {
-		return { error: 'Raw commands are only supported on Redis' }
-	}
-
-	if (!payload?.command || !payload.command.trim()) {
-		return { error: 'Empty command' }
+	if (typeof database.rawQuery !== 'function') {
+		return { error: 'This database does not run raw queries', runId: payload?.runId } as EditorRunResponse
 	}
 
 	const signal = beginQuery()
 	const controller = activeQueryController
 
 	try {
-		const raw = await engine.rawQuery(payload.command, { signal })
+		if (database.getType() !== 'redis') {
+			return await runEditorQuery(database, { runId: String(payload?.runId ?? ''), code: payload?.code ?? payload?.command ?? '', confirmed: payload?.confirmed }, signal)
+		}
+
+		const command = payload?.command ?? payload?.code ?? ''
+		if (!command.trim()) {
+			return { error: 'Empty command' }
+		}
+
+		const statement = classifyStatement(command.trim(), 'redis')
+		if (statement.kind === 'write' && payload?.confirmed !== true) {
+			return { needsConfirmation: [statement] }
+		}
+
+		const raw = await (database as RedisEngine).rawQuery(command, { signal })
 		return { result: formatRawCommandResult(raw) }
 	} catch (error) {
 		return { error: error instanceof Error ? error.message : String(error) }
 	} finally {
 		endQuery(controller)
+	}
+}
+
+async function getSqlEditorSchema(): Promise<{ tables: Record<string, string[]>, error?: string }> {
+	if (!database) {
+		return { tables: {}, error: 'No database selected' }
+	}
+
+	try {
+		return await getEditorSchema(database)
+	} catch (error) {
+		return { tables: {}, error: error instanceof Error ? error.message : String(error) }
 	}
 }
 

@@ -1,5 +1,5 @@
 import knexlib from "knex";
-import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, SerializedMutation } from '../types';
+import { Column, DatabaseEngine, KnexClient, QueryResponse, RawQueryOptions, RawQueryResultWithMeta, SerializedMutation } from '../types';
 import { SqlService, assertReadOnlySql, sanitizeIdentifier, stripSqlCommentsAndLiterals } from '../services/sql';
 import { reportError } from "../services/initialization-error-service";
 
@@ -219,13 +219,19 @@ export class PostgresEngine implements DatabaseEngine {
 
 		if (!options?.readOnly) {
 			const result = await this.connection.raw(code) as any;
+			if (options?.withMeta) {
+				return withMeta(Array.isArray(result) ? result[result.length - 1] : result);
+			}
 			// several statements yield one result per statement
 			return Array.isArray(result) ? result.map(entry => entry.rows) : result.rows;
 		}
 
 		assertReadOnlySql(code, 'postgres', POSTGRES_READ_ONLY_KEYWORDS, POSTGRES_READ_ONLY_DENIED_PATTERNS);
 
-		return this.runReadOnly(async (trx) => (await trx.raw(code).options({ queryMode: 'extended' }) as any).rows);
+		return this.runReadOnly(async (trx) => {
+			const result = await trx.raw(code).options({ queryMode: 'extended' }) as any;
+			return options?.withMeta ? withMeta(result) : result.rows;
+		});
 	}
 
 	/**
@@ -501,6 +507,16 @@ export class PostgresEngine implements DatabaseEngine {
 }
 
 const OPAQUE_USER_DEFINED_TYPES = ['halfvec', 'sparsevec', 'geometry', 'geography'];
+
+function withMeta(result: { rows?: Record<string, unknown>[], fields?: { name: string }[], rowCount?: number | null, command?: string }): RawQueryResultWithMeta {
+	const command = result.command?.toUpperCase();
+	return {
+		rows: result.rows ?? [],
+		columns: (result.fields ?? []).map(field => field.name),
+		affectedRows: command && command !== 'SELECT' && typeof result.rowCount === 'number' ? result.rowCount : undefined,
+		command,
+	};
+}
 
 const POSTGRES_READ_ONLY_KEYWORDS = ['SELECT', 'WITH', 'EXPLAIN', 'SHOW', 'TABLE', 'VALUES'];
 

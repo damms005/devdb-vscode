@@ -141,6 +141,20 @@ export type RawQueryOptions = {
 	readOnly?: boolean
 	/** Cancels the query on engines that support it (e.g. ClickHouse). */
 	signal?: AbortSignal
+	/**
+	 * Engines that support it return {@link RawQueryResultWithMeta} instead of bare rows, so
+	 * callers get column names for empty results and the affected-row count of writes.
+	 */
+	withMeta?: boolean
+}
+
+export type RawQueryResultWithMeta = {
+	rows: Record<string, unknown>[]
+	columns: string[]
+	/** Rows that a write changed, when the server reports it. */
+	affectedRows?: number
+	/** First keyword the server reports for the statement, e.g. `SELECT` or `UPDATE`. */
+	command?: string
 }
 
 /**

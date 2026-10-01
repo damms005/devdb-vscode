@@ -17,6 +17,7 @@ import { LicenseService } from './services/license/license-service';
 import { remoteCredentialService } from './services/remote-credential-service';
 import { remoteConnectionStorageService } from './services/remote-connection-storage-service';
 import { embeddingService } from './services/embedding-service';
+import { sqlEditorStateStore } from './services/sql-editor/sql-editor-service';
 import { setSshHostKeyStore } from './services/ssh-host-key-prompt';
 import { setNeonLicenseChecker } from './providers/postgres/neon-postgres-provider';
 
@@ -33,6 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	remoteCredentialService.setExtensionContext(context);
 	remoteConnectionStorageService.setExtensionContext(context);
 	embeddingService.setExtensionContext(context);
+	sqlEditorStateStore.setExtensionContext(context);
 
 	showWelcomeMessage(context, licenseService.isValid())
 		.catch(error => logToOutput(`Could not show welcome message: ${String(error)}`));

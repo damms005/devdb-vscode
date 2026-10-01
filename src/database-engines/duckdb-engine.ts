@@ -27,7 +27,7 @@ interface DuckDbExtractedStatements {
 interface DuckDbConnection {
 	runAndReadAll(sql: string, params?: any[]): Promise<DuckDbResultReader>;
 	streamAndReadUntil(sql: string, targetRowCount: number, params?: any[]): Promise<DuckDbResultReader>;
-	run(sql: string, params?: any[]): Promise<unknown>;
+	run(sql: string, params?: any[]): Promise<{ rowsChanged?: number | bigint } | undefined>;
 	extractStatements(sql: string): Promise<DuckDbExtractedStatements>;
 	interrupt(): void;
 	closeSync?(): void;
@@ -713,8 +713,8 @@ export class DuckDbEngine implements DatabaseEngine {
 				return this.capRows(reader);
 			}
 
-			await this.withInterrupt(connection, options?.signal, () => connection.run(code));
-			return { changes: 0 };
+			const result = await this.withInterrupt(connection, options?.signal, () => connection.run(code));
+			return { changes: Number(result?.rowsChanged ?? 0) };
 		} catch (err) {
 			reportError(`DuckDB run arbitrary query error: ${err}`);
 			throw err;

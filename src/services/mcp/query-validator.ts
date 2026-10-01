@@ -62,7 +62,7 @@ const SQL_DESTRUCTIVE: { pattern: RegExp, label: string }[] = [
 const SQL_READ_KEYWORDS = new Set(['SELECT', 'WITH', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN', 'VALUES', 'TABLE', 'EXISTS']);
 
 /** Data-modifying statements inside a CTE or EXPLAIN ANALYZE body. */
-const EMBEDDED_WRITE = /\b(INSERT|UPDATE|DELETE|MERGE|UPSERT|REPLACE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE)\b/i;
+export const EMBEDDED_WRITE = /\b(INSERT|UPDATE|DELETE|MERGE|UPSERT|REPLACE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE)\b/i;
 
 const REDIS_ALWAYS_BLOCKED = new Set([
 	'EVAL', 'EVALSHA', 'EVAL_RO', 'EVALSHA_RO', 'FCALL', 'FCALL_RO', 'FUNCTION', 'SCRIPT',
@@ -72,7 +72,7 @@ const REDIS_ALWAYS_BLOCKED = new Set([
 	'SUBSCRIBE', 'PSUBSCRIBE', 'SSUBSCRIBE', 'AUTH', 'HELLO', 'LATENCY', 'MEMORY',
 ]);
 
-const REDIS_READ_VERBS = new Set([
+export const REDIS_READ_VERBS = new Set([
 	'GET', 'MGET', 'GETRANGE', 'STRLEN', 'EXISTS', 'TYPE', 'TTL', 'PTTL', 'EXPIRETIME', 'PEXPIRETIME',
 	'SCAN', 'DBSIZE', 'RANDOMKEY', 'OBJECT', 'DUMP', 'INFO', 'PING', 'ECHO', 'TIME', 'LCS',
 	'HGET', 'HMGET', 'HGETALL', 'HKEYS', 'HVALS', 'HLEN', 'HEXISTS', 'HSTRLEN', 'HSCAN', 'HRANDFIELD',
@@ -179,7 +179,7 @@ export function hasStackedStatements(code: string): boolean {
 	return code.replace(/[\s;]+$/, '').includes(';');
 }
 
-function getRedisVerb(query: string): string {
+export function getRedisVerb(query: string): string {
 	const text = query.trim();
 	try {
 		const parsed = JSON.parse(text);
