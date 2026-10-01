@@ -96,6 +96,20 @@ export class DevDbViewProvider implements vscode.WebviewViewProvider {
 		this.setActiveTable(tableName);
 	}
 
+	/** Shows the DevDb view and asks it to open the SQL Editor (Redis opens its console). */
+	public async openSqlEditor() {
+		const hadView = !!this._view
+		await vscode.commands.executeCommand('devdb.focus')
+
+		if (!hadView || !this._view) {
+			vscode.window.showInformationMessage('Select a database in DevDb. Then open the SQL Editor.')
+			return
+		}
+
+		this._view.show()
+		sendMessageToWebview(this._view.webview, { type: 'ide-action:open-sql-editor', value: null })
+	}
+
 	public notifyConfigChange(event: vscode.ConfigurationChangeEvent) {
 		if (!this._view) return logToOutput(`Config changed but webview not available`)
 

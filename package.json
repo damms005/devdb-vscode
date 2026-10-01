@@ -73,6 +73,11 @@
 				"title": "Open table at cursor"
 			},
 			{
+				"command": "devdb.open-sql-editor",
+				"title": "Open SQL Editor",
+				"category": "DevDb"
+			},
+			{
 				"command": "devdb.laravel.generate-factory",
 				"title": "Generate Laravel Factory"
 			},
