@@ -283,15 +283,14 @@ describe('Promo notices', function () {
 		});
 	});
 
-	describe('DevWorkspace Pro showcase for PHP projects without DDEV', () => {
+	describe('DevWorkspace Pro showcase for PHP and other projects without DDEV', () => {
 		const t0 = new Date(2026, 9, 1).getTime();
 		const at = (days: number) => new Date(t0 + days * DAY_MS);
 		const shown = (extra: Record<string, any> = {}) => makeFakeContext({ [newDatastores.FULL_PAGE_SHOWN_AT_KEY]: t0, ...extra });
-		const shouldShow = (context: any, php = true, fewer = false, now = at(7)) => devWorkspacePro.shouldShowNonDdevNotice(context, php, fewer, now);
+		const shouldShow = (context: any, variant: string | undefined = 'php', fewer = false, now = at(7)) => devWorkspacePro.shouldShowFollowUpNotice(context, variant, fewer, now);
 
 		it('targets composer.json or artisan projects without .ddev', () => {
-			const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-php-'));
-			workspaceFolders = [{ uri: { fsPath: root } }];
+			const root = makeWorkspace();
 			const workspace = require('../../../services/workspace');
 			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), false, 'not a PHP project');
 			fs.writeFileSync(path.join(root, 'artisan'), '');
@@ -299,46 +298,118 @@ describe('Promo notices', function () {
 			fs.rmSync(path.join(root, 'artisan'));
 			fs.writeFileSync(path.join(root, 'composer.json'), '{}');
 			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), true);
+			assert.strictEqual(devWorkspacePro.getFollowUpNoticeVariant(), 'php');
 			fs.mkdirSync(path.join(root, '.ddev'));
 			assert.strictEqual(workspace.isPhpProjectWithoutDdev(), false, 'DDEV projects get the DDEV showcase');
+			assert.strictEqual(devWorkspacePro.getFollowUpNoticeVariant(), undefined);
 			fs.rmSync(root, { recursive: true, force: true });
 		});
 
-		it('waits 7 days after the DevDb v4 full page', () => {
-			assert.ok(!shouldShow(shown(), true, false, at(6.99)));
-			assert.ok(shouldShow(shown(), true, false, at(7)));
-			assert.ok(!shouldShow(shown(), false));
+		it('targets Git repositories and Node, Python, Go, Ruby or Rust projects without PHP or .ddev', () => {
+			const workspace = require('../../../services/workspace');
+			const empty = makeWorkspace();
+			assert.strictEqual(workspace.isNonPhpProjectWithoutDdev(), false, 'an empty folder is not a project');
+			assert.strictEqual(devWorkspacePro.getFollowUpNoticeVariant(), undefined);
+			fs.rmSync(empty, { recursive: true, force: true });
+
+			for (const marker of ['.git', 'package.json', 'pyproject.toml', 'go.mod', 'Gemfile', 'Cargo.toml']) {
+				const root = makeWorkspace();
+				if (marker === '.git') fs.mkdirSync(path.join(root, marker)); else fs.writeFileSync(path.join(root, marker), '');
+				assert.strictEqual(workspace.isNonPhpProjectWithoutDdev(), true, marker);
+				assert.strictEqual(devWorkspacePro.getFollowUpNoticeVariant(), 'any-project', marker);
+
+				fs.writeFileSync(path.join(root, 'composer.json'), '{}');
+				assert.strictEqual(workspace.isNonPhpProjectWithoutDdev(), false, `${marker} + composer.json is PHP`);
+				assert.strictEqual(devWorkspacePro.getFollowUpNoticeVariant(), 'php');
+				fs.rmSync(path.join(root, 'composer.json'));
+
+				fs.mkdirSync(path.join(root, '.ddev'));
+				assert.strictEqual(workspace.isNonPhpProjectWithoutDdev(), false, `${marker} + .ddev gets the DDEV showcase`);
+				fs.rmSync(root, { recursive: true, force: true });
+			}
 		});
 
-		it('waits 7 days after the first 4.x start when DevDb v4 was a toast, and never without either', () => {
-			assert.ok(!shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), true, false, at(6)));
-			assert.ok(shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), true, false, at(7)));
-			assert.ok(!shouldShow(makeFakeContext(), true, false, at(400)));
-		});
+		for (const variant of ['php', 'any-project']) {
+			describe(`${variant} gating`, () => {
+				it('waits 7 days after the DevDb v4 full page', () => {
+					assert.ok(!shouldShow(shown(), variant, false, at(6.99)));
+					assert.ok(shouldShow(shown(), variant, false, at(7)));
+					assert.ok(!devWorkspacePro.shouldShowFollowUpNotice(shown(), undefined, false, at(7)), 'no matching workspace');
+				});
 
-		it('shows once per content version, and not after the DDEV showcase of the same release', () => {
-			assert.ok(!shouldShow(shown({ [devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION })));
-			assert.ok(shouldShow(shown({ [devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY]: '2025-01' })));
-			assert.ok(!shouldShow(shown({ [devWorkspacePro.NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NOTICE_CONTENT_VERSION })));
-		});
+				it('waits 7 days after the first 4.x start when DevDb v4 was a toast, and never without either', () => {
+					assert.ok(!shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, false, at(6)));
+					assert.ok(shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, false, at(7)));
+					assert.ok(!shouldShow(makeFakeContext(), variant, false, at(400)));
+				});
 
-		it('ignores opt-outs before 2026-12-25 and honors them from then on', () => {
-			const dismissed = { [devWorkspacePro.NOTICE_DISMISSED_KEY]: true };
-			assert.ok(shouldShow(shown(dismissed), true, true, BEFORE_OPT_OUTS));
-			assert.ok(!shouldShow(shown(), true, true, AFTER_OPT_OUTS));
-			assert.ok(!shouldShow(shown(dismissed), true, false, AFTER_OPT_OUTS));
-			assert.ok(shouldShow(shown(), true, false, AFTER_OPT_OUTS));
-		});
+				it('shows once per release, whatever variant the user saw', () => {
+					for (const key of [devWorkspacePro.NOTICE_CONTENT_VERSION_KEY, devWorkspacePro.PHP_NOTICE_CONTENT_VERSION_KEY, devWorkspacePro.ANY_PROJECT_NOTICE_CONTENT_VERSION_KEY, devWorkspacePro.LEGACY_PHP_NOTICE_CONTENT_VERSION_KEY]) {
+						assert.ok(!shouldShow(shown({ [key]: '2026-10' }), variant), `seen via ${key}`);
+						assert.ok(shouldShow(shown({ [key]: '2025-01' }), variant), `old content in ${key}`);
+					}
+					assert.ok(!shouldShow(shown({ [devWorkspacePro.ADVERTISED_RELEASE_KEY]: devWorkspacePro.DEVWORKSPACEPRO_RELEASE }), variant));
+					assert.ok(shouldShow(shown({ [devWorkspacePro.ADVERTISED_RELEASE_KEY]: 'v1' }), variant));
+				});
 
-		it('stays pending when another full-page promo showed this launch', async () => {
-			const root = makePhpWorkspace();
+				it('ignores opt-outs before 2026-12-25 and honors them from then on', () => {
+					const dismissed = { [devWorkspacePro.NOTICE_DISMISSED_KEY]: true };
+					assert.ok(shouldShow(shown(dismissed), variant, true, BEFORE_OPT_OUTS));
+					assert.ok(!shouldShow(shown(), variant, true, AFTER_OPT_OUTS));
+					assert.ok(!shouldShow(shown(dismissed), variant, false, AFTER_OPT_OUTS));
+					assert.ok(shouldShow(shown(), variant, false, AFTER_OPT_OUTS));
+				});
+			});
+		}
+
+		for (const [variant, makeRoot, viewType] of [
+			['php', makePhpWorkspace, 'devworkspacepro-php-notice'],
+			['any-project', makeGitWorkspace, 'devworkspacepro-any-project-notice'],
+		] as const) {
+			it(`${variant}: stays pending when another full-page promo showed this launch, then records the release`, async () => {
+				const root = makeRoot();
+				const context = shown();
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { fullPagePromoShownThisLaunch: true, now: at(8) }), false);
+				assert.strictEqual(context.store.size, 1, 'nothing stored');
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: at(8) }), true);
+				assert.strictEqual(context.store.get(devWorkspacePro.ADVERTISED_RELEASE_KEY), devWorkspacePro.DEVWORKSPACEPRO_RELEASE);
+				assert.strictEqual(context.store.get(devWorkspacePro.NOTICE_VARIANTS[variant].contentVersionKey), devWorkspacePro.NOTICE_VARIANTS[variant].contentVersion);
+				assert.strictEqual(context.pendingUpdates.length, 0, 'globalState.update must be awaited');
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: at(9) }), false);
+				await flushTimers();
+				assert.deepStrictEqual(createdPanels, [viewType]);
+				fs.rmSync(root, { recursive: true, force: true });
+			});
+		}
+
+		it('one showcase per release across all three variants', async () => {
+			// Seen in a Git repository first: no PHP or DDEV showcase later.
 			const context = shown();
-			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForNonDdevWorkspaces(context, false, { fullPagePromoShownThisLaunch: true, now: at(8) }), false);
-			assert.strictEqual(context.store.has(devWorkspacePro.NON_DDEV_NOTICE_CONTENT_VERSION_KEY), false);
-			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForNonDdevWorkspaces(context, false, { now: at(8) }), true);
+			const git = makeGitWorkspace();
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: at(8) }), true);
+			fs.rmSync(git, { recursive: true, force: true });
+
+			const php = makePhpWorkspace();
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: at(9) }), false);
+			fs.rmSync(php, { recursive: true, force: true });
+
+			const ddev = makeDdevWorkspace();
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(context, false, { now: at(10) }), false);
+			fs.rmSync(ddev, { recursive: true, force: true });
+
+			// Seen in a DDEV project first: no other showcase later.
+			const other = shown();
+			const ddev2 = makeDdevWorkspace();
+			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(other, false, { now: at(1) }), true);
+			fs.rmSync(ddev2, { recursive: true, force: true });
+			for (const makeRoot of [makePhpWorkspace, makeGitWorkspace]) {
+				const root = makeRoot();
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(other, false, { now: at(30) }), false);
+				fs.rmSync(root, { recursive: true, force: true });
+			}
+
 			await flushTimers();
-			assert.deepStrictEqual(createdPanels, ['devworkspacepro-non-ddev-notice']);
-			fs.rmSync(root, { recursive: true, force: true });
+			assert.deepStrictEqual(createdPanels, ['devworkspacepro-any-project-notice', 'devworkspacepro-notice']);
 		});
 	});
 
@@ -379,8 +450,11 @@ describe('Promo notices', function () {
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
-		it('PHP projects without DDEV: DevDb v4 first, the showcase on a start 7 days later, one full page per start', async () => {
-			const root = makePhpWorkspace();
+		for (const [kind, makeRoot, viewType] of [
+			['PHP projects', makePhpWorkspace, 'devworkspacepro-php-notice'],
+			['other code projects', makeGitWorkspace, 'devworkspacepro-any-project-notice'],
+		] as const) it(`${kind} without DDEV: DevDb v4 first, the showcase on a start 7 days later, one full page per start`, async () => {
+			const root = makeRoot();
 			const context = makeFakeContext({ 'devdb-version': '3.1.0' });
 
 			await welcome.showWelcomeMessage(context, false);
@@ -396,7 +470,7 @@ describe('Promo notices', function () {
 			context.store.set(newDatastores.FULL_PAGE_SHOWN_AT_KEY, Date.now() - 7 * DAY_MS);
 			await welcome.showWelcomeMessage(context, false);
 			await flushTimers();
-			assert.deepStrictEqual(createdPanels, ['devworkspacepro-non-ddev-notice']);
+			assert.deepStrictEqual(createdPanels, [viewType]);
 
 			createdPanels.length = 0;
 			await welcome.showWelcomeMessage(context, false);
@@ -406,8 +480,8 @@ describe('Promo notices', function () {
 			fs.rmSync(root, { recursive: true, force: true });
 		});
 
-		it('never shows the non-DDEV showcase on the start that shows DevDb v4', async () => {
-			const root = makePhpWorkspace();
+		for (const makeRoot of [makePhpWorkspace, makeGitWorkspace]) it(`never shows the ${makeRoot.name} showcase on the start that shows DevDb v4`, async () => {
+			const root = makeRoot();
 			// The wait from the first 4.x start has passed, but the v4 notice is still pending.
 			const context = makeFakeContext({ 'devdb-version': '3.1.0', [newDatastores.FIRST_START_AT_KEY]: Date.now() - 30 * DAY_MS });
 			await welcome.showWelcomeMessage(context, false);
@@ -440,7 +514,8 @@ describe('Promo notices', function () {
 			['devdb-4', (nonce: string) => newDatastores.getNoticeHtml(webview, nonce, extensionPath)],
 			['devworkspacepro', (nonce: string) => devWorkSpaceProHtml(nonce, false)],
 			['devworkspacepro (new install)', (nonce: string) => devWorkSpaceProHtml(nonce, true)],
-			['devworkspacepro (non-DDEV)', (nonce: string) => devWorkSpaceProHtml(nonce, false, 'non-ddev')],
+			['devworkspacepro (PHP)', (nonce: string) => devWorkSpaceProHtml(nonce, false, 'php')],
+			['devworkspacepro (any project)', (nonce: string) => devWorkSpaceProHtml(nonce, false, 'any-project')],
 		] as const) {
 			it(`${name} notice has a strict CSP, no inline handlers or styles, and only local assets that exist`, () => {
 				const nonce = html.getNonce();
@@ -486,7 +561,11 @@ describe('Promo notices', function () {
 			assert.ok(!/DevDb 4\b/.test(page + newDatastores.PRO_TOAST_MESSAGE));
 		});
 
-		it('the DevWorkspace Pro notice embeds every mock it includes', () => {
+		it('every DevWorkspace Pro template exists and embeds its mocks', () => {
+			for (const { template: file } of Object.values(devWorkspacePro.NOTICE_VARIANTS) as any[]) {
+				const template = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
+				assert.ok([...template.matchAll(/\{\{include:([^}]+)\}\}/g)].length >= 6, file);
+			}
 			const template = fs.readFileSync(path.join(extensionPath, 'resources/notices', devWorkspacePro.NOTICE_TEMPLATE), 'utf8');
 			const includes = [...template.matchAll(/\{\{include:([^}]+)\}\}/g)].map(match => match[1]);
 			assert.ok(includes.length >= 2);
@@ -542,7 +621,7 @@ describe('Promo notices', function () {
 		}
 
 		it('notice styles use no linear gradients or gradient text, and glass only on the v4 numeral', () => {
-			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css', 'devworkspacepro/non-ddev.css']) {
+			for (const file of ['v4/notice.css', 'devworkspacepro/notice.css', 'devworkspacepro/terminal.css']) {
 				const css = fs.readFileSync(path.join(extensionPath, 'resources/notices', file), 'utf8');
 				assert.ok(!/(linear|conic)-gradient\(|background-clip:\s*text/i.test(css), `${file} uses a gradient`);
 				for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -560,32 +639,79 @@ describe('Promo notices', function () {
 			assert.ok(!/Eight new engines/i.test(page));
 		});
 
-		it('the non-DDEV showcase leads with what works without DDEV, one window per strip item', () => {
-			const page = devWorkSpaceProHtml(html.getNonce(), false, 'non-ddev');
-			const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="visual"'));
-			assert.ok(hero.includes('DevWorkspace Pro v2') && /desktop app/i.test(hero) && hero.includes('No DDEV needed'));
-			assert.ok(hero.includes('data-command="copyCode"') && hero.includes(devWorkspacePro.getOffer(false).discountCode));
-
-			const titles = [...page.matchAll(/data-deck-item><strong>([^<]+)<\/strong>/g)].map(match => match[1]);
-			assert.deepStrictEqual(titles, ['AI sessions', 'Git Changes', 'File editor', 'Terminal', 'Issues and tasks to AI', 'Voice-to-Text']);
-
+		const deckTitles = (page: string) => [...page.matchAll(/data-deck-item><strong>([^<]+)<\/strong>/g)].map(match => match[1]);
+		const assertOneWindowPerItem = (page: string) => {
 			const tabs = [...page.matchAll(/role="tab" aria-selected="(?:true|false)" aria-controls="([^"]+)"/g)].map(match => match[1]);
 			const cards = [...page.matchAll(/<figure class="win [^"]*" id="([^"]+)"[^>]*data-deck-card/g)].map(match => match[1]);
 			assert.deepStrictEqual(cards, tabs);
-			assert.ok(!/one click/i.test(page), 'DevWorkspace Pro has no one-click move to DDEV');
+			assert.strictEqual((page.match(/aria-selected="true"/g) || []).length, 1);
+		};
+		const heroOf = (page: string) => page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="visual"'));
+		const variantTitle = (variant: string, isNewInstall = false) => devWorkspacePro.NOTICE_VARIANTS[variant].title(isNewInstall);
+
+		for (const variant of ['ddev', 'php', 'any-project']) {
+			it(`the ${variant} showcase sends GitHub issues and Focus Pad tasks to AI`, () => {
+				const page = devWorkSpaceProHtml(html.getNonce(), false, variant);
+				assert.ok(page.includes('<strong>GitHub and Focus Pad to AI</strong><span>Send a GitHub issue or a Focus Pad task to your AI session.</span>'));
+				assert.ok(!page.includes('Issues and tasks to AI'));
+				assert.ok(page.includes('Send to AI') && page.includes('Add to Focus Pad'), 'the deck shows both actions');
+			});
+
+			it(`the ${variant} showcase names v2, the desktop app, and the offer under the CTA`, () => {
+				const hero = heroOf(devWorkSpaceProHtml(html.getNonce(), false, variant));
+				assert.ok(hero.includes('DevWorkspace Pro v2 · For Mac, Windows and Linux'));
+				assert.ok(hero.includes('One desktop app.'));
+				assert.ok(hero.includes('data-command="copyCode"') && hero.includes(devWorkspacePro.getOffer(false).discountCode));
+			});
+		}
+
+		for (const variant of ['php', 'any-project']) {
+			it(`the ${variant} showcase and its tab title never mention DDEV`, () => {
+				const page = devWorkSpaceProHtml(html.getNonce(), false, variant);
+				const text = page.replace(/<[^>]+>/g, ' ');
+				assert.ok(!/ddev/i.test(text), 'no DDEV in the copy');
+				assert.ok(!/ddev/i.test(page.replace(/devworkspacepro\/[^"]+/g, '')), 'no DDEV anywhere in the page');
+				assert.ok(!/ddev/i.test(variantTitle(variant)) && !/ddev/i.test(variantTitle(variant, true)));
+				assert.ok(!/one click/i.test(page), 'DevWorkspace Pro has no one-click move to DDEV');
+			});
+		}
+
+		it('the PHP showcase leads with AI sessions, one window per strip item', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false, 'php');
+			assert.ok(/desktop app/i.test(heroOf(page)));
+			assert.deepStrictEqual(deckTitles(page), ['AI sessions', 'Git Changes', 'File editor', 'Terminal', 'GitHub and Focus Pad to AI', 'Voice-to-Text']);
+			assert.ok(page.includes('PHP IntelliSense'));
+			assertOneWindowPerItem(page);
 		});
 
-		it('the non-DDEV mocks show an imported project as the app does', () => {
-			const read = (file: string) => fs.readFileSync(path.join(extensionPath, 'resources/notices/devworkspacepro/mocks', file), 'utf8');
-			const overview = read('overview-non-ddev.html');
-			const tabs = [...overview.matchAll(/rounded-md px-3 text-sm font-medium">\s*([A-Za-z ]+?)\s*</g)].map(match => match[1]);
-			// ProjectDetails.vue: allProjectTabs minus ddevExclusiveTabs.
-			assert.deepStrictEqual(tabs, ['Overview', 'Terminal', 'Files', 'Git Changes', 'GitHub', 'Monitoring', 'Recipes']);
-			for (const ddevOnly of ['RUNNING', 'Stop', 'Restart', 'Share', 'Start All', 'Quick Actions', 'phpMyAdmin', 'Mailpit', 'PHP Version', '>Laravel<']) {
-				assert.ok(!overview.includes(ddevOnly), `external projects do not show ${ddevOnly}`);
+		it('the any-project showcase leads with AI sessions, then GitHub and Focus Pad, one window per strip item', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false, 'any-project');
+			assert.deepStrictEqual(deckTitles(page), ['AI sessions', 'GitHub and Focus Pad to AI', 'Git Changes', 'Terminal', 'Voice-to-Text', 'File editor']);
+			assert.match(page, /AI sessions<\/strong><span>.*Resume after a restart/);
+			assertOneWindowPerItem(page);
+		});
+
+		it('the any-project showcase shows a TypeScript project and claims no PHP features', () => {
+			const page = devWorkSpaceProHtml(html.getNonce(), false, 'any-project');
+			for (const phpOnly of ['.php', 'PHP', 'IntelliSense', 'composer', 'artisan', 'Herd', 'Laravel', 'Scratchpad', 'fe-suggest']) {
+				assert.ok(!page.includes(phpOnly), `any-project page shows ${phpOnly}`);
 			}
-			assert.ok(overview.includes('New AI session'), 'the AI session button shows for every project');
-			assert.ok(read('status-bar-non-ddev.html').includes('None running'), 'the footer counts DDEV projects only');
+			assert.ok(page.includes('invoices.ts') && page.includes('package.json') && page.includes('npm test'));
+		});
+
+		it('the PHP and any-project mocks show an imported project as the app does', () => {
+			const read = (file: string) => fs.readFileSync(path.join(extensionPath, 'resources/notices/devworkspacepro/mocks', file), 'utf8');
+			for (const file of ['overview-imported.html', 'overview-any-project.html']) {
+				const overview = read(file);
+				const tabs = [...overview.matchAll(/rounded-md px-3 text-sm font-medium">\s*([A-Za-z ]+?)\s*</g)].map(match => match[1]);
+				// ProjectDetails.vue: allProjectTabs minus ddevExclusiveTabs.
+				assert.deepStrictEqual(tabs, ['Overview', 'Terminal', 'Files', 'Git Changes', 'GitHub', 'Monitoring', 'Recipes'], file);
+				for (const ddevOnly of ['RUNNING', 'Stop', 'Restart', 'Share', 'Start All', 'Quick Actions', 'phpMyAdmin', 'Mailpit', 'PHP Version', '>Laravel<']) {
+					assert.ok(!overview.includes(ddevOnly), `${file}: external projects do not show ${ddevOnly}`);
+				}
+				assert.ok(overview.includes('New AI session'), 'the AI session button shows for every project');
+			}
+			assert.ok(read('status-bar-imported.html').includes('None running'), 'the footer counts DDEV projects only');
 		});
 
 		it('rejects unknown placeholders and paths outside resources/notices', () => {
@@ -604,14 +730,26 @@ describe('Promo notices', function () {
 	});
 });
 
-function devWorkSpaceProHtml(nonce: string, isNewInstall: boolean, variant: 'ddev' | 'non-ddev' = 'ddev'): string {
+function devWorkSpaceProHtml(nonce: string, isNewInstall: boolean, variant: string = 'ddev'): string {
 	return devWorkspacePro.getNoticeHtml({ cspSource: 'vscode-resource:', asWebviewUri }, nonce, extensionPath, isNewInstall, variant);
 }
 
-function makePhpWorkspace(): string {
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-php-'));
-	fs.writeFileSync(path.join(root, 'composer.json'), '{}');
+function makeWorkspace(): string {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-ws-'));
 	workspaceFolders = [{ uri: { fsPath: root } }];
+	return root;
+}
+
+function makePhpWorkspace(): string {
+	const root = makeWorkspace();
+	fs.writeFileSync(path.join(root, 'composer.json'), '{}');
+	return root;
+}
+
+function makeGitWorkspace(): string {
+	const root = makeWorkspace();
+	fs.mkdirSync(path.join(root, '.git'));
+	fs.writeFileSync(path.join(root, 'package.json'), '{}');
 	return root;
 }
 

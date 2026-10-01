@@ -2,7 +2,7 @@
 /**
  * Builds the DevWorkspace Pro showcase mocks for the IDE notice
  * (resources/notices/devworkspacepro/mocks/*.html + mocks.css).
- * ai-launcher, git-changes and files are hand-written mocks styled in notice.css; this script leaves them alone.
+ * Hand-written mocks (ai-launcher*, git-changes*, files*, terminal* and the *-imported / *-any-project overview and status bar) are styled in notice.css, terminal.css or by mocks.css classes; this script leaves them alone.
  *
  * 1. Render the site's Blade mocks to HTML (in a scratch copy of the devworkspacepro.com repo):
  *      php artisan tinker --execute 'file_put_contents("out/focus-pad.html", Blade::render("<x-mock-ui.focus-pad />"));'

@@ -1,0 +1,64 @@
+<div class="mock-ui gc">
+  <div class="gc-top">
+    <div class="seg">
+      <span class="seg-item seg-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M12 10v6M9 13h6"/></svg>Changes<span class="seg-count">5</span></span>
+      <span class="seg-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>History</span>
+    </div>
+    <span class="gc-branch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-6 3-10 7"/></svg>feature/bulk-export</span>
+    <span class="gc-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>2</span>
+    <span class="gc-spacer"></span>
+    <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>
+  </div>
+
+  <div class="gc-body">
+    <aside class="gc-side">
+      <div class="gc-sel">
+        <span class="cb cb-mixed"></span>
+        <span><b>3</b> of 5 changes selected</span>
+        <span class="gc-spacer"></span>
+        <span class="gc-num"><span class="add">+113</span> <span class="del">−5</span></span>
+      </div>
+      <div class="gc-list">
+        <div class="gc-row gc-row-on"><span class="cb cb-on"></span><span class="st st-m">M</span><span class="gc-name">invoices.ts<i>src/routes</i></span><span class="gc-num"><span class="add">+18</span> <span class="del">−4</span></span></div>
+        <div class="gc-row"><span class="cb cb-on"></span><span class="st st-a">A</span><span class="gc-name">export-invoices.ts<i>src/jobs</i></span><span class="gc-num"><span class="add">+64</span></span></div>
+        <div class="gc-row"><span class="cb cb-on"></span><span class="st st-m">M</span><span class="gc-name">invoices.test.ts<i>test/routes</i></span><span class="gc-num"><span class="add">+31</span> <span class="del">−1</span></span></div>
+        <div class="gc-row"><span class="cb"></span><span class="st st-u">U</span><span class="gc-name">ExportButton.tsx<i>src/components</i></span><span class="gc-num"><span class="add">+11</span></span></div>
+        <div class="gc-row"><span class="cb"></span><span class="st st-m">M</span><span class="gc-name">package-lock.json</span><span class="gc-num"><span class="add">+4</span> <span class="del">−7</span></span></div>
+      </div>
+      <div class="gc-commit">
+        <div class="gc-msg">Add bulk invoice export<span class="caret"></span></div>
+        <div class="gc-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg>Commit 3 files<kbd>⌘↵</kbd></div>
+      </div>
+    </aside>
+
+    <section class="gc-diff">
+      <div class="gc-diffbar"><span class="gc-spacer"></span><span class="seg seg-sm"><span class="seg-item seg-on">Unified</span><span class="seg-item">Split</span></span></div>
+      <div class="df-file">
+        <span class="df-path">src/routes/<b>invoices.ts</b></span>
+        <span class="gc-num"><span class="add">+18</span> <span class="del">−4</span></span>
+      </div>
+      <div class="df-hunk">@@ -12,8 +12,15 @@ const router = Router();</div>
+      <div class="df-line"><i>12</i><i>12</i><span><span class="v">router</span>.<span class="f">post</span>(<span class="s">'/invoices/export'</span>, <span class="k">async</span> (<span class="v">req</span>, <span class="v">res</span>) =&gt; {</span></div>
+      <div class="df-line df-del"><i>13</i><i></i><span>  <span class="k">const</span> <span class="v">ids</span> = <span class="v">req</span>.<span class="v">body</span>.<span class="v">ids</span>;</span></div>
+      <div class="df-line df-del"><i>14</i><i></i><span>  <span class="k">const</span> <span class="v">file</span> = <span class="k">await</span> <span class="f">buildCsv</span>(<span class="v">ids</span>);</span></div>
+      <div class="df-line df-del"><i>15</i><i></i><span>  <span class="k">return</span> <span class="v">res</span>.<span class="f">download</span>(<span class="v">file</span>);</span></div>
+      <div class="df-line df-add"><i></i><i>13</i><span>  <span class="k">const</span> <span class="v">ids</span> = <span class="t">ExportRequest</span>.<span class="f">parse</span>(<span class="v">req</span>.<span class="v">body</span>).<span class="v">ids</span>;</span></div>
+      <div class="df-line df-add"><i></i><i>14</i><span></span></div>
+      <div class="df-line df-add"><i></i><i>15</i><span>  <span class="k">if</span> (<span class="v">ids</span>.<span class="v">length</span> === <span class="n">0</span>) {</span></div>
+      <div class="df-line df-add"><i></i><i>16</i><span>    <span class="k">return</span> <span class="v">res</span>.<span class="f">status</span>(<span class="n">422</span>).<span class="f">json</span>({ <span class="v">error</span>: <span class="s">'Select at least one invoice.'</span> });</span></div>
+      <div class="df-line df-add"><i></i><i>17</i><span>  }</span></div>
+      <div class="df-line df-add"><i></i><i>18</i><span></span></div>
+      <div class="df-line df-add"><i></i><i>19</i><span>  <span class="k">await</span> <span class="v">queue</span>.<span class="f">add</span>(<span class="s">'export-invoices'</span>, { <span class="v">ids</span>, <span class="v">userId</span>: <span class="v">req</span>.<span class="v">user</span>.<span class="v">id</span> });</span></div>
+      <div class="df-line df-add"><i></i><i>20</i><span>  <span class="k">return</span> <span class="v">res</span>.<span class="f">status</span>(<span class="n">202</span>).<span class="f">json</span>({ <span class="v">status</span>: <span class="s">'Export started.'</span> });</span></div>
+      <div class="df-line"><i>16</i><i>21</i><span>});</span></div>
+      <div class="df-file df-file-next">
+        <span class="df-path">src/jobs/<b>export-invoices.ts</b></span>
+        <span class="gc-num"><span class="add">+64</span></span>
+      </div>
+      <div class="df-hunk">@@ -0,0 +1,64 @@</div>
+      <div class="df-line df-add"><i></i><i>1</i><span><span class="k">import</span> { <span class="t">Job</span> } <span class="k">from</span> <span class="s">'bullmq'</span>;</span></div>
+      <div class="df-line df-add"><i></i><i>2</i><span><span class="k">import</span> { <span class="v">db</span> } <span class="k">from</span> <span class="s">'../lib/db'</span>;</span></div>
+      <div class="df-line df-add"><i></i><i>3</i><span></span></div>
+    </section>
+  </div>
+</div>

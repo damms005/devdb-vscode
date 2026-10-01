@@ -161,6 +161,8 @@ The DevDb 4 notice shows once, on a 4.x version only (`package.json` stays at th
  ["webview-wait","DevWorkspace Pro"],["shot","dwp"]]
 ```
 
+The PHP and any-project DevWorkspace Pro showcases preview with `devdb.dev.previewDevWorkspaceProPhpNotice` and `devdb.dev.previewDevWorkspaceProAnyProjectNotice` (same args); click a strip item with `webview-click-css` on `#deck-tab-ai|issues|git|files|terminal|voice`.
+
 Expected: Free = full-page tab "What's new in DevDb 4". Pro = toast "DevDb 4 is here: …" and no tab. Themes: `["host-eval","await vscode.workspace.getConfiguration().update('workbench.colorTheme','Default Light Modern',true); return 1"]`. Rebuild the DevWorkspace Pro mocks with `scripts/build-dwp-notice-mocks.mjs`.
 
 ### Redis / Valkey

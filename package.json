@@ -106,8 +106,14 @@
 				"enablement": "devdb.isDevelopment"
 			},
 			{
-				"command": "devdb.dev.previewDevWorkspaceProNonDdevNotice",
-				"title": "Preview DevWorkspace Pro Notice (non-DDEV)",
+				"command": "devdb.dev.previewDevWorkspaceProPhpNotice",
+				"title": "Preview DevWorkspace Pro Notice (PHP)",
+				"category": "DevDb (Dev)",
+				"enablement": "devdb.isDevelopment"
+			},
+			{
+				"command": "devdb.dev.previewDevWorkspaceProAnyProjectNotice",
+				"title": "Preview DevWorkspace Pro Notice (any project)",
 				"category": "DevDb (Dev)",
 				"enablement": "devdb.isDevelopment"
 			}
@@ -191,7 +197,11 @@
 					"when": "devdb.isDevelopment"
 				},
 				{
-					"command": "devdb.dev.previewDevWorkspaceProNonDdevNotice",
+					"command": "devdb.dev.previewDevWorkspaceProPhpNotice",
+					"when": "devdb.isDevelopment"
+				},
+				{
+					"command": "devdb.dev.previewDevWorkspaceProAnyProjectNotice",
 					"when": "devdb.isDevelopment"
 				}
 			],

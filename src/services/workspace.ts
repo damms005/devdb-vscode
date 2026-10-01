@@ -68,6 +68,26 @@ export function isPhpProjectWithoutDdev(): boolean {
 	return ['composer.json', 'artisan'].some(file => fs.existsSync(path.join(workspaceRoot, file)));
 }
 
+/** Files that mark a code project in the workspace root (besides PHP). */
+export const CODE_PROJECT_MARKERS = ['.git', 'package.json', 'pyproject.toml', 'go.mod', 'Gemfile', 'Cargo.toml'];
+
+/**
+ * True when the workspace root is a code project (a Git repository, or Node, Python,
+ * Go, Ruby or Rust) that is not PHP and has no DDEV.
+ */
+export function isNonPhpProjectWithoutDdev(): boolean {
+	const workspaceRoot = getBasePath();
+	if (!workspaceRoot || fs.existsSync(path.join(workspaceRoot, '.ddev'))) {
+		return false;
+	}
+
+	if (['composer.json', 'artisan'].some(file => fs.existsSync(path.join(workspaceRoot, file)))) {
+		return false;
+	}
+
+	return CODE_PROJECT_MARKERS.some(file => fs.existsSync(path.join(workspaceRoot, file)));
+}
+
 export function isComposerPhpProject(): boolean {
 	// simply check if workspace root contains a .ddev directory
 	const workspaceRoot = getBasePath();

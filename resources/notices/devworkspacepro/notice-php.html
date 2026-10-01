@@ -7,6 +7,7 @@
 	<title>DevWorkspace Pro v2</title>
 	<link rel="stylesheet" href="{{asset:devworkspacepro/mocks.css}}">
 	<link rel="stylesheet" href="{{asset:devworkspacepro/notice.css}}">
+	<link rel="stylesheet" href="{{asset:devworkspacepro/terminal.css}}">
 </head>
 <body>
 	<button class="close" data-command="close" aria-label="Close">
@@ -17,8 +18,8 @@
 		<section class="hero">
 			<div class="copy">
 				<p class="label">DevWorkspace Pro v2 · For Mac, Windows and Linux</p>
-				<h1>Your projects.<br>Your agents.<br><span class="h1-soft">One desktop app.</span></h1>
-				<p class="lead">DDEV projects, terminal, SSH, GitHub and logs, side by side. Press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> to start an AI session in your project.</p>
+				<h1>Your PHP projects.<br>Your agents.<br><span class="h1-soft">One desktop app.</span></h1>
+				<p class="lead">Add your project folder. Press <span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> to start an AI session in it. Git, files and a terminal are in the same window.</p>
 				<div class="actions">
 					<button class="btn" data-command="getLicense">Get DevWorkspace Pro</button>
 					<button class="link" data-command="learnMore">See all features <span aria-hidden="true">›</span></button>
@@ -34,19 +35,19 @@
 				<div class="deck">
 					<figure class="win win-ai mock-frame" id="deck-card-ai" role="tabpanel" aria-labelledby="deck-tab-ai" data-deck-card data-depth="0">
 						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — Overview</span></div>
-						<div class="win-body win-app">{{include:devworkspacepro/mocks/overview.html}}{{include:devworkspacepro/mocks/status-bar.html}}</div><div class="win-launcher">{{include:devworkspacepro/mocks/ai-launcher.html}}</div>
+						<div class="win-body win-app">{{include:devworkspacepro/mocks/overview-imported.html}}{{include:devworkspacepro/mocks/status-bar-imported.html}}</div><div class="win-launcher">{{include:devworkspacepro/mocks/ai-launcher.html}}</div>
 					</figure>
-					<figure class="win win-scratchpad mock-frame" id="deck-card-scratchpad" role="tabpanel" aria-labelledby="deck-tab-scratchpad" data-deck-card data-depth="1">
-						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — Scratchpad</span></div>
-						<div class="win-body win-pad">{{include:devworkspacepro/mocks/scratchpad.html}}</div>
-					</figure>
-					<figure class="win win-git mock-frame" id="deck-card-git" role="tabpanel" aria-labelledby="deck-tab-git" data-deck-card data-depth="2">
+					<figure class="win win-git mock-frame" id="deck-card-git" role="tabpanel" aria-labelledby="deck-tab-git" data-deck-card data-depth="1">
 						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — Git Changes</span></div>
 						<div class="win-body win-flush">{{include:devworkspacepro/mocks/git-changes.html}}</div>
 					</figure>
-					<figure class="win win-files mock-frame" id="deck-card-files" role="tabpanel" aria-labelledby="deck-tab-files" data-deck-card data-depth="3">
+					<figure class="win win-files mock-frame" id="deck-card-files" role="tabpanel" aria-labelledby="deck-tab-files" data-deck-card data-depth="2">
 						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — Files</span></div>
 						<div class="win-body win-flush">{{include:devworkspacepro/mocks/files.html}}</div>
+					</figure>
+					<figure class="win win-terminal mock-frame" id="deck-card-terminal" role="tabpanel" aria-labelledby="deck-tab-terminal" data-deck-card data-depth="3">
+						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — Terminal</span></div>
+						<div class="win-body win-flush">{{include:devworkspacepro/mocks/terminal.html}}</div>
 					</figure>
 					<figure class="win win-issues mock-frame" id="deck-card-issues" role="tabpanel" aria-labelledby="deck-tab-issues" data-deck-card data-depth="out">
 						<div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-title">acme-app — GitHub</span></div>
@@ -67,17 +68,17 @@
 		</section>
 
 		<section class="strip" aria-labelledby="new-heading">
-			<h2 id="new-heading" class="strip-title">New in DevWorkspace Pro</h2>
+			<h2 id="new-heading" class="strip-title">Works with any PHP project</h2>
 			<div class="highlights">
 				<div class="tabs" role="tablist" aria-labelledby="new-heading">
 					<button class="tab" id="deck-tab-ai" role="tab" aria-selected="true" aria-controls="deck-card-ai" tabindex="0" data-deck-item><strong>AI sessions</strong><span><span class="mac-only">⌘J</span><span class="pc-only">Ctrl+J</span> starts Claude Code, Codex or opencode. Resume after a restart.</span></button>
-					<button class="tab" id="deck-tab-scratchpad" role="tab" aria-selected="false" aria-controls="deck-card-scratchpad" tabindex="-1" data-deck-item><strong>Scratchpad</strong><span>PHP in your booted app, with completion from live values.</span></button>
 					<button class="tab" id="deck-tab-git" role="tab" aria-selected="false" aria-controls="deck-card-git" tabindex="-1" data-deck-item><strong>Git Changes</strong><span>Read every diff. Select files. Commit.</span></button>
 					<button class="tab" id="deck-tab-files" role="tab" aria-selected="false" aria-controls="deck-card-files" tabindex="-1" data-deck-item><strong>File editor</strong><span>Go to file, search, and edit with PHP IntelliSense.</span></button>
+					<button class="tab" id="deck-tab-terminal" role="tab" aria-selected="false" aria-controls="deck-card-terminal" tabindex="-1" data-deck-item><strong>Terminal</strong><span>A shell in the project folder, one tab away.</span></button>
 					<button class="tab" id="deck-tab-issues" role="tab" aria-selected="false" aria-controls="deck-card-issues" tabindex="-1" data-deck-item><strong>GitHub and Focus Pad to AI</strong><span>Send a GitHub issue or a Focus Pad task to your AI session.</span></button>
 					<button class="tab" id="deck-tab-voice" role="tab" aria-selected="false" aria-controls="deck-card-voice" tabindex="-1" data-deck-item><strong>Voice-to-Text</strong><span>Speak your prompts. Transcription stays on your computer.</span></button>
 				</div>
-				<p class="more"><strong>And more</strong><span>Recipes, Remote SSH, logs and uptime monitoring.</span></p>
+				<p class="more"><strong>And more</strong><span>Recipes, GitHub Actions and service monitoring.</span></p>
 			</div>
 		</section>
 	</main>

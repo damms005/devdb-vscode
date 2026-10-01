@@ -175,8 +175,14 @@ function registerDevCommands(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProNonDdevNotice', (args?: { newInstall?: boolean }) => {
-			previewDevWorkspaceProNotice(context, args?.newInstall ?? false, 'non-ddev');
+		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProPhpNotice', (args?: { newInstall?: boolean }) => {
+			previewDevWorkspaceProNotice(context, args?.newInstall ?? false, 'php');
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProAnyProjectNotice', (args?: { newInstall?: boolean }) => {
+			previewDevWorkspaceProNotice(context, args?.newInstall ?? false, 'any-project');
 		})
 	);
 }

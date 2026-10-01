@@ -1,5 +1,5 @@
 /**
- * Launch window for the full-page notices (DevDb v4 and both DevWorkspace Pro
+ * Launch window for the full-page notices (DevDb v4 and the DevWorkspace Pro
  * showcases). Before this local date they ignore "Don't show again" and the
  * fewer-notifications settings; from this date on they honor both.
  * Toasts always honor the settings.

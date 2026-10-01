@@ -1,0 +1,53 @@
+<div class="mock-ui fe">
+  <aside class="fe-side">
+    <div class="fe-panes">
+      <span class="fe-pane fe-pane-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1ZM20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1ZM3 5a2 2 0 0 0 2 2h3M3 3v13a2 2 0 0 0 2 2h3"/></svg>Files</span>
+      <span class="fe-pane"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 6H3M10 12H3M10 18H3"/><circle cx="17" cy="15" r="3"/><path d="m21 19-1.9-1.9"/></svg>Search</span>
+      <span class="gc-spacer"></span>
+      <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M12 12v6M9 15h6"/></svg>
+      <svg class="gc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2ZM12 10v6M9 13h6"/></svg>
+    </div>
+    <div class="fe-goto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Go to file…</span><kbd>⌘P</kbd></div>
+    <div class="fe-tree">
+      <div class="tr"><span class="chev">▾</span>src</div>
+      <div class="tr tr-2"><span class="chev">▾</span>routes</div>
+      <div class="tr tr-3 tr-mod tr-on">invoices.ts</div>
+      <div class="tr tr-3">users.ts</div>
+      <div class="tr tr-2 tr-new"><span class="chev">▸</span>jobs</div>
+      <div class="tr tr-2"><span class="chev">▸</span>lib</div>
+      <div class="tr tr-mod"><span class="chev">▸</span>test</div>
+      <div class="tr"><span class="chev">▸</span>public</div>
+      <div class="tr tr-dim"><span class="chev">▸</span>node_modules</div>
+      <div class="tr tr-leaf">.env</div>
+      <div class="tr tr-leaf">package.json</div>
+      <div class="tr tr-leaf">tsconfig.json</div>
+    </div>
+  </aside>
+
+  <section class="fe-main">
+    <div class="fe-tabs">
+      <span class="fe-tab fe-tab-on">invoices.ts<span class="fe-dot"></span></span>
+      <span class="fe-tab fe-tab-preview">export-invoices.ts</span>
+    </div>
+    <div class="fe-crumbs">
+      <span>src</span><b>›</b><span>routes</span><b>›</b><span class="fe-crumb-on">invoices.ts</span>
+      <span class="gc-spacer"></span>
+      <span>⌘S to save</span>
+    </div>
+    <div class="fe-code">
+      <div class="cl"><i>12</i><span><span class="v">router</span>.<span class="f">post</span>(<span class="s">'/invoices/export'</span>, <span class="k">async</span> (<span class="v">req</span>, <span class="v">res</span>) =&gt; {</span></div>
+      <div class="cl"><i>13</i><span>  <span class="k">const</span> <span class="v">ids</span> = <span class="t">ExportRequest</span>.<span class="f">parse</span>(<span class="v">req</span>.<span class="v">body</span>).<span class="v">ids</span>;</span></div>
+      <div class="cl"><i>14</i><span></span></div>
+      <div class="cl"><i>15</i><span>  <span class="k">if</span> (<span class="v">ids</span>.<span class="v">length</span> === <span class="n">0</span>) {</span></div>
+      <div class="cl"><i>16</i><span>    <span class="k">return</span> <span class="v">res</span>.<span class="f">status</span>(<span class="n">422</span>).<span class="f">json</span>({ <span class="v">error</span>: <span class="s">'Select at least one invoice.'</span> });</span></div>
+      <div class="cl"><i>17</i><span>  }</span></div>
+      <div class="cl"><i>18</i><span></span></div>
+      <div class="cl cl-on"><i>19</i><span>  <span class="k">await</span> <span class="v">queue</span>.<span class="f">add</span>(<span class="s">'export-invoices'</span>, { <span class="v">ids</span>, <span class="v">userId</span>: <span class="v">req</span>.<span class="v">user</span>.<span class="v">id</span> });<span class="caret"></span></span></div>
+      <div class="cl"><i>20</i><span></span></div>
+      <div class="cl"><i>21</i><span>  <span class="k">return</span> <span class="v">res</span>.<span class="f">status</span>(<span class="n">202</span>).<span class="f">json</span>({ <span class="v">status</span>: <span class="s">'Export started.'</span> });</span></div>
+      <div class="cl"><i>22</i><span>});</span></div>
+      <div class="cl"><i>23</i><span></span></div>
+      <div class="cl"><i>24</i><span><span class="k">export default</span> <span class="v">router</span>;</span></div>
+    </div>
+  </section>
+</div>
