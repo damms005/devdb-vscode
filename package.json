@@ -104,6 +104,12 @@
 				"title": "Preview DevWorkspace Pro Notice",
 				"category": "DevDb (Dev)",
 				"enablement": "devdb.isDevelopment"
+			},
+			{
+				"command": "devdb.dev.previewDevWorkspaceProNonDdevNotice",
+				"title": "Preview DevWorkspace Pro Notice (non-DDEV)",
+				"category": "DevDb (Dev)",
+				"enablement": "devdb.isDevelopment"
 			}
 		],
 		"jsonValidation": [
@@ -182,6 +188,10 @@
 				},
 				{
 					"command": "devdb.dev.previewDevWorkspaceProNotice",
+					"when": "devdb.isDevelopment"
+				},
+				{
+					"command": "devdb.dev.previewDevWorkspaceProNonDdevNotice",
 					"when": "devdb.isDevelopment"
 				}
 			],

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ExtensionConstants } from "../constants";
 import { compareVersions } from './version';
-import { showDevWorkspaceProNoticeForDdevWorkspaces } from './devworkspacepro-notification-service';
+import { showDevWorkspaceProNoticeForDdevWorkspaces, showDevWorkspaceProNoticeForNonDdevWorkspaces } from './devworkspacepro-notification-service';
 import { isNoticeReleaseLine, showNewDatastoresNotice, userWantsFewerNotifications } from './new-datastores-notification-service';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
@@ -18,11 +18,13 @@ export async function showWelcomeMessage(context: vscode.ExtensionContext, hasLi
 	const isVersionUpdate = !isNewInstall && !!currentVersion && currentVersion !== previousVersion
 		&& isUpdate(previousVersion, currentVersion);
 
-	// Max one full-page promo per launch: the DevDb 4 notice goes first, the
-	// DevWorkspace Pro showcase is deferred to a later launch when it shows.
-	// Licensed users get a toast for DevDb 4, so the showcase can still show.
+	// Max one full-page promo per launch, in this order: DevDb v4, then the DevWorkspace Pro
+	// showcase for DDEV projects, then the one for PHP projects without DDEV (7 days later).
+	// Licensed users get a toast for DevDb v4, so a showcase can still show on that launch.
 	const launchNotice = currentVersion ? await showNewDatastoresNotice(context, currentVersion, { hasLicense }) : 'none';
-	await showDevWorkspaceProNoticeForDdevWorkspaces(context, isNewInstall, { fullPagePromoShownThisLaunch: launchNotice === 'webview' });
+	let fullPagePromoShownThisLaunch = launchNotice === 'webview';
+	fullPagePromoShownThisLaunch = await showDevWorkspaceProNoticeForDdevWorkspaces(context, isNewInstall, { fullPagePromoShownThisLaunch }) || fullPagePromoShownThisLaunch;
+	await showDevWorkspaceProNoticeForNonDdevWorkspaces(context, isNewInstall, { fullPagePromoShownThisLaunch });
 
 	if (isNewInstall) {
 		showMessageAndButtons(`Thanks for using DevDb.`, context)
