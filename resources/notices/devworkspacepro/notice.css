@@ -145,6 +145,27 @@ h1 {
 .win-app .mock-ui:first-child { flex: 1; min-height: 0; border: 0; box-shadow: none; }
 .win-launcher { position: absolute; z-index: 2; left: 50%; top: 56%; width: 420px; transform: translate(-50%, -50%); }
 .win-ai::after { content: ''; position: absolute; inset: 30px 0 0; background: rgba(0, 0, 0, 0.18); }
+/* After Launch: the AI session terminal (80 columns) opens with the same prompt in Claude Code. */
+.win-session { position: absolute; z-index: 3; left: 29px; top: 54px; width: 671px; height: 380px; zoom: 0.85; opacity: 0; }
+
+/* AI sessions story, while its window is in front: dialog, Launch, then the session. */
+#deck-tab-ai.is-running::after { animation-duration: 7.5s; }
+.win-ai[data-depth='0'] .win-launcher { animation: ai-launcher-out 7.5s both; }
+.win-ai[data-depth='0'] .ai-launch { animation: ai-launch-press 7.5s both; }
+.win-ai[data-depth='0'] .win-session { animation: ai-session-in 7.5s both; }
+@keyframes ai-launcher-out {
+	0%, 34% { opacity: 1; transform: translate(-50%, -50%); }
+	41%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+}
+@keyframes ai-launch-press {
+	0%, 29% { transform: none; filter: none; }
+	31% { transform: scale(0.94); filter: brightness(1.2); }
+	34%, 100% { transform: none; filter: none; }
+}
+@keyframes ai-session-in {
+	0%, 36% { opacity: 0; transform: translateY(10px) scale(0.985); }
+	44%, 100% { opacity: 1; transform: none; }
+}
 .win-pad { width: 900px; flex: none; zoom: 0.689; padding: 16px; }
 .win-pad > .mock-ui { border: 0; }
 .win-flush { width: 900px; height: 566px; flex: none; zoom: 0.689; }
@@ -173,7 +194,6 @@ h1 {
 .ai-dot-green { background: #28c840; }
 .ai-title { margin-left: 10px; font-size: 12px; font-weight: 600; color: hsl(var(--app-muted-foreground)); }
 .ai-prompt { padding: 16px 16px 22px; font-size: 13.5px; line-height: 1.55; }
-.ai-dim { color: hsl(var(--app-muted-foreground)); }
 .ai-caret { display: inline-block; width: 2px; height: 15px; margin-left: 2px; vertical-align: -3px; background: hsl(var(--app-primary)); }
 .ai-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid hsl(var(--app-border)); font-size: 12px; }
 .ai-tool { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: hsl(var(--app-secondary)); font-family: var(--mono); }
@@ -182,6 +202,51 @@ h1 {
 .ai-ghost { color: hsl(var(--app-muted-foreground)); }
 .ai-launch { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; font-weight: 600; color: hsl(var(--app-primary-foreground)); background: hsl(var(--app-primary)); }
 .ai-launch kbd { font-family: var(--sans); font-size: 11px; opacity: 0.8; }
+
+/* AI session: the app's terminal dialog (HeadlessTerminal.vue, large) with Claude Code in it. */
+.ht {
+	display: flex; flex-direction: column; gap: 12px; height: 100%; padding: 16px;
+	border: 1px solid hsl(var(--app-border)); border-radius: 8px; background: hsl(var(--app-background)); color: hsl(var(--app-foreground));
+	box-shadow: var(--shadow-near); font-family: var(--sans); letter-spacing: 0;
+}
+.ht svg { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ht-head { display: flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
+.ht-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--app-success)); box-shadow: 0 0 0 3px hsl(var(--app-success) / 0.25); }
+.ht-title { margin-left: -4px; font-size: 14px; font-weight: 600; line-height: 1; }
+.ht-cwd {
+	display: inline-flex; align-items: center; gap: 6px; flex-shrink: 1; min-width: 172px; padding: 4px 10px;
+	border: 1px solid hsl(var(--app-border) / 0.5); border-radius: 6px; background: hsl(var(--app-muted) / 0.5);
+	font-family: var(--mono); font-size: 12px; line-height: 16px; color: hsl(var(--app-muted-foreground));
+}
+.ht-cwd svg { width: 12px; height: 12px; opacity: 0.7; }
+.ht-cwd span { overflow: hidden; text-overflow: ellipsis; direction: rtl; }
+.ht-cwd .ht-copy { opacity: 0.5; }
+.ht-spacer { flex: 1; }
+.ht-sep { width: 1px; height: 20px; flex-shrink: 0; background: hsl(var(--app-border)); }
+.ht-btn { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 12px; font-weight: 500; }
+.ht-btn kbd { padding: 0 4px; border: 1px solid; border-radius: 4px; font-family: var(--sans); font-size: 10px; line-height: 16px; opacity: 0.8; }
+.ht-btn-ai { border: 1px solid hsl(var(--app-highlight) / 0.4); color: hsl(var(--app-highlight)); background: hsl(var(--app-highlight) / 0.1); }
+.ht-btn-ai kbd { border-color: hsl(var(--app-highlight) / 0.3); }
+.ht-btn-min { margin-right: -6px; color: hsl(var(--app-primary-foreground)); background: hsl(var(--app-primary)); }
+.ht-btn-min kbd { border-color: hsl(var(--app-primary-foreground) / 0.3); }
+.ht-btn-close { border: 1px solid hsl(var(--app-border)); background: hsl(var(--app-card)); }
+.ht-btn-close kbd { border-color: hsl(var(--app-border)); }
+.ht-card { display: flex; flex: 1; min-height: 0; border: 1px solid hsl(var(--app-border)); border-radius: 8px; background: hsl(var(--app-card)); }
+.ht-term { flex: 1; min-width: 0; padding: 4px; overflow: hidden; border-radius: 6px; background: hsl(240 6% 7%); }
+
+/* Claude Code v2.1.286 as xterm.js draws it (DOM renderer): cell 7.825 x 15 px at 13px, colors from a real capture. */
+.cc { position: relative; font-family: var(--mono); font-size: 13px; line-height: normal; letter-spacing: 0.0125px; font-kerning: none; color: #fff; }
+.cc-row { height: 15px; line-height: 15px; overflow: hidden; white-space: pre; }
+.cc-row span { display: inline-block; height: 100%; vertical-align: top; }
+/* Logo cells (9 x 3) as solid blocks, as a terminal draws block elements; font block glyphs leave seams. */
+.cc .cc-logo { position: absolute; left: 0; top: 0; width: 70.425px; height: 45px; stroke: none; }
+.cc-logo-bk { fill: #000; }
+.cc-logo-o { fill: #d77757; }
+.cc-b { font-weight: 700; }
+.cc-g { color: #999; }
+.cc-r { color: #888; }
+.cc-wide { letter-spacing: -0.3625px; }
+.cc-cur { color: #000; background: #fff; }
 
 /* Git Changes and Files mocks, drawn from the app's markup and themed with the mock palette. */
 .gc, .fe {
@@ -329,6 +394,25 @@ body.os-pc .key-word { font-size: 18px; }
 body.deck-paused .tab.is-running::after { animation-play-state: paused; }
 @keyframes deck-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* Short webviews (a laptop window with the sidebar open): tighter vertical rhythm, so the page fits without a scrollbar. */
+@media (min-width: 901px) and (max-height: 840px) {
+	.banner { padding-top: clamp(20px, 4vh, 56px); padding-bottom: clamp(16px, 3vh, 40px); }
+	.label { margin-bottom: 8px; }
+	h1 { font-size: clamp(40px, min(4.3vw, 7.4vh), 62px); margin-bottom: 14px; }
+	.lead { line-height: 1.34; margin-bottom: 18px; }
+	.offer { margin-top: 14px; }
+	.strip { margin-top: 12px; }
+	.strip-title { margin-bottom: 6px; }
+	.tab, .more { padding-top: 10px; }
+}
+@media (min-width: 901px) and (max-height: 720px) {
+	.label { font-size: 15px; margin-bottom: 4px; }
+	h1 { margin-bottom: 10px; }
+	.lead { font-size: 16px; margin-bottom: 14px; }
+	.btn { height: 42px; }
+	.offer { margin-top: 10px; }
+}
+
 @media (max-width: 1180px) {
 	.highlights { grid-template-columns: minmax(0, 1fr); }
 	.tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
@@ -362,4 +446,8 @@ body.deck-paused .tab.is-running::after { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
 	.btn, .win, .keys, .tab strong, .tab span { transition: none; }
 	.tab.is-running::after { animation: none; }
+	/* No story: the session window, with the dialog that started it in front. */
+	.win-ai .win-launcher, .win-ai .ai-launch, .win-ai .win-session { animation: none !important; }
+	.win-ai .win-session { opacity: 1; }
+	.win-ai .win-launcher { z-index: 4; left: 40%; top: 72%; transform: translate(-50%, -50%) scale(0.86); }
 }

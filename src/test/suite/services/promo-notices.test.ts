@@ -714,6 +714,39 @@ describe('Promo notices', function () {
 			assert.ok(read('status-bar-imported.html').includes('None running'), 'the footer counts DDEV projects only');
 		});
 
+		const decode = (text: string) => text.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+		for (const [variant, project, cwd] of [
+			['ddev', 'acme-app', '/Users/dev/Projects/acme-app'],
+			['php', 'acme-app', '/Users/dev/Herd/acme-app'],
+			['any-project', 'acme-web', '/Users/dev/Code/acme-web'],
+		] as const) {
+			it(`the ${variant} AI sessions window shows the dialog prompt in the Claude Code prompt box`, () => {
+				const page = devWorkSpaceProHtml(html.getNonce(), false, variant);
+				const card = page.slice(page.indexOf('id="deck-card-ai"'), page.indexOf('</figure>', page.indexOf('id="deck-card-ai"')));
+				const dialog = card.slice(card.indexOf('class="ai-prompt"'), card.indexOf('class="ai-bar"'));
+				const dialogLines = [...dialog.matchAll(/<p>([^<]+)/g)].map(match => decode(match[1]));
+				const tuiLines = [...card.matchAll(/<div class="cc-row cc-prompt"><span>([^<]+)<\/span>/g)].map(match => decode(match[1]));
+
+				assert.ok(card.includes(`New AI session · ${project}`));
+				assert.strictEqual(dialogLines.length, 2);
+				// Claude Code draws "❯" and a no-break space before the first line, and indents the next lines by two spaces.
+				assert.deepStrictEqual(tuiLines, [`❯ ${dialogLines[0]}`, `  ${dialogLines[1]}`]);
+				assert.ok(card.includes('class="cc-cur"'), 'the cursor waits after the prompt: nothing is sent');
+				assert.ok(card.includes(`<bdi>${cwd}</bdi>`) && card.includes(`>${cwd.replace('/Users/dev', '~')}<`), 'the terminal opens in the project folder');
+				const rules = [...card.matchAll(/<span class="cc-r">(─+)<\/span>/g)].map(match => match[1].length);
+				assert.deepStrictEqual(rules, [80, 80], 'the prompt box spans the 80 columns');
+			});
+		}
+
+		it('the AI sessions story shows the dialog, then the session, and stops for reduced motion', () => {
+			const css = fs.readFileSync(path.join(extensionPath, 'resources/notices/devworkspacepro/notice.css'), 'utf8');
+			assert.match(css, /\.win-ai\[data-depth='0'\] \.win-launcher \{ animation: ai-launcher-out/);
+			assert.match(css, /\.win-ai\[data-depth='0'\] \.win-session \{ animation: ai-session-in/);
+			const reduced = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+			assert.match(reduced, /\.win-ai \.win-session \{ animation: none !important; \}/);
+			assert.match(reduced, /\.win-ai \.win-session \{ opacity: 1; \}/);
+		});
+
 		it('rejects unknown placeholders and paths outside resources/notices', () => {
 			const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-notice-'));
 			fs.mkdirSync(path.join(tmp, 'resources', 'notices'), { recursive: true });
