@@ -145,10 +145,8 @@ export type EditorHistoryEntry = {
 export type EditorConnectionState = {
 	history: EditorHistoryEntry[]
 	draft?: string
-	/** Height of the editor pane as a fraction of the panel, 0.15 to 0.85. */
-	split?: number
-	/** Width of the editor panel in percent of the DevDb view, 20 to 85. */
-	width?: number
+	/** Height of the editor pane in percent of the main area, 15 to 85. */
+	size?: number
 	updatedAt?: number
 }
 
@@ -202,14 +200,12 @@ function sanitizeState(state: Partial<EditorConnectionState>): EditorConnectionS
 			...(typeof entry.durationMs === 'number' ? { durationMs: entry.durationMs } : {}),
 		}))
 
-	const split = Number(state?.split)
-	const width = Number(state?.width)
+	const size = Number(state?.size)
 
 	return {
 		history,
 		...(typeof state?.draft === 'string' ? { draft: state.draft.slice(0, MAX_DRAFT_LENGTH) } : {}),
-		...(Number.isFinite(split) ? { split: Math.min(0.85, Math.max(0.15, split)) } : {}),
-		...(state?.width !== undefined && Number.isFinite(width) ? { width: Math.min(85, Math.max(20, width)) } : {}),
+		...(state?.size !== undefined && Number.isFinite(size) ? { size: Math.min(85, Math.max(15, size)) } : {}),
 		updatedAt: Date.now(),
 	}
 }

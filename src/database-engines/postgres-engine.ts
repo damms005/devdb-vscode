@@ -508,11 +508,22 @@ export class PostgresEngine implements DatabaseEngine {
 
 const OPAQUE_USER_DEFINED_TYPES = ['halfvec', 'sparsevec', 'geometry', 'geography'];
 
-function withMeta(result: { rows?: Record<string, unknown>[], fields?: { name: string }[], rowCount?: number | null, command?: string }): RawQueryResultWithMeta {
+/** Type names for the built-in type OIDs that query results report most often. */
+const POSTGRES_TYPE_NAMES: Record<number, string> = {
+	16: 'boolean', 17: 'bytea', 18: 'char', 19: 'name', 20: 'bigint', 21: 'smallint', 23: 'integer', 25: 'text', 26: 'oid',
+	114: 'json', 142: 'xml', 650: 'cidr', 700: 'real', 701: 'double', 790: 'money', 829: 'macaddr', 869: 'inet',
+	1042: 'char', 1043: 'varchar', 1082: 'date', 1083: 'time', 1114: 'timestamp', 1184: 'timestamptz', 1186: 'interval',
+	1266: 'timetz', 1560: 'bit', 1562: 'varbit', 1700: 'numeric', 2950: 'uuid', 3802: 'jsonb',
+	1000: 'boolean[]', 1005: 'smallint[]', 1007: 'integer[]', 1009: 'text[]', 1015: 'varchar[]', 1016: 'bigint[]',
+	1021: 'real[]', 1022: 'double[]', 1231: 'numeric[]', 2951: 'uuid[]', 3807: 'jsonb[]',
+};
+
+function withMeta(result: { rows?: Record<string, unknown>[], fields?: { name: string, dataTypeID?: number }[], rowCount?: number | null, command?: string }): RawQueryResultWithMeta {
 	const command = result.command?.toUpperCase();
 	return {
 		rows: result.rows ?? [],
 		columns: (result.fields ?? []).map(field => field.name),
+		columnTypes: (result.fields ?? []).map(field => POSTGRES_TYPE_NAMES[field.dataTypeID ?? -1]),
 		affectedRows: command && command !== 'SELECT' && typeof result.rowCount === 'number' ? result.rowCount : undefined,
 		command,
 	};

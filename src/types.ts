@@ -153,6 +153,8 @@ export type RawQueryOptions = {
 export type RawQueryResultWithMeta = {
 	rows: Record<string, unknown>[]
 	columns: string[]
+	/** Type name of each column, in `columns` order, when the server reports it. */
+	columnTypes?: (string | undefined)[]
 	/** Rows that a write changed, when the server reports it. */
 	affectedRows?: number
 	/** First keyword the server reports for the statement, e.g. `SELECT` or `UPDATE`. */

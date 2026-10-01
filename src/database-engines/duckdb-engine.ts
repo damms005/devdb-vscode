@@ -10,6 +10,8 @@ import { buildWhereClause } from '../services/sql';
  */
 interface DuckDbResultReader {
 	getRowObjects(): Record<string, any>[];
+	columnNames?(): string[];
+	columnTypes?(): { toString(): string }[];
 	readonly done: boolean;
 }
 
@@ -67,7 +69,7 @@ const BLOB_PREVIEW_BYTES = 64;
  * Rows returned by {@link DuckDbEngine.rawQuery}. `truncated` is true when the
  * result had more than {@link RAW_QUERY_MAX_ROWS} rows and was cut.
  */
-export type DuckDbRawQueryRows = Record<string, any>[] & { truncated?: boolean };
+export type DuckDbRawQueryRows = Record<string, any>[] & { truncated?: boolean; columns?: string[]; columnTypes?: string[] };
 
 interface DuckDbInstance {
 	connect(): Promise<DuckDbConnection>;
@@ -751,6 +753,13 @@ export class DuckDbEngine implements DatabaseEngine {
 		const rows: DuckDbRawQueryRows = allRows.slice(0, RAW_QUERY_MAX_ROWS).map((row) => this.normalizeRow(row));
 		if (allRows.length > RAW_QUERY_MAX_ROWS) {
 			rows.truncated = true;
+		}
+		try {
+			// Not enumerable, so callers that compare or serialize the rows see plain rows.
+			Object.defineProperty(rows, 'columns', { value: reader.columnNames?.(), enumerable: false });
+			Object.defineProperty(rows, 'columnTypes', { value: reader.columnTypes?.().map(type => String(type)), enumerable: false });
+		} catch {
+			// Column names and types are optional: rows still show without them.
 		}
 		return rows;
 	}

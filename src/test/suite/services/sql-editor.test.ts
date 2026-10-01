@@ -125,6 +125,8 @@ describe('SQL Editor', () => {
 			assert.deepStrictEqual(toEditorResult({ changes: 2, lastID: 9 }, 'DELETE', 1).affectedRows, 2)
 			assert.deepStrictEqual(toEditorResult('[{"n":"1"}]', 'SELECT', 1).rows, [{ n: '1' }])
 			assert.deepStrictEqual(toEditorResult({ rows: [], columns: ['id', 'name'], command: 'SELECT' }, 'SELECT', 1).columns, ['id', 'name'])
+			assert.deepStrictEqual(toEditorResult({ rows: [], columns: ['id', 'name'], columnTypes: ['integer', undefined] }, 'SELECT', 1).columnTypes, { id: 'integer' })
+			assert.strictEqual(toEditorResult({ rows: [], columns: ['id'], columnTypes: [undefined] }, 'SELECT', 1).columnTypes, undefined)
 			assert.strictEqual(toEditorResult({ rows: [], columns: [], affectedRows: 4, command: 'UPDATE' }, 'UPDATE', 1).affectedRows, 4)
 			assert.deepStrictEqual(toEditorResult(42, 'count', 1).rows, [{ result: 42 }])
 			assert.strictEqual(toEditorResult(Object.assign([{ a: 1 }], { truncated: true }), 'SELECT', 1).moreRowsExist, true)
@@ -225,6 +227,10 @@ describe('SQL Editor', () => {
 
 			const read = await runEditorQuery(engine, { runId: 'd3', code: 'SELECT amount FROM prices ORDER BY id' })
 			assert.strictEqual(read.results?.[0].rows[0].amount, '99999999999999.9999')
+			assert.deepStrictEqual(read.results?.[0].columnTypes, { amount: 'DECIMAL(18,4)' })
+
+			const empty = await runEditorQuery(engine, { runId: 'd4', code: 'SELECT id, amount FROM prices WHERE id < 0' })
+			assert.deepStrictEqual(empty.results?.[0].columns, ['id', 'amount'])
 		})
 	})
 
@@ -256,8 +262,9 @@ describe('SQL Editor', () => {
 		})
 
 		it('returns columns for an empty result and affected rows for writes', async () => {
-			const empty = await runEditorQuery(engine, { runId: 'p1', code: 'SELECT id, label FROM editor_items' })
-			assert.deepStrictEqual(empty.results?.[0].columns, ['id', 'label'])
+			const empty = await runEditorQuery(engine, { runId: 'p1', code: 'SELECT id, label, now() AS at FROM editor_items' })
+			assert.deepStrictEqual(empty.results?.[0].columns, ['id', 'label', 'at'])
+			assert.deepStrictEqual(empty.results?.[0].columnTypes, { id: 'integer', label: 'text', at: 'timestamptz' })
 			assert.strictEqual(empty.results?.[0].rowCount, 0)
 
 			const insert = await runEditorQuery(engine, { runId: 'p2', code: `INSERT INTO editor_items (label) VALUES ('a'), ('b')`, confirmed: true })
@@ -282,31 +289,31 @@ describe('SQL Editor', () => {
 			store.setExtensionContext(fake.context)
 
 			const history = Array.from({ length: HISTORY_LIMIT + 10 }, (_, index) => ({ code: `SELECT ${index}`, ranAt: index, ok: true }))
-			await store.save('provider:sqlite', { history: [...history, { code: '   ', ranAt: 1, ok: true }], draft: 'SELECT 1', split: 3 })
+			await store.save('provider:sqlite', { history: [...history, { code: '   ', ranAt: 1, ok: true }], draft: 'SELECT 1', size: 3 })
 
 			const state = store.get('provider:sqlite')
 			assert.strictEqual(state.history.length, HISTORY_LIMIT)
 			assert.strictEqual(state.history[0].code, 'SELECT 0')
 			assert.strictEqual(state.draft, 'SELECT 1')
-			assert.strictEqual(state.split, 0.85)
+			assert.strictEqual(state.size, 15)
 			assert.deepStrictEqual(store.get('remote:other'), { history: [] })
 		})
 
-		it('keeps the panel width and the cancelled flag', async () => {
+		it('keeps the editor pane size and the cancelled flag', async () => {
 			const fake = createFakeExtensionContext()
 			const store = new SqlEditorStateStore()
 			store.setExtensionContext(fake.context)
 
-			await store.save('provider:a', { history: [{ code: 'SELECT pg_sleep(9)', ranAt: 1, ok: false, cancelled: true }, { code: 'SELECT 1', ranAt: 2, ok: true }], width: 47.5 })
-			await store.save('provider:b', { history: [], width: 99 })
+			await store.save('provider:a', { history: [{ code: 'SELECT pg_sleep(9)', ranAt: 1, ok: false, cancelled: true }, { code: 'SELECT 1', ranAt: 2, ok: true }], size: 47.5 })
+			await store.save('provider:b', { history: [], size: 99 })
 			await store.save('provider:c', { history: [] })
 
 			const state = store.get('provider:a')
-			assert.strictEqual(state.width, 47.5)
+			assert.strictEqual(state.size, 47.5)
 			assert.strictEqual(state.history[0].cancelled, true)
 			assert.strictEqual(state.history[1].cancelled, undefined)
-			assert.strictEqual(store.get('provider:b').width, 85)
-			assert.strictEqual(store.get('provider:c').width, undefined)
+			assert.strictEqual(store.get('provider:b').size, 85)
+			assert.strictEqual(store.get('provider:c').size, undefined)
 		})
 	})
 

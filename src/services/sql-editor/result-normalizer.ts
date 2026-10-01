@@ -14,6 +14,8 @@ export type EditorResult = {
 	rowCount: number
 	/** True when the engine stopped reading at its own row cap, so more rows exist. */
 	moreRowsExist: boolean
+	/** Column type names, for engines that report them. */
+	columnTypes?: Record<string, string>
 	affectedRows?: number
 	/** Plain-text reply (Redis). */
 	text?: string
@@ -47,14 +49,16 @@ export function toEditorResult(raw: unknown, statement: string, durationMs: numb
 			return toEditorResult(raw[raw.length - 1], statement, durationMs)
 		}
 		const rows = raw.map(item => (isRecord(item) ? item : { value: item }))
-		return rowsResult(rows, statement, durationMs, [], Boolean((raw as { truncated?: boolean }).truncated))
+		const meta = raw as { truncated?: boolean, columns?: unknown, columnTypes?: unknown }
+		const columns = Array.isArray(meta.columns) ? meta.columns.map(String) : []
+		return rowsResult(rows, statement, durationMs, columns, Boolean(meta.truncated), Array.isArray(meta.columnTypes) ? meta.columnTypes : undefined)
 	}
 
 	if (isMeta(raw)) {
 		if (raw.rows.length === 0 && raw.affectedRows !== undefined) {
 			return { ...base, kind: 'affected', affectedRows: raw.affectedRows }
 		}
-		return rowsResult(raw.rows, statement, durationMs, raw.columns)
+		return rowsResult(raw.rows, statement, durationMs, raw.columns, false, raw.columnTypes)
 	}
 
 	if (isRecord(raw)) {
@@ -68,8 +72,13 @@ export function toEditorResult(raw: unknown, statement: string, durationMs: numb
 	return { ...base, kind: 'text', text: String(raw) }
 }
 
-function rowsResult(rawRows: Record<string, unknown>[], statement: string, durationMs: number, knownColumns: string[] = [], moreRowsExist = false): EditorResult {
+function rowsResult(rawRows: Record<string, unknown>[], statement: string, durationMs: number, knownColumns: string[] = [], moreRowsExist = false, knownTypes?: unknown[]): EditorResult {
 	const columns = [...knownColumns]
+	const columnTypes: Record<string, string> = {}
+	knownColumns.forEach((column, index) => {
+		const type = knownTypes?.[index]
+		if (typeof type === 'string' && type) columnTypes[column] = type
+	})
 	const seen = new Set(columns)
 	for (const row of rawRows.slice(0, EDITOR_MAX_ROWS)) {
 		for (const key of Object.keys(row)) {
@@ -95,6 +104,7 @@ function rowsResult(rawRows: Record<string, unknown>[], statement: string, durat
 		rows,
 		rowCount: rawRows.length,
 		moreRowsExist,
+		...(Object.keys(columnTypes).length ? { columnTypes } : {}),
 		durationMs,
 	}
 }
