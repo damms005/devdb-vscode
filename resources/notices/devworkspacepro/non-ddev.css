@@ -1,0 +1,16 @@
+/* Extra mocks for the showcase in PHP projects without DDEV. Loaded after notice.css. */
+
+/* Terminal tab: the app always draws the terminal dark (TerminalTab.vue: "dark bg-background"). */
+.tm {
+	height: 100%; padding: 14px 18px; overflow: hidden;
+	font-family: var(--mono); font-size: 13px; line-height: 21px; letter-spacing: 0;
+	color: hsl(0 0% 92%); background: hsl(240 6% 7%);
+}
+.tm-line { white-space: pre; }
+.tm-dir { color: #61afef; font-weight: 600; }
+.tm-branch { color: #c678dd; }
+.tm-prompt { color: #98c379; }
+.tm-pass { padding: 0 6px; font-weight: 700; color: hsl(240 6% 7%); background: #98c379; }
+.tm-ok { color: #98c379; }
+.tm-dim { color: hsl(0 0% 55%); }
+.tm-caret { display: inline-block; width: 8px; height: 16px; vertical-align: -3px; background: hsl(0 0% 85%); }

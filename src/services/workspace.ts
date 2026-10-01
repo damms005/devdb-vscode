@@ -56,6 +56,18 @@ export function isDdevProject(): boolean {
 	return fs.existsSync(path.join(workspaceRoot, '.ddev'));
 }
 
+/**
+ * True when the workspace root is a PHP project (composer.json or artisan) without DDEV.
+ */
+export function isPhpProjectWithoutDdev(): boolean {
+	const workspaceRoot = getBasePath();
+	if (!workspaceRoot || fs.existsSync(path.join(workspaceRoot, '.ddev'))) {
+		return false;
+	}
+
+	return ['composer.json', 'artisan'].some(file => fs.existsSync(path.join(workspaceRoot, file)));
+}
+
 export function isComposerPhpProject(): boolean {
 	// simply check if workspace root contains a .ddev directory
 	const workspaceRoot = getBasePath();

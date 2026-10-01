@@ -171,6 +171,12 @@ function registerDevCommands(context: vscode.ExtensionContext) {
 			previewDevWorkspaceProNotice(context, args?.newInstall ?? false);
 		})
 	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.dev.previewDevWorkspaceProNonDdevNotice', (args?: { newInstall?: boolean }) => {
+			previewDevWorkspaceProNotice(context, args?.newInstall ?? false, 'non-ddev');
+		})
+	);
 }
 
 export function deactivate() {
