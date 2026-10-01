@@ -136,6 +136,8 @@ export type EditorHistoryEntry = {
 	code: string
 	ranAt: number
 	ok: boolean
+	/** The user cancelled the run. */
+	cancelled?: boolean
 	durationMs?: number
 }
 
@@ -145,6 +147,8 @@ export type EditorConnectionState = {
 	draft?: string
 	/** Height of the editor pane as a fraction of the panel, 0.15 to 0.85. */
 	split?: number
+	/** Width of the editor panel in percent of the DevDb view, 20 to 85. */
+	width?: number
 	updatedAt?: number
 }
 
@@ -194,15 +198,18 @@ function sanitizeState(state: Partial<EditorConnectionState>): EditorConnectionS
 			code: entry.code.slice(0, MAX_CODE_LENGTH),
 			ranAt: Number(entry.ranAt) || Date.now(),
 			ok: entry.ok !== false,
+			...(entry.cancelled === true ? { cancelled: true } : {}),
 			...(typeof entry.durationMs === 'number' ? { durationMs: entry.durationMs } : {}),
 		}))
 
 	const split = Number(state?.split)
+	const width = Number(state?.width)
 
 	return {
 		history,
 		...(typeof state?.draft === 'string' ? { draft: state.draft.slice(0, MAX_DRAFT_LENGTH) } : {}),
 		...(Number.isFinite(split) ? { split: Math.min(0.85, Math.max(0.15, split)) } : {}),
+		...(state?.width !== undefined && Number.isFinite(width) ? { width: Math.min(85, Math.max(20, width)) } : {}),
 		updatedAt: Date.now(),
 	}
 }

@@ -132,6 +132,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
+		vscode.commands.registerCommand('devdb.open-sql-editor', () => devDbViewProvider?.openSqlEditor())
+	);
+
+	context.subscriptions.push(
 		vscode.commands.registerCommand('devdb.license.manage', () => licenseService.manageLicense())
 	);
 

@@ -291,6 +291,23 @@ describe('SQL Editor', () => {
 			assert.strictEqual(state.split, 0.85)
 			assert.deepStrictEqual(store.get('remote:other'), { history: [] })
 		})
+
+		it('keeps the panel width and the cancelled flag', async () => {
+			const fake = createFakeExtensionContext()
+			const store = new SqlEditorStateStore()
+			store.setExtensionContext(fake.context)
+
+			await store.save('provider:a', { history: [{ code: 'SELECT pg_sleep(9)', ranAt: 1, ok: false, cancelled: true }, { code: 'SELECT 1', ranAt: 2, ok: true }], width: 47.5 })
+			await store.save('provider:b', { history: [], width: 99 })
+			await store.save('provider:c', { history: [] })
+
+			const state = store.get('provider:a')
+			assert.strictEqual(state.width, 47.5)
+			assert.strictEqual(state.history[0].cancelled, true)
+			assert.strictEqual(state.history[1].cancelled, undefined)
+			assert.strictEqual(store.get('provider:b').width, 85)
+			assert.strictEqual(store.get('provider:c').width, undefined)
+		})
 	})
 
 	describe('Pro gate', () => {
