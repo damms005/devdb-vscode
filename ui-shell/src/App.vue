@@ -62,6 +62,10 @@ function setupEventHandlers() {
 				}
 				break
 
+			case 'response:refresh-tables':
+				if (Array.isArray(payload.value)) tables.value = payload.value
+				break
+
 			case 'response:get-tables':
 				if (isReconnection()) {
 					notify('Reconnected')
@@ -460,8 +464,32 @@ function handleCancelQuery() {
 	vscode.value.postMessage({ type: 'request:cancel-query' })
 }
 
-function handleRunRawCommand(command) {
-	vscode.value.postMessage({ type: 'request:run-raw-command', value: { command } })
+function handleRunRawCommand(command, confirmed = false) {
+	vscode.value.postMessage({ type: 'request:run-raw-command', value: { command, confirmed } })
+}
+
+function handleRunSqlEditor(request) {
+	vscode.value.postMessage({ type: 'request:run-raw-command', value: removeProxyWrap(request) })
+}
+
+function handleCancelSqlEditor() {
+	vscode.value.postMessage({ type: 'request:cancel-sql-editor' })
+}
+
+function handleGetSqlEditorSchema() {
+	vscode.value.postMessage({ type: 'request:get-sql-editor-schema' })
+}
+
+function handleGetSqlEditorState(key) {
+	vscode.value.postMessage({ type: 'request:get-sql-editor-state', value: { key } })
+}
+
+function handleSaveSqlEditorState(key, state) {
+	vscode.value.postMessage({ type: 'request:save-sql-editor-state', value: { key, state: removeProxyWrap(state) } })
+}
+
+function handleRefreshTables() {
+	vscode.value.postMessage({ type: 'request:refresh-tables' })
 }
 
 function handleGetRedisNamespaces() {
@@ -539,6 +567,12 @@ function notify(title) {
 			@summarize-table="handleSummarizeTable"
 			@cancel-query="handleCancelQuery"
 			@run-raw-command="handleRunRawCommand"
+			@run-sql-editor="handleRunSqlEditor"
+			@get-sql-editor-schema="handleGetSqlEditorSchema"
+			@cancel-sql-editor="handleCancelSqlEditor"
+			@get-sql-editor-state="handleGetSqlEditorState"
+			@save-sql-editor-state="handleSaveSqlEditorState"
+			@refresh-tables="handleRefreshTables"
 			@get-redis-namespaces="handleGetRedisNamespaces"
 			@get-d1-suggestions="handleGetD1Suggestions"
 			@get-aws-profiles="handleGetAwsProfiles"

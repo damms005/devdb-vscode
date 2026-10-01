@@ -698,7 +698,7 @@ export class DuckDbEngine implements DatabaseEngine {
 	 * PRAGMA/EXPORT and similar are refused by keyword. File, network and
 	 * extension access are off for every query (see {@link lockDown}).
 	 */
-	async rawQuery(code: string, options?: { readOnly?: boolean; signal?: AbortSignal }): Promise<any> {
+	async rawQuery(code: string, options?: { readOnly?: boolean; signal?: AbortSignal; quiet?: boolean }): Promise<any> {
 		try {
 			const connection = await this.requireConnection();
 
@@ -716,7 +716,7 @@ export class DuckDbEngine implements DatabaseEngine {
 			const result = await this.withInterrupt(connection, options?.signal, () => connection.run(code));
 			return { changes: Number(result?.rowsChanged ?? 0) };
 		} catch (err) {
-			reportError(`DuckDB run arbitrary query error: ${err}`);
+			if (!options?.quiet) reportError(`DuckDB run arbitrary query error: ${err}`);
 			throw err;
 		}
 	}

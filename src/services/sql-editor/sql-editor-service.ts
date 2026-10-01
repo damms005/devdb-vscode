@@ -58,7 +58,7 @@ export async function runEditorQuery(engine: DatabaseEngine, request: EditorRunR
 
 		const started = performance.now()
 		try {
-			const raw = await engine.rawQuery(statement.text, { readOnly: statement.kind === 'read', signal, withMeta: true })
+			const raw = await untilAborted(engine.rawQuery(statement.text, { readOnly: statement.kind === 'read', signal, withMeta: true, quiet: true }), signal)
 			results.push(toEditorResult(raw, statement.text, Math.round(performance.now() - started)))
 		} catch (error) {
 			const message = signal?.aborted ? 'Query cancelled' : errorText(error)
@@ -108,6 +108,20 @@ export async function getEditorSchema(engine: DatabaseEngine): Promise<{ tables:
 
 const SCHEMA_TABLE_LIMIT = 300
 const SCHEMA_TIMEOUT_MS = 4000
+
+/**
+ * Rejects as soon as `signal` aborts, so the editor stops waiting on engines that cannot
+ * interrupt a running query. Engines that can interrupt get the same signal.
+ */
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+	if (!signal) return promise
+	if (signal.aborted) return Promise.reject(new Error('Query cancelled'))
+	return new Promise<T>((resolve, reject) => {
+		const onAbort = () => reject(new Error('Query cancelled'))
+		signal.addEventListener('abort', onAbort, { once: true })
+		promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort))
+	})
+}
 
 function failedResult(statement: string, durationMs: number, error: string): EditorResult {
 	return { statement, kind: 'empty', columns: [], rows: [], rowCount: 0, moreRowsExist: false, durationMs, error }

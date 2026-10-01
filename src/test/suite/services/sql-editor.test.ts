@@ -61,18 +61,18 @@ describe('SQL Editor', () => {
 			['PRAGMA table_info(users)', 'sqlite', { kind: 'read' }],
 			['PRAGMA foreign_keys = OFF', 'sqlite', { kind: 'write' }],
 			['PRAGMA table_info(users)', 'duckdb', { kind: 'write' }],
-			['UPDATE "public"."users" SET name = \'x\'', 'postgres', { kind: 'write', verb: 'UPDATE', target: 'public.users', warning: 'No WHERE clause: this changes every row' }],
+			['UPDATE "public"."users" SET name = \'x\'', 'postgres', { kind: 'write', verb: 'UPDATE', target: 'public.users', warning: 'No WHERE clause: this changes every row.' }],
 			['UPDATE users SET name = \'x\' WHERE id = 1', 'postgres', { kind: 'write', target: 'users', warning: undefined }],
-			['DELETE FROM `orders`', 'mysql2', { kind: 'write', target: 'orders', warning: 'No WHERE clause: this deletes every row' }],
+			['DELETE FROM `orders`', 'mysql2', { kind: 'write', target: 'orders', warning: 'No WHERE clause: this deletes every row.' }],
 			['INSERT OR REPLACE INTO kv (k) VALUES (1)', 'sqlite', { kind: 'write', verb: 'INSERT', target: 'kv' }],
 			['DROP TABLE IF EXISTS [dbo].[logs]', 'mssql', { kind: 'write', verb: 'DROP TABLE', target: 'dbo.logs', changesSchema: true }],
 			['CREATE TABLE IF NOT EXISTS events (id int)', 'sqlite', { kind: 'write', verb: 'CREATE TABLE', target: 'events', changesSchema: true }],
 			['ALTER TABLE users ADD COLUMN age int', 'postgres', { kind: 'write', verb: 'ALTER TABLE', target: 'users', changesSchema: true }],
-			['TRUNCATE TABLE sessions', 'clickhouse', { kind: 'write', target: 'sessions', warning: 'This deletes every row' }],
+			['TRUNCATE TABLE sessions', 'clickhouse', { kind: 'write', target: 'sessions', warning: 'This deletes every row.' }],
 			['SELECT * FROM "Music" WHERE Artist = \'x\'', 'dynamodb', { kind: 'read' }],
 			['DELETE FROM "Music" WHERE Artist = \'x\'', 'dynamodb', { kind: 'write', target: 'Music' }],
 			['GET user:1', 'redis', { kind: 'read', verb: 'GET' }],
-			['FLUSHALL', 'redis', { kind: 'write', verb: 'FLUSHALL', warning: 'This deletes every key' }],
+			['FLUSHALL', 'redis', { kind: 'write', verb: 'FLUSHALL', warning: 'This deletes every key.' }],
 			['{"collection":"users","operation":"find","query":{}}', 'mongodb', { kind: 'read', verb: 'find' }],
 			['{"collection":"users","operation":"aggregate","query":{"pipeline":[{"$out":"copy"}]}}', 'mongodb', { kind: 'write', target: 'copy' }],
 		]
@@ -160,7 +160,7 @@ describe('SQL Editor', () => {
 			const code = `SELECT 1; UPDATE users SET name = 'X'`
 			const response = await runEditorQuery(engine, { runId: 'r2', code })
 			assert.strictEqual(response.results, undefined)
-			assert.deepStrictEqual(response.needsConfirmation?.map(info => [info.verb, info.target, info.warning]), [['UPDATE', 'users', 'No WHERE clause: this changes every row']])
+			assert.deepStrictEqual(response.needsConfirmation?.map(info => [info.verb, info.target, info.warning]), [['UPDATE', 'users', 'No WHERE clause: this changes every row.']])
 			assert.deepStrictEqual(await engine.rawQuery(`SELECT count(*) AS n FROM users WHERE name = 'X'`), [{ n: 0 }])
 		})
 
@@ -188,6 +188,14 @@ describe('SQL Editor', () => {
 			const response = await runEditorQuery(engine, { runId: 'r6', code: 'WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1500) SELECT i FROM n' })
 			assert.strictEqual(response.results?.[0].rows.length, EDITOR_MAX_ROWS)
 			assert.strictEqual(response.results?.[0].rowCount, 1500)
+		})
+
+		it('stops waiting when the user cancels, also on engines that cannot interrupt a query', async () => {
+			const stuck = { getType: () => 'sqlite', rawQuery: () => new Promise(() => undefined) } as unknown as SqliteEngine
+			const controller = new AbortController()
+			setTimeout(() => controller.abort(), 20)
+			const response = await runEditorQuery(stuck, { runId: 'r8', code: 'SELECT 1' }, controller.signal)
+			assert.strictEqual(response.results?.[0].error, 'Query cancelled')
 		})
 
 		it('says when there is nothing to run', async () => {

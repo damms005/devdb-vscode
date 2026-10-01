@@ -146,6 +146,8 @@ export type RawQueryOptions = {
 	 * callers get column names for empty results and the affected-row count of writes.
 	 */
 	withMeta?: boolean
+	/** The caller shows errors itself, so the engine does not show an error notification. */
+	quiet?: boolean
 }
 
 export type RawQueryResultWithMeta = {

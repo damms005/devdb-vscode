@@ -12,7 +12,7 @@ export type EditorStatementInfo = {
 	verb: string
 	/** Table, collection or key the statement writes to, without quotes. */
 	target?: string
-	/** Shown in amber in the confirmation, e.g. "No WHERE clause: this changes every row". */
+	/** Shown in amber in the confirmation, e.g. "No WHERE clause: this changes every row." */
 	warning?: string
 	/** True for DDL (CREATE, DROP, ALTER, RENAME), so the table list must reload. */
 	changesSchema: boolean
@@ -126,10 +126,10 @@ function unquoteIdentifier(identifier: string): string {
 
 function writeWarning(code: string, keyword: string, verb: string): string | undefined {
 	const hasWhere = /\bWHERE\b/i.test(code)
-	if (keyword === 'UPDATE' && !hasWhere) return 'No WHERE clause: this changes every row'
-	if (keyword === 'DELETE' && !hasWhere) return 'No WHERE clause: this deletes every row'
-	if (keyword === 'TRUNCATE') return 'This deletes every row'
-	if (keyword === 'DROP') return `${verb} cannot be undone`
+	if (keyword === 'UPDATE' && !hasWhere) return 'No WHERE clause: this changes every row.'
+	if (keyword === 'DELETE' && !hasWhere) return 'No WHERE clause: this deletes every row.'
+	if (keyword === 'TRUNCATE') return 'This deletes every row.'
+	if (keyword === 'DROP') return `You cannot undo ${verb}.`
 	return undefined
 }
 
@@ -140,7 +140,7 @@ function classifyRedis(text: string): EditorStatementInfo {
 	}
 
 	const target = text.trim().split(/\s+/)[1]
-	const warning = verb === 'FLUSHALL' || verb === 'FLUSHDB' ? 'This deletes every key' : undefined
+	const warning = verb === 'FLUSHALL' || verb === 'FLUSHDB' ? 'This deletes every key.' : undefined
 	return { text, kind: 'write', verb, target: warning ? undefined : target, warning, changesSchema: false }
 }
 
@@ -168,7 +168,7 @@ function classifyMongo(text: string): EditorStatementInfo {
 		kind: 'write',
 		verb: operation,
 		target: typeof destination === 'string' ? destination : parsed?.collection,
-		warning: 'This writes the result to a collection',
+		warning: 'This writes the result to a collection.',
 		changesSchema: false,
 	}
 }

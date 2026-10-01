@@ -61,6 +61,7 @@ let connectionId = 0
  * abort; for others `cancel-query` is a harmless no-op.
  */
 let activeQueryController: AbortController | null = null
+let editorQueryController: AbortController | null = null
 
 function beginQuery(): AbortSignal {
 	activeQueryController?.abort()
@@ -205,6 +206,11 @@ export async function handleIncomingMessage(data: any, webviewView: vscode.Webvi
 		'request:get-redis-namespaces': async () => await withPro('Redis / Valkey', error => ({ error }), () => getRedisNamespaces()),
 		'request:cancel-query': async () => {
 			cancelActiveQuery()
+			return undefined
+		},
+		'request:cancel-sql-editor': async () => {
+			editorQueryController?.abort()
+			editorQueryController = null
 			return undefined
 		},
 	}
@@ -522,14 +528,22 @@ async function runRawCommand(payload: { command?: string, code?: string, runId?:
 		return { error: 'This database does not run raw queries', runId: payload?.runId } as EditorRunResponse
 	}
 
+	if (database.getType() !== 'redis') {
+		// The editor has its own controller, so table loads and editor runs do not cancel each other.
+		editorQueryController?.abort()
+		const editorController = new AbortController()
+		editorQueryController = editorController
+		try {
+			return await runEditorQuery(database, { runId: String(payload?.runId ?? ''), code: payload?.code ?? payload?.command ?? '', confirmed: payload?.confirmed }, editorController.signal)
+		} finally {
+			if (editorQueryController === editorController) editorQueryController = null
+		}
+	}
+
 	const signal = beginQuery()
 	const controller = activeQueryController
 
 	try {
-		if (database.getType() !== 'redis') {
-			return await runEditorQuery(database, { runId: String(payload?.runId ?? ''), code: payload?.code ?? payload?.command ?? '', confirmed: payload?.confirmed }, signal)
-		}
-
 		const command = payload?.command ?? payload?.code ?? ''
 		if (!command.trim()) {
 			return { error: 'Empty command' }

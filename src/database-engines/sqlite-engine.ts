@@ -445,7 +445,7 @@ export class SqliteEngine implements DatabaseEngine {
         if (isSelect) {
           db.all(code, (err, rows) => {
             if (err) {
-              reportError(`SQLite run arbitrary query error: ${err}`);
+              if (!options?.quiet) reportError(`SQLite run arbitrary query error: ${err}`);
               reject(err);
               return;
             }
@@ -454,7 +454,7 @@ export class SqliteEngine implements DatabaseEngine {
         } else {
           db.run(code, function (err) {
             if (err) {
-              reportError(`SQLite run arbitrary query error: ${err}`);
+              if (!options?.quiet) reportError(`SQLite run arbitrary query error: ${err}`);
               reject(err);
               return;
             }
@@ -468,7 +468,7 @@ export class SqliteEngine implements DatabaseEngine {
         }
       });
     } catch (err) {
-      reportError(`SQLite run arbitrary query error: ${err}`);
+      if (!options?.quiet) reportError(`SQLite run arbitrary query error: ${err}`);
       throw err;
     }
   }
