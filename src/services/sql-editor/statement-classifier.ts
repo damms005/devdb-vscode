@@ -38,6 +38,19 @@ const DEFAULT_READ_KEYWORDS = ['SELECT', 'WITH', 'EXPLAIN', 'VALUES']
 
 const SCHEMA_KEYWORDS = new Set(['CREATE', 'DROP', 'ALTER', 'RENAME'])
 
+/**
+ * Write keywords DevDb knows. Any other first keyword (often a typo such as "ELECT") still
+ * needs confirmation, with a warning that DevDb does not know the statement.
+ */
+const KNOWN_WRITE_KEYWORDS = new Set([
+	...SCHEMA_KEYWORDS, 'INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'UPSERT', 'MERGE', 'TRUNCATE', 'COPY', 'GRANT', 'REVOKE',
+	'SET', 'RESET', 'BEGIN', 'START', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'RELEASE', 'CALL', 'EXEC', 'EXECUTE', 'DO',
+	'VACUUM', 'ANALYZE', 'ANALYSE', 'REINDEX', 'CLUSTER', 'REFRESH', 'COMMENT', 'LOCK', 'USE', 'ATTACH', 'DETACH',
+	'LOAD', 'INSTALL', 'EXPORT', 'IMPORT', 'CHECKPOINT', 'OPTIMIZE', 'SYSTEM', 'KILL', 'PRAGMA', 'SELECT', 'WITH',
+	'EXPLAIN', 'SHOW', 'DESCRIBE', 'DESC', 'TABLE', 'VALUES', 'FROM', 'PIVOT', 'UNPIVOT', 'SUMMARIZE', 'EXISTS',
+	'DECLARE', 'PREPARE', 'DEALLOCATE', 'LISTEN', 'NOTIFY', 'DISCARD', 'SECURITY', 'REASSIGN', 'FLUSH', 'OPTIMISE',
+])
+
 const OBJECT_TYPES = ['MATERIALIZED VIEW', 'TABLE', 'VIEW', 'INDEX', 'SCHEMA', 'DATABASE', 'TRIGGER', 'FUNCTION', 'PROCEDURE', 'SEQUENCE', 'TYPE', 'EXTENSION', 'DICTIONARY', 'USER', 'ROLE', 'COLLECTION']
 
 const IDENTIFIER = String.raw`((?:[\x60"\[]?[\w$-]+[\x60"\]]?)(?:\s*\.\s*[\x60"\[]?[\w$-]+[\x60"\]]?)*)`
@@ -130,6 +143,7 @@ function writeWarning(code: string, keyword: string, verb: string): string | und
 	if (keyword === 'DELETE' && !hasWhere) return 'No WHERE clause: this deletes every row.'
 	if (keyword === 'TRUNCATE') return 'This deletes every row.'
 	if (keyword === 'DROP') return `You cannot undo ${verb}.`
+	if (!KNOWN_WRITE_KEYWORDS.has(keyword)) return `DevDb does not know ${keyword || 'this statement'}. Check the spelling. It can change data.`
 	return undefined
 }
 

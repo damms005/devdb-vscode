@@ -68,6 +68,8 @@ describe('SQL Editor', () => {
 			['DROP TABLE IF EXISTS [dbo].[logs]', 'mssql', { kind: 'write', verb: 'DROP TABLE', target: 'dbo.logs', changesSchema: true }],
 			['CREATE TABLE IF NOT EXISTS events (id int)', 'sqlite', { kind: 'write', verb: 'CREATE TABLE', target: 'events', changesSchema: true }],
 			['ALTER TABLE users ADD COLUMN age int', 'postgres', { kind: 'write', verb: 'ALTER TABLE', target: 'users', changesSchema: true }],
+			['ELECT * FROM users', 'postgres', { kind: 'write', verb: 'ELECT', warning: 'DevDb does not know ELECT. Check the spelling. It can change data.' }],
+			['VACUUM', 'sqlite', { kind: 'write', verb: 'VACUUM', warning: undefined }],
 			['TRUNCATE TABLE sessions', 'clickhouse', { kind: 'write', target: 'sessions', warning: 'This deletes every row.' }],
 			['SELECT * FROM "Music" WHERE Artist = \'x\'', 'dynamodb', { kind: 'read' }],
 			['DELETE FROM "Music" WHERE Artist = \'x\'', 'dynamodb', { kind: 'write', target: 'Music' }],
