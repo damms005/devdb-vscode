@@ -290,6 +290,19 @@ Needs `libsql` running (`docker compose up -d --wait libsql && ./libsql/seed.sh`
 
 Expected: CACHE shows "Cloudflare D1 (local) — CACHE binding has no local database yet. Run `wrangler d1 migrations apply edge-cache-db --local` or `wrangler dev` first". D1 local works without a license. Turso without a license is refused ("DevDb Pro required: Turso / libSQL"). Remote Turso dialog: URL `http://127.0.0.1:8081`, any token. Remote Cloudflare D1 needs a real account; the mocha suite covers it with a mock of the D1 API (`src/test/suite/engines/d1-mock-server.ts`).
 
+### UI regression tour (before/after a UI or dependency change)
+
+`tours/ui-regression.json` clicks through 19 screens: Free and Pro home, the add-connection dialog (Direct, Redis and ClickHouse forms, with real test connections), Redis keys and console, the ClickHouse grid, the DuckDB grid with row hover and Summarize, the SQL Editor (query tab and the confirm dialog for a write), the pgvector cell menu and similarity search, and the light theme. `tours/compare.sh` runs it and compares each screenshot with a baseline (ImageMagick, 2% fuzz):
+
+```bash
+DEVDB_LICENSE_API_BASE=http://127.0.0.1:47181/api/license node esbuild.js
+.claude/skills/run-devdb/tours/compare.sh baseline   # before the change
+# ...make the change, rebuild ui-shell and the extension...
+.claude/skills/run-devdb/tours/compare.sh            # after: changed pixels per screen + red diff images
+```
+
+Two runs of the same build differ by a few hundred pixels at most (under 0.01%, the cursor and timings). A larger number on one screen is a real change: open the diff image. Tour notes: it opens the panel with `host-eval` (`devdb.focus` + `workbench.action.toggleMaximizedPanel`), because the `panel max` command alone does not maximize on a fresh profile; it adds remote connections through the real dialog, because connections saved with `devdb.dev.saveRemoteConnections` before `license` sometimes do not show in the list; and it waits after `Meta+a` in the SQL Editor, because the first typed letter is lost without the wait. `npm run compile` and `pretest` rebuild `dist` without the mock license base, so rebuild with `DEVDB_LICENSE_API_BASE` after them.
+
 ## Gotchas
 
 - **Secrets do not survive a launch:** `--use-inmemory-secretstorage` drops saved passwords when VS Code closes. A saved Redis/Mongo connection with a password then shows "The saved password for … was not found". Add the connection again in the same batch that uses it.
