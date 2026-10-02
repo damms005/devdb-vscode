@@ -6,25 +6,17 @@
     "dev": "vite",
     "build": "vite build",
     "watch": "chokidar -s '../src/**/*.ts' './src/**/*.{vue,js,ts,css}' './node_modules/devdb-ui/dist/**/*.*' -c './build.sh'",
-    "preview": "vite preview",
-    "test:e2e": "start-server-and-test preview http://localhost:4173 'cypress run --e2e'",
-    "test:e2e:dev": "start-server-and-test 'vite dev --port 4173' http://localhost:4173 'cypress open --e2e'",
-    "test:unit": "cypress run --component",
-    "test:unit:dev": "cypress open --component"
+    "preview": "vite preview"
   },
   "dependencies": {
     "devdb-ui": "file:../../devdb-ui",
-    "pinia": "^4.0.3",
-    "vue": "^3.5.43",
-    "vue-router": "^5.3.1"
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@vitejs/plugin-vue": "^6.0.9",
     "chokidar-cli": "^3.0.0",
-    "cypress": "^16.1.1",
     "postcss": "^8.5.28",
-    "start-server-and-test": "^3.0.12",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.1"
   }

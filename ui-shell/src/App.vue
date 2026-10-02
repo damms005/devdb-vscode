@@ -3,7 +3,6 @@ import 'devdb-ui/style.css'
 import './assets/base.css'
 import './assets/style.css'
 import { DevDB } from 'devdb-ui'
-import { RouterView } from 'vue-router'
 import { onMounted, ref } from 'vue'
 
 const vscode = ref()
@@ -578,6 +577,5 @@ function notify(title) {
 			@get-aws-profiles="handleGetAwsProfiles"
 		/>
 	</div>
-	 <RouterView />
 </template>
 
