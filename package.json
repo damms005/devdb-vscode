@@ -352,7 +352,7 @@
 		"@libsql/client": "^0.18.0",
 		"@modelcontextprotocol/sdk": "^1.30.0",
 		"@vscode/sqlite3": "^5.1.12-vscode",
-		"axios": "^1.19.0",
+		"axios": "^1.20.0",
 		"case": "^1.6.3",
 		"cosmiconfig": "^9.0.2",
 		"dotenv": "^17.4.2",
@@ -383,6 +383,7 @@
 		"yaml": "^2.9.0"
 	},
 	"overrides": {
+		"@grpc/grpc-js": "^1.14.5",
 		"diff": "^8.0.3",
 		"fast-uri": "^3.1.8",
 		"hono": "^4.13.5",
