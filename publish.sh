@@ -68,6 +68,9 @@ cleanup_test_containers() {
     devdb-test-container-redis \
     devdb-test-container-clickhouse \
     devdb-test-container-pgvector \
+    devdb-test-container-libsql \
+    devdb-test-container-mongodb \
+    devdb-test-container-dynamodb \
     2>/dev/null || true
   echo "Cleanup complete."
 }
