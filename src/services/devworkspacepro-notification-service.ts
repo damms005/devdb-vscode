@@ -266,6 +266,6 @@ export function getOffer(isNewInstall: boolean) {
         offerTitle: isNewInstall ? 'Welcome offer for DevDb users' : 'Special offer for DevDb users',
         offerDiscount: isNewInstall ? '25% off' : '30% off',
         offerText: 'your first yearly license.',
-        discountCode: isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'LAUNCHDAYGIFTFORDEVDBUSERS',
+        discountCode: isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'DEVDBUSERSPROMO',
     };
 }
