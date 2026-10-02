@@ -166,10 +166,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0) || { echo "No existing tags found. Please create a tag first."; exit 1; }
-          gh release create "$LATEST_TAG" --generate-notes
-          for file in **/*.vsix; do
-            gh release upload "$LATEST_TAG" "$file"
-          done
+          # Immutable releases: assets must go up in the create call (gh uploads to a draft, then publishes).
+          gh release create "$LATEST_TAG" --generate-notes **/*.vsix
       - name: Publish to VS Code Marketplace
         run: find . -iname '*.vsix' -print0 | xargs -0 npx --yes "@vscode/vsce@${VSCE_VERSION}" publish --pre-release --packagePath
         env:

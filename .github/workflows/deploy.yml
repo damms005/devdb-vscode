@@ -177,10 +177,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.ref_name }} --generate-notes
-          for file in **/*.vsix; do
-            gh release upload ${{ github.ref_name }} "$file"
-          done
+          # Immutable releases: assets must go up in the create call (gh uploads to a draft, then publishes).
+          gh release create ${{ github.ref_name }} --generate-notes **/*.vsix
       - name: Publish to VS Code Marketplace
         run: find . -iname '*.vsix' -print0 | xargs -0 npx --yes "@vscode/vsce@${VSCE_VERSION}" publish --packagePath
         env:
