@@ -17,7 +17,9 @@
 			if (element.dataset.done && !element.dataset.label) {
 				element.dataset.label = element.textContent;
 				element.textContent = element.dataset.done;
+				element.classList.add('is-done');
 				setTimeout(() => {
+					element.classList.remove('is-done');
 					element.textContent = element.dataset.label;
 					delete element.dataset.label;
 				}, 1600);

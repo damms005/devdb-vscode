@@ -264,7 +264,8 @@ export function getNoticeHtml(webview: NoticeWebview, nonce: string, extensionPa
 export function getOffer(isNewInstall: boolean) {
     return {
         offerTitle: isNewInstall ? 'Welcome offer for DevDb users' : 'Special offer for DevDb users',
-        offerText: isNewInstall ? 'Get 25% off your first yearly license.' : 'Get 30% off your first yearly license.',
+        offerDiscount: isNewInstall ? '25% off' : '30% off',
+        offerText: 'your first yearly license.',
         discountCode: isNewInstall ? 'GIFTFORDEVDBUSERS25' : 'LAUNCHDAYGIFTFORDEVDBUSERS',
     };
 }
