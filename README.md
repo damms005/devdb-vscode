@@ -19,6 +19,18 @@ DevDb finds the database of your project and shows it in a panel in VS Code, Cur
 
 ![DevDb panel](resources/screenshots/new/main-light-dark.png)
 
+<p align="center"><sub>FEATURED IN</sub></p>
+
+<p align="center">
+    <a title="Laravel News" href="https://laravel-news.com/devdb"><img alt="Laravel News" height="32" src="resources/featured/laravel-new.png" /></a>
+&nbsp;&nbsp;&nbsp;
+    <a title="DDEV documentation" href="https://ddev.readthedocs.io/en/latest/users/usage/database-management/#database-guis"><img alt="DDEV documentation" height="32" src="resources/featured/ddev.png" /></a>
+&nbsp;&nbsp;&nbsp;
+    <a title="Daily dev" href="https://app.daily.dev/posts/JAhlsLY2E"><img alt="Daily dev" height="18" src="resources/featured/daily-dev.png" /></a>
+&nbsp;&nbsp;&nbsp;
+    <a title="TestDevTools" href="https://testdev.tools/dev-db"><img alt="TestDevTools" height="32" src="resources/featured/test-dev-tools.png" /></a>
+</p>
+
 ## Features
 
 - **Zero-config detection.** DevDb reads Laravel, Rails, Django, AdonisJS, DDEV, Supabase, Prisma, Drizzle, docker-compose, Wrangler and `DATABASE_URL` setups. [More](https://docs.devdbpro.com/zero-config.html)
@@ -64,16 +76,6 @@ Requirements: VS Code 1.90 or later. DevDb runs on macOS, Windows, Linux and Alp
 | Errors and logs | [Troubleshooting](https://docs.devdbpro.com/troubleshooting.html) |
 | Report a security problem | [Security](https://docs.devdbpro.com/security.html) |
 | Release notes | [Changelog](https://docs.devdbpro.com/changelog.html) |
-
-## Featured in
-
-<a title="Laravel News" href="https://laravel-news.com/devdb"><img alt="Laravel News" height="32" src="resources/featured/laravel-new.png" /></a>
-&nbsp;
-<a title="DDEV documentation" href="https://ddev.readthedocs.io/en/latest/users/usage/database-management/#database-guis"><img alt="DDEV documentation" height="32" src="resources/featured/ddev.png" /></a>
-&nbsp;
-<a title="Daily dev" href="https://app.daily.dev/posts/JAhlsLY2E"><img alt="Daily dev" height="18" src="resources/featured/daily-dev.png" /></a>
-&nbsp;
-<a title="TestDevTools" href="https://testdev.tools/dev-db"><img alt="TestDevTools" height="32" src="resources/featured/test-dev-tools.png" /></a>
 
 ## Sponsors
 
