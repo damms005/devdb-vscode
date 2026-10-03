@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 env:
   # Exact versions: these tools run with the publish tokens.
@@ -190,3 +190,9 @@ jobs:
           for file in **/*.vsix; do
             npx --yes "ovsx@${OVSX_VERSION}" publish "$file"
           done
+      - name: Delete build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq '.artifacts[].id' \
+            | xargs -r -I{} gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/{}"
