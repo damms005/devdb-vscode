@@ -57,7 +57,7 @@
         "@types/winston": "^2.4.4",
         "@typescript-eslint/eslint-plugin": "^8.66.0",
         "@typescript-eslint/parser": "^8.66.0",
-        "@vscode/test-electron": "^2.5.2",
+        "@vscode/test-electron": "^3.1.0",
         "eslint": "^10.8.0",
         "from": "^0.1.7",
         "glob": "^13.0.6",
@@ -473,7 +473,7 @@
 
     "@vscode/sqlite3": ["@vscode/sqlite3@5.1.12-vscode", "", { "dependencies": { "node-addon-api": "^8.2.0", "tar": "^7.5.4" } }, "sha512-WLTftbMtK3Ni0s+q46qtKJ2CFtA3YrS5N4GcrETDCxqNTQAvk1LlYlG3RwGE6vZLcUqPt3TCHobijYeNUhEQ9Q=="],
 
-    "@vscode/test-electron": ["@vscode/test-electron@2.5.2", "", { "dependencies": { "http-proxy-agent": "^7.0.2", "https-proxy-agent": "^7.0.5", "jszip": "^3.10.1", "ora": "^8.1.0", "semver": "^7.6.2" } }, "sha512-8ukpxv4wYe0iWMRQU18jhzJOHkeGKbnw7xWRX3Zw1WJA4cEKbHcmmLPdPrPtL6rhDcrlCZN+xKRpv09n4gRHYg=="],
+    "@vscode/test-electron": ["@vscode/test-electron@3.1.0", "", { "dependencies": { "http-proxy-agent": "^7.0.2", "https-proxy-agent": "^7.0.5", "jszip": "^3.10.1", "ora": "^8.1.0", "semver": "^7.6.2" } }, "sha512-CRqv5u+YYoseuNVJ6Tyo4k0sF0mx4qnKMihRB0PjsUF8Dc0WKtCXo6CNL6nWWm5esfFQsQA/pejMj4ZbpJVLTw=="],
 
     "abbrev": ["abbrev@4.0.0", "", {}, "sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA=="],
 
