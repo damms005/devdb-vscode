@@ -328,7 +328,7 @@
 		"postinstall": "node scripts/sync-bun-lockfile.js"
 	},
 	"devDependencies": {
-		"@testcontainers/mssqlserver": "^11.14.0",
+		"@testcontainers/mssqlserver": "^12.2.0",
 		"@testcontainers/mysql": "^11.14.0",
 		"@testcontainers/postgresql": "^11.14.0",
 		"@testcontainers/redis": "^12.1.0",
