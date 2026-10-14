@@ -9,7 +9,7 @@
         "@azure/app-configuration": "^1.12.1",
         "@azure/keyvault-secrets": "^4.11.2",
         "@clickhouse/client": "^1.23.1",
-        "@duckdb/node-api": "^1.5.5-r.3",
+        "@duckdb/node-api": "^1.5.5-r.5",
         "@libsql/client": "^0.18.0",
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@vscode/sqlite3": "^5.1.12-vscode",
@@ -177,25 +177,25 @@
 
     "@dabh/diagnostics": ["@dabh/diagnostics@2.0.8", "", { "dependencies": { "@so-ric/colorspace": "^1.1.6", "enabled": "2.0.x", "kuler": "^2.0.0" } }, "sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q=="],
 
-    "@duckdb/node-api": ["@duckdb/node-api@1.5.5-r.3", "", { "dependencies": { "@duckdb/node-bindings": "1.5.5-r.3" } }, "sha512-qOwoSj8eBW+mNyAvTOOWjnii6jwrLkQFbEC/TyYGZjYCAQzu1r1X6UWVo+23sgtGGNHxmJLHE0ms5QtlQf2W3Q=="],
+    "@duckdb/node-api": ["@duckdb/node-api@1.5.5-r.5", "", { "dependencies": { "@duckdb/node-bindings": "1.5.5-r.5" } }, "sha512-ZMX+sel3DjSKbGuQ44Y5Tp5LwYjlJkhB5faKr+9sSMcxixDMSW+8vaTOD1uRDuN9o0udUoCY/XX9PI1haEZuZg=="],
 
-    "@duckdb/node-bindings": ["@duckdb/node-bindings@1.5.5-r.3", "", { "dependencies": { "detect-libc": "^2.1.2" }, "optionalDependencies": { "@duckdb/node-bindings-darwin-arm64": "1.5.5-r.3", "@duckdb/node-bindings-darwin-x64": "1.5.5-r.3", "@duckdb/node-bindings-linux-arm64": "1.5.5-r.3", "@duckdb/node-bindings-linux-arm64-musl": "1.5.5-r.3", "@duckdb/node-bindings-linux-x64": "1.5.5-r.3", "@duckdb/node-bindings-linux-x64-musl": "1.5.5-r.3", "@duckdb/node-bindings-win32-arm64": "1.5.5-r.3", "@duckdb/node-bindings-win32-x64": "1.5.5-r.3" } }, "sha512-I5basCuPs0OrNHu2cDLFrIErp6Rr9J7wR5awVbvCmFQdOCpi+v+lmQy6KZ2dH8Z7hsqwmAMHk/QJ0s5cvW0qnw=="],
+    "@duckdb/node-bindings": ["@duckdb/node-bindings@1.5.5-r.5", "", { "dependencies": { "detect-libc": "^2.1.2" }, "optionalDependencies": { "@duckdb/node-bindings-darwin-arm64": "1.5.5-r.5", "@duckdb/node-bindings-darwin-x64": "1.5.5-r.5", "@duckdb/node-bindings-linux-arm64": "1.5.5-r.5", "@duckdb/node-bindings-linux-arm64-musl": "1.5.5-r.5", "@duckdb/node-bindings-linux-x64": "1.5.5-r.5", "@duckdb/node-bindings-linux-x64-musl": "1.5.5-r.5", "@duckdb/node-bindings-win32-arm64": "1.5.5-r.5", "@duckdb/node-bindings-win32-x64": "1.5.5-r.5" } }, "sha512-sR7x91TfBunLqLbdvrcdiPCU+VGEQFPicxh1STZM402fuHW2ituPTAo2bY3IlntsvJShltrKF4R6B+JYPlAPZg=="],
 
-    "@duckdb/node-bindings-darwin-arm64": ["@duckdb/node-bindings-darwin-arm64@1.5.5-r.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-bqnjnI2U/aUOcB25smNRwxF1/47HxHz78a8F9ghTHvEl+CeEMEr1lp+sPmjuS/1EybAYsaWJro6zFLd+O5qNQg=="],
+    "@duckdb/node-bindings-darwin-arm64": ["@duckdb/node-bindings-darwin-arm64@1.5.5-r.5", "", { "os": "darwin", "cpu": "arm64" }, "sha512-WJdeLTFy4pRg60rkbp9smtlP1iIQ8ErtIJkxS+2LQtM1ZZMSByyW+3WPpNoKe7IwPtVl2fLlPw7tDmQW4Z974g=="],
 
-    "@duckdb/node-bindings-darwin-x64": ["@duckdb/node-bindings-darwin-x64@1.5.5-r.3", "", { "os": "darwin", "cpu": "x64" }, "sha512-8QEA0tuW5EWPg7kQbyWka6kGu+j7wZuvUAkibdJgODtxz4axJGMR5oM13lb6m/HedvsU3ch2lkvhIhwv6aWqsw=="],
+    "@duckdb/node-bindings-darwin-x64": ["@duckdb/node-bindings-darwin-x64@1.5.5-r.5", "", { "os": "darwin", "cpu": "x64" }, "sha512-rN0KjX13MwVQ5V5ufykolty/tf4SaafOpGWcUA1Cegf98jPeRdsJsEE1IMXn8n3u6WvMSZEVJmHJ3ma4Hr7Vzg=="],
 
-    "@duckdb/node-bindings-linux-arm64": ["@duckdb/node-bindings-linux-arm64@1.5.5-r.3", "", { "os": "linux", "cpu": "arm64" }, "sha512-27y+0xn4ad6mirnu3faZUE2UQhvpPTpi/o9tm9cGxi7QvuvhfD5rvo0D3RnhreHTjiYB4RRB5ZqPMRErqOaTlg=="],
+    "@duckdb/node-bindings-linux-arm64": ["@duckdb/node-bindings-linux-arm64@1.5.5-r.5", "", { "os": "linux", "cpu": "arm64" }, "sha512-CafH2AIvXtpwDynG3KB/4uEOHRGlFoB7auCRMIwH3BKNIobsANV5LSpDJ3tfyRCFIsK6e8AT1eseWVnu2Dv3cw=="],
 
-    "@duckdb/node-bindings-linux-arm64-musl": ["@duckdb/node-bindings-linux-arm64-musl@1.5.5-r.3", "", { "os": "linux", "cpu": "arm64" }, "sha512-qETa9eqdZQNNn1QFfW+FI91HM5kVm+tN4cfqBPu1FgRTatd0oG8KPOfl6NlpuKhQQM5TcWDxI3P57JPXbzjsEQ=="],
+    "@duckdb/node-bindings-linux-arm64-musl": ["@duckdb/node-bindings-linux-arm64-musl@1.5.5-r.5", "", { "os": "linux", "cpu": "arm64" }, "sha512-00z3mYHUBAucp3L73EoftKDdaGOaV8ENELejiT+PK7dFjTzdXxqhJwZ1LaQV1/zEhIecz+x23f6WvFhWw+7XXQ=="],
 
-    "@duckdb/node-bindings-linux-x64": ["@duckdb/node-bindings-linux-x64@1.5.5-r.3", "", { "os": "linux", "cpu": "x64" }, "sha512-+n/rmU0o3Km5MEBJnjteud8f5JEhcSPxTdcyxNERL6H3pZw1vQX3ysI1axP8Mx0Mw7XrVv9+pC5VH+9ERD3LQg=="],
+    "@duckdb/node-bindings-linux-x64": ["@duckdb/node-bindings-linux-x64@1.5.5-r.5", "", { "os": "linux", "cpu": "x64" }, "sha512-kCyq6BXhn6QXfwF8yVdVKriSSHP+rfVWcJ56cG8qZzlOZpxyvT5WGm6jMshxg4ditLlOsHsIN/D47RYrcjXuHQ=="],
 
-    "@duckdb/node-bindings-linux-x64-musl": ["@duckdb/node-bindings-linux-x64-musl@1.5.5-r.3", "", { "os": "linux", "cpu": "x64" }, "sha512-+9cThIhSC1inv6MVVgL37k4lRk56uo7TK2MLNwn1xe7mDVOh8SsjZbHLd/IZ0cWJn77lX7/6G3Qz3mU5k4O2PA=="],
+    "@duckdb/node-bindings-linux-x64-musl": ["@duckdb/node-bindings-linux-x64-musl@1.5.5-r.5", "", { "os": "linux", "cpu": "x64" }, "sha512-S5qEc7F+GjXt85T2xArjjvN5oc/IjtH6zsLJsuo8N3fQolheBCefemIMdZoK2Jik8a0sBxidiS6Ld4qprMPPDw=="],
 
-    "@duckdb/node-bindings-win32-arm64": ["@duckdb/node-bindings-win32-arm64@1.5.5-r.3", "", { "os": "win32", "cpu": "arm64" }, "sha512-/9Ji9xKtzar7MM21DJMZfuizOXjdar+JtOez6o3ue7cKt0AUpjLjqbAjQ0sE/pkqMbByv9TEiVkTi1b3VYm1dw=="],
+    "@duckdb/node-bindings-win32-arm64": ["@duckdb/node-bindings-win32-arm64@1.5.5-r.5", "", { "os": "win32", "cpu": "arm64" }, "sha512-L3Mroc23xhqOowWVElni8LgEmsm5e9DdG1y2pLka/1ug3Pl2vpQMl1Phxwz4UEMF8DOBbMgN5BBNrYwG2BFo+g=="],
 
-    "@duckdb/node-bindings-win32-x64": ["@duckdb/node-bindings-win32-x64@1.5.5-r.3", "", { "os": "win32", "cpu": "x64" }, "sha512-NTODIfgfKARm86kOgSW5CvFElE3J+3X0Y0+3Y40P3biO4wrg4FBGtNSCaVyKuWe+CBkA5PODjgIo3w07hu5qrQ=="],
+    "@duckdb/node-bindings-win32-x64": ["@duckdb/node-bindings-win32-x64@1.5.5-r.5", "", { "os": "win32", "cpu": "x64" }, "sha512-mBGFn8netT/AAhK4TOG6Fw47+Db68CxCVtQ9qfxZc1kZAjds+aYrh17Fd/u5CbTDdxILsrcyuF8q9cUcm54kQA=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ=="],
 
