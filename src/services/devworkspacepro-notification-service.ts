@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
 import { FIRST_START_AT_KEY, FULL_PAGE_SHOWN_AT_KEY, userWantsFewerNotifications } from './new-datastores-notification-service';
-import { honorsFullPageNoticeOptOuts } from './notice-opt-outs';
+import { honorsFullPageNoticeOptOuts, userWantsProNotices } from './notice-opt-outs';
 import { isDdevProject, isNonPhpProjectWithoutDdev, isPhpProjectWithoutDdev } from './workspace';
 
 export type DevWorkspaceProNoticeVariant = 'ddev' | 'php' | 'any-project';
@@ -94,7 +94,7 @@ export async function showDevWorkspaceProNoticeForDdevWorkspaces(
     isNewInstall: boolean = false,
     options: ShowOptions = {},
 ): Promise<boolean> {
-    if (options.fullPagePromoShownThisLaunch) {
+    if (options.fullPagePromoShownThisLaunch || !userWantsProNotices()) {
         return false;
     }
 
@@ -139,7 +139,7 @@ export async function showDevWorkspaceProNoticeForOtherWorkspaces(
     isNewInstall: boolean = false,
     options: ShowOptions = {},
 ): Promise<boolean> {
-    if (options.fullPagePromoShownThisLaunch) {
+    if (options.fullPagePromoShownThisLaunch || !userWantsProNotices()) {
         return false;
     }
 

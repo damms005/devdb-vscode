@@ -288,6 +288,12 @@
 					"default": false,
 					"markdownDescription": "Show fewer actions on new update notification."
 				},
+				"Devdb.showProNotices": {
+					"type": "boolean",
+					"default": true,
+					"scope": "application",
+					"description": "Show notices about DevDb Pro and DevWorkspace Pro. Turn this off to stop the Pro pages and messages. Update messages still show."
+				},
 				"Devdb.customBasePath": {
 					"type": "string",
 					"default": "",

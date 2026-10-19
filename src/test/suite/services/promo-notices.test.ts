@@ -8,6 +8,7 @@ import * as path from 'path';
  */
 const settings: Record<string, any> = {};
 const infoMessages: string[] = [];
+const infoButtons: string[][] = [];
 const createdPanels: string[] = [];
 let workspaceFolders: any[] | undefined;
 let extensionVersion = '4.0.0';
@@ -24,7 +25,11 @@ const vscodeStub = {
 		getConfiguration: () => ({ get: (key: string, fallback?: any) => (key in settings ? settings[key] : fallback) }),
 	},
 	window: {
-		showInformationMessage: (message: string) => { infoMessages.push(message); return Promise.resolve(undefined); },
+		showInformationMessage: (message: string, ...items: string[]) => {
+			infoMessages.push(message);
+			infoButtons.push(items);
+			return Promise.resolve(undefined);
+		},
 		createWebviewPanel: (viewType: string) => {
 			createdPanels.push(viewType);
 			return {
@@ -55,6 +60,9 @@ const version = require('../../../services/version');
 const html = require('../../../services/html');
 const devWorkspacePro = require('../../../services/devworkspacepro-notification-service');
 const optOuts = require('../../../services/notice-opt-outs');
+const recommendation = require('../../../services/devworkspacepro-recommendation-service');
+const ddevDetection = require('../../../services/ddev-detection-service');
+const devWorkspaceProDetection = require('../../../services/devworkspacepro-detection-service');
 
 /** Dates around the end of the launch window, when opt-outs start to count again. */
 const BEFORE_OPT_OUTS = new Date(2026, 11, 24, 23, 59);
@@ -94,6 +102,7 @@ describe('Promo notices', function () {
 	beforeEach(() => {
 		for (const key of Object.keys(settings)) delete settings[key];
 		infoMessages.length = 0;
+		infoButtons.length = 0;
 		createdPanels.length = 0;
 		workspaceFolders = undefined;
 		extensionVersion = '4.0.0';
@@ -494,6 +503,111 @@ describe('Promo notices', function () {
 			assert.ok(welcome.getUpdateMessage('4.0.0').includes('New in 4.0'));
 			assert.ok(!welcome.getUpdateMessage('3.3.0').includes('New in 4.0'));
 			assert.ok(!welcome.getUpdateMessage('4.0.0').includes('$9'));
+			assert.ok(welcome.getUpdateMessage('4.0.0').includes('Gift DevDb Pro'));
+			assert.ok(!welcome.getUpdateMessage('4.0.0', false).includes('Pro'));
+		});
+	});
+
+	describe('Devdb.showProNotices setting', () => {
+		it('is on by default', () => {
+			assert.strictEqual(optOuts.userWantsProNotices(), true);
+			const setting = JSON.parse(fs.readFileSync(path.join(extensionPath, 'package.json'), 'utf8')).contributes.configuration.properties['Devdb.showProNotices'];
+			assert.strictEqual(setting.default, true);
+			assert.strictEqual(setting.type, 'boolean');
+			assert.strictEqual(setting.scope, 'application', 'a workspace cannot turn the notices back on');
+		});
+
+		it('off: no DevDb v4 full page or toast, even in the launch window, and the notice stays pending', async () => {
+			settings.showProNotices = false;
+			for (const now of [BEFORE_OPT_OUTS, AFTER_OPT_OUTS]) {
+				const context = makeFakeContext();
+				assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0', { now }), 'none');
+				assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0', { now, hasLicense: true }), 'none');
+				assert.strictEqual(context.store.has(newDatastores.NOTICE_SHOWN_KEY), false);
+			}
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, []);
+			assert.deepStrictEqual(infoMessages, []);
+		});
+
+		it('off: no DevWorkspace Pro showcase in any workspace, even in the launch window', async () => {
+			settings.showProNotices = false;
+			const t0 = new Date(2026, 9, 1).getTime();
+			for (const makeRoot of [makeDdevWorkspace, makePhpWorkspace, makeGitWorkspace]) {
+				const root = makeRoot();
+				const context = makeFakeContext({ [newDatastores.FULL_PAGE_SHOWN_AT_KEY]: t0 });
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(context, false, { now: BEFORE_OPT_OUTS }), false);
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: BEFORE_OPT_OUTS }), false);
+				assert.strictEqual(context.store.size, 1, `${makeRoot.name}: nothing stored`);
+				fs.rmSync(root, { recursive: true, force: true });
+			}
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, []);
+		});
+
+		it('off: the update message still shows, without the Pro line and the Get Pro button', async () => {
+			const root = makeDdevWorkspace();
+			await welcome.showWelcomeMessage(makeFakeContext({ 'devdb-version': '3.1.0' }), false);
+			assert.ok(infoMessages.some(message => message.includes('Gift DevDb Pro')));
+			assert.ok(infoButtons.some(buttons => buttons.includes('🚀 Get Pro')));
+
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devdb-new-datastores-notice']);
+
+			settings.showProNotices = false;
+			createdPanels.length = 0;
+			infoMessages.length = 0;
+			infoButtons.length = 0;
+			await welcome.showWelcomeMessage(makeFakeContext({ 'devdb-version': '3.1.0' }), false);
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, []);
+			assert.strictEqual(infoMessages.length, 1);
+			assert.ok(infoMessages[0].startsWith('DevDb updated to 4.0.0.'));
+			assert.ok(!infoMessages[0].includes('Pro'));
+			assert.ok(!infoButtons[0].includes('🚀 Get Pro'));
+			fs.rmSync(root, { recursive: true, force: true });
+		});
+
+		it('preview commands still show the notices when off', async () => {
+			settings.showProNotices = false;
+			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { forcePreview: true }), 'webview');
+			devWorkspacePro.previewDevWorkspaceProNotice(makeFakeContext());
+			await flushTimers();
+			assert.deepStrictEqual(createdPanels, ['devworkspacepro-notice', 'devdb-new-datastores-notice']);
+		});
+
+		describe('DevWorkspace Pro recommendation toast', () => {
+			const ddev = ddevDetection.DdevDetectionService.getInstance();
+			const dwp = devWorkspaceProDetection.DevWorkspaceProDetectionService.getInstance();
+			const original = { detectDdev: ddev.detectDdev, detectDevWorkspacePro: dwp.detectDevWorkspacePro };
+			let detections = 0;
+
+			beforeEach(() => {
+				detections = 0;
+				ddev.detectDdev = async () => { detections++; return { isInstalled: true }; };
+				dwp.detectDevWorkspacePro = async () => ({ isInstalled: false });
+			});
+
+			afterEach(() => {
+				ddev.detectDdev = original.detectDdev;
+				dwp.detectDevWorkspacePro = original.detectDevWorkspacePro;
+			});
+
+			it('off: shows nothing and does not start the wait', async () => {
+				settings.showProNotices = false;
+				const context = makeFakeContext();
+				await recommendation.DevWorkspaceProRecommendationService.getInstance().checkAndRecommend(context);
+				assert.deepStrictEqual(infoMessages, []);
+				assert.strictEqual(detections, 0);
+				assert.strictEqual(context.store.size, 0);
+			});
+
+			it('on: shows the toast', async () => {
+				await recommendation.DevWorkspaceProRecommendationService.getInstance().checkAndRecommend(makeFakeContext());
+				assert.strictEqual(detections, 1);
+				assert.strictEqual(infoMessages.length, 1);
+				assert.ok(infoMessages[0].includes('DevWorkspace Pro'));
+			});
 		});
 	});
 

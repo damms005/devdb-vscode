@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
-import { honorsFullPageNoticeOptOuts } from './notice-opt-outs';
+import { honorsFullPageNoticeOptOuts, userWantsProNotices } from './notice-opt-outs';
 import { parseVersion } from './version';
 
 export const NOTICE_SHOWN_KEY = 'devdb.v4.notice.shown';
@@ -52,12 +52,16 @@ export function userWantsFewerNotifications(): boolean {
 export function getNewDatastoresNoticeAction(
 	context: vscode.ExtensionContext,
 	version: string,
-	options: NewDatastoresNoticeOptions & { fewerNotifications?: boolean } = {},
+	options: NewDatastoresNoticeOptions & { fewerNotifications?: boolean; proNotices?: boolean } = {},
 ): NewDatastoresNoticeAction {
 	const kind: NewDatastoresNoticeAction = options.hasLicense ? 'toast' : 'webview';
 
 	if (options.forcePreview) {
 		return kind;
+	}
+
+	if (options.proNotices === false) {
+		return 'none';
 	}
 
 	if (context.globalState.get<boolean>(NOTICE_SHOWN_KEY, false)) {
@@ -97,6 +101,7 @@ export async function showNewDatastoresNotice(
 		...options,
 		now,
 		fewerNotifications: options.forcePreview ? false : userWantsFewerNotifications(),
+		proNotices: options.forcePreview ? true : userWantsProNotices(),
 	});
 
 	if (action === 'none') {

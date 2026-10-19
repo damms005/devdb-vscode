@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { DdevDetectionService } from './ddev-detection-service';
 import { DevWorkspaceProDetectionService } from './devworkspacepro-detection-service';
+import { userWantsProNotices } from './notice-opt-outs';
 
 const RECOMMENDATION_SHOWN_KEY = 'devworkspacepro.recommendation.shown';
 const RECOMMENDATION_DISMISSED_KEY = 'devworkspacepro.recommendation.dismissed';
@@ -20,7 +21,7 @@ export class DevWorkspaceProRecommendationService {
 	async checkAndRecommend(context: vscode.ExtensionContext): Promise<void> {
 		try {
 			const isDismissed = context.globalState.get<boolean>(RECOMMENDATION_DISMISSED_KEY, false);
-			if (isDismissed) {
+			if (isDismissed || !userWantsProNotices()) {
 				return;
 			}
 

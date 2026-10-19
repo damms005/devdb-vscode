@@ -3,6 +3,7 @@ import { ExtensionConstants } from "../constants";
 import { compareVersions } from './version';
 import { showDevWorkspaceProNoticeForDdevWorkspaces, showDevWorkspaceProNoticeForOtherWorkspaces } from './devworkspacepro-notification-service';
 import { isNoticeReleaseLine, showNewDatastoresNotice, userWantsFewerNotifications } from './new-datastores-notification-service';
+import { userWantsProNotices } from './notice-opt-outs';
 
 const BUTTON_CONDITIONAL_STAR_GITHUB_REPO = "⭐️ Star on GitHub";
 const BUTTON_CONDITIONAL_SPONSOR = "❤️ Sponsor"
@@ -35,17 +36,19 @@ export async function showWelcomeMessage(context: vscode.ExtensionContext, hasLi
 		return;
 	}
 
-	showMessageAndButtons(getUpdateMessage(currentVersion), context);
+	showMessageAndButtons(getUpdateMessage(currentVersion, userWantsProNotices()), context);
 }
 
-export function getUpdateMessage(currentVersion: string): string {
+export function getUpdateMessage(currentVersion: string, proNotices = true): string {
 	const lines = [`DevDb updated to ${currentVersion}.`];
 
 	if (isNoticeReleaseLine(currentVersion)) {
 		lines.push('✨ New in 4.0: Redis/Valkey, ClickHouse, DuckDB, DynamoDB, Turso, Cloudflare D1, Neon & pgvector.');
 	}
 
-	lines.push('✨ Gift DevDb Pro to your colleagues and friends!');
+	if (proNotices) {
+		lines.push('✨ Gift DevDb Pro to your colleagues and friends!');
+	}
 
 	return lines.join('\n');
 }
@@ -63,7 +66,9 @@ function showMessageAndButtons(message: string, context: vscode.ExtensionContext
 		}
 	}
 
-	buttons.push(BUTTON_GET_PRO);
+	if (userWantsProNotices()) {
+		buttons.push(BUTTON_GET_PRO);
+	}
 
 	vscode.window.showInformationMessage(message, ...buttons)
 		.then(async (val: string | undefined) => {
