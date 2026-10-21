@@ -361,7 +361,7 @@
 		"@clickhouse/client": "^1.23.1",
 		"@duckdb/node-api": "^1.5.5-r.3",
 		"@libsql/client": "^0.18.0",
-		"@modelcontextprotocol/sdk": "^1.30.0",
+		"@modelcontextprotocol/sdk": "^1.32.0",
 		"@vscode/sqlite3": "^5.1.12-vscode",
 		"axios": "^1.20.0",
 		"case": "^1.6.3",
