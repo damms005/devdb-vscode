@@ -79,8 +79,7 @@ Requirements: VS Code 1.90 or later. DevDb runs on macOS, Windows, Linux and Alp
 
 ## Sponsors
 
-- [DevWorkspace Pro](https://devworkspacepro.com): build and manage web apps on your computer, with DDEV, terminal, SSH, GitHub and AI sessions in one desktop app.
-- [Traycer AI](https://traycer.ai): AI help in your VS Code workflow.
+- [DevWorkspace Pro](https://devworkspacepro.com): Run, code and ship any project from one desktop app: Files, Git, GitHub, AI agents, terminal and DDEV, Docker or native runtimes. Laravel to Flutter.
 
 To support DevDb, [sponsor the project](https://github.com/sponsors/damms005), buy [DevDb Pro](https://devdbpro.com/?ref=ide), or see [other projects](https://damms005.dev/projects).
 
