@@ -64,9 +64,9 @@ const recommendation = require('../../../services/devworkspacepro-recommendation
 const ddevDetection = require('../../../services/ddev-detection-service');
 const devWorkspaceProDetection = require('../../../services/devworkspacepro-detection-service');
 
-/** Dates around the end of the launch window, when opt-outs start to count again. */
-const BEFORE_OPT_OUTS = new Date(2026, 11, 24, 23, 59);
-const AFTER_OPT_OUTS = new Date(2026, 11, 25, 0, 0);
+/** Dates around the old 2026-12-25 opt-out date: the full pages ignore opt-outs on both sides. */
+const BEFORE_DEC_25 = new Date(2026, 11, 24, 23, 59);
+const AFTER_DEC_25 = new Date(2026, 11, 25, 0, 0);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function makeFakeContext(initial: Record<string, any> = {}) {
@@ -191,18 +191,14 @@ describe('Promo notices', function () {
 			assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0'), 'webview');
 		});
 
-		it('respects showFewerUpdateNotificationActions and dontShowNewVersionMessage from the opt-out date', async () => {
-			settings.showFewerUpdateNotificationActions = true;
-			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: AFTER_OPT_OUTS }), 'none');
-			delete settings.showFewerUpdateNotificationActions;
-			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: AFTER_OPT_OUTS }), 'none');
-		});
-
-		it('ignores the fewer-notifications settings before the opt-out date', async () => {
-			settings.showFewerUpdateNotificationActions = true;
-			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now: BEFORE_OPT_OUTS }), 'webview');
+		it('ignores showFewerUpdateNotificationActions and dontShowNewVersionMessage at any date', async () => {
+			for (const setting of ['showFewerUpdateNotificationActions', 'dontShowNewVersionMessage']) {
+				settings[setting] = true;
+				for (const now of [BEFORE_DEC_25, AFTER_DEC_25, new Date(2027, 5, 1)]) {
+					assert.strictEqual(await newDatastores.showNewDatastoresNotice(makeFakeContext(), '4.0.0', { now }), 'webview', `${setting} at ${now.toISOString()}`);
+				}
+				delete settings[setting];
+			}
 		});
 
 		it('records when the full page showed, and the first 4.x start', async () => {
@@ -233,7 +229,7 @@ describe('Promo notices', function () {
 	});
 
 	describe('DevWorkspace Pro showcase gating', () => {
-		const shouldShow = (context: any, ddev = true, fewer = false) => devWorkspacePro.shouldShowDevWorkspaceProNotice(context, ddev, fewer);
+		const shouldShow = (context: any, ddev = true) => devWorkspacePro.shouldShowDevWorkspaceProNotice(context, ddev);
 
 		it('shows once per content version, not per DevDb version', async () => {
 			const ddevRoot = makeDdevWorkspace();
@@ -253,23 +249,17 @@ describe('Promo notices', function () {
 			assert.ok(!shouldShow(makeFakeContext({ [devWorkspacePro.NOTICE_CONTENT_VERSION_KEY]: devWorkspacePro.NOTICE_CONTENT_VERSION })));
 		});
 
-		it('needs a DDEV workspace, and respects the fewer-notifications settings and an old dismissal from the opt-out date', async () => {
+		it('needs a DDEV workspace', () => {
 			assert.ok(!shouldShow(makeFakeContext(), false));
-			assert.ok(!devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext(), true, true, AFTER_OPT_OUTS));
-			assert.ok(!devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), true, false, AFTER_OPT_OUTS));
-
-			const ddevRoot = makeDdevWorkspace();
-			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext(), false, { now: AFTER_OPT_OUTS }), false);
-			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
-		it('ignores the fewer-notifications settings and an old dismissal before the opt-out date', async () => {
-			assert.ok(devWorkspacePro.shouldShowDevWorkspaceProNotice(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), true, true, BEFORE_OPT_OUTS));
-
+		it('ignores the fewer-notifications settings and an old dismissal at any date', async () => {
 			const ddevRoot = makeDdevWorkspace();
+			settings.showFewerUpdateNotificationActions = true;
 			settings.dontShowNewVersionMessage = true;
-			assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), false, { now: BEFORE_OPT_OUTS }), true);
+			for (const now of [BEFORE_DEC_25, AFTER_DEC_25]) {
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(makeFakeContext({ 'devworkspacepro.notice.dismissed': true }), false, { now }), true);
+			}
 			fs.rmSync(ddevRoot, { recursive: true, force: true });
 		});
 
@@ -282,21 +272,11 @@ describe('Promo notices', function () {
 		});
 	});
 
-	describe('full-page notice opt-out date', () => {
-		it('honors opt-outs from 2026-12-25 local time, not before', () => {
-			assert.strictEqual(optOuts.HONOR_FULL_PAGE_NOTICE_OPT_OUTS_FROM, '2026-12-25');
-			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(new Date(2026, 9, 1)), false);
-			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(BEFORE_OPT_OUTS), false);
-			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(AFTER_OPT_OUTS), true);
-			assert.strictEqual(optOuts.honorsFullPageNoticeOptOuts(new Date(2027, 5, 1)), true);
-		});
-	});
-
 	describe('DevWorkspace Pro showcase for PHP and other projects without DDEV', () => {
 		const t0 = new Date(2026, 9, 1).getTime();
 		const at = (days: number) => new Date(t0 + days * DAY_MS);
 		const shown = (extra: Record<string, any> = {}) => makeFakeContext({ [newDatastores.FULL_PAGE_SHOWN_AT_KEY]: t0, ...extra });
-		const shouldShow = (context: any, variant: string | undefined = 'php', fewer = false, now = at(7)) => devWorkspacePro.shouldShowFollowUpNotice(context, variant, fewer, now);
+		const shouldShow = (context: any, variant: string | undefined = 'php', now = at(7)) => devWorkspacePro.shouldShowFollowUpNotice(context, variant, now);
 
 		it('targets composer.json or artisan projects without .ddev', () => {
 			const root = makeWorkspace();
@@ -341,15 +321,15 @@ describe('Promo notices', function () {
 		for (const variant of ['php', 'any-project']) {
 			describe(`${variant} gating`, () => {
 				it('waits 7 days after the DevDb v4 full page', () => {
-					assert.ok(!shouldShow(shown(), variant, false, at(6.99)));
-					assert.ok(shouldShow(shown(), variant, false, at(7)));
-					assert.ok(!devWorkspacePro.shouldShowFollowUpNotice(shown(), undefined, false, at(7)), 'no matching workspace');
+					assert.ok(!shouldShow(shown(), variant, at(6.99)));
+					assert.ok(shouldShow(shown(), variant, at(7)));
+					assert.ok(!devWorkspacePro.shouldShowFollowUpNotice(shown(), undefined, at(7)), 'no matching workspace');
 				});
 
 				it('waits 7 days after the first 4.x start when DevDb v4 was a toast, and never without either', () => {
-					assert.ok(!shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, false, at(6)));
-					assert.ok(shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, false, at(7)));
-					assert.ok(!shouldShow(makeFakeContext(), variant, false, at(400)));
+					assert.ok(!shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, at(6)));
+					assert.ok(shouldShow(makeFakeContext({ [newDatastores.FIRST_START_AT_KEY]: t0 }), variant, at(7)));
+					assert.ok(!shouldShow(makeFakeContext(), variant, at(400)));
 				});
 
 				it('shows once per release, whatever variant the user saw', () => {
@@ -361,12 +341,14 @@ describe('Promo notices', function () {
 					assert.ok(shouldShow(shown({ [devWorkspacePro.ADVERTISED_RELEASE_KEY]: 'v1' }), variant));
 				});
 
-				it('ignores opt-outs before 2026-12-25 and honors them from then on', () => {
-					const dismissed = { [devWorkspacePro.NOTICE_DISMISSED_KEY]: true };
-					assert.ok(shouldShow(shown(dismissed), variant, true, BEFORE_OPT_OUTS));
-					assert.ok(!shouldShow(shown(), variant, true, AFTER_OPT_OUTS));
-					assert.ok(!shouldShow(shown(dismissed), variant, false, AFTER_OPT_OUTS));
-					assert.ok(shouldShow(shown(), variant, false, AFTER_OPT_OUTS));
+				it('ignores the fewer-notifications settings and an old dismissal at any date', async () => {
+					const root = variant === 'php' ? makePhpWorkspace() : makeGitWorkspace();
+					settings.showFewerUpdateNotificationActions = true;
+					settings.dontShowNewVersionMessage = true;
+					for (const now of [BEFORE_DEC_25, AFTER_DEC_25]) {
+						assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(shown({ 'devworkspacepro.notice.dismissed': true }), false, { now }), true);
+					}
+					fs.rmSync(root, { recursive: true, force: true });
 				});
 			});
 		}
@@ -517,9 +499,9 @@ describe('Promo notices', function () {
 			assert.strictEqual(setting.scope, 'application', 'a workspace cannot turn the notices back on');
 		});
 
-		it('off: no DevDb v4 full page or toast, even in the launch window, and the notice stays pending', async () => {
+		it('off: no DevDb v4 full page or toast, at any date, and the notice stays pending', async () => {
 			settings.showProNotices = false;
-			for (const now of [BEFORE_OPT_OUTS, AFTER_OPT_OUTS]) {
+			for (const now of [BEFORE_DEC_25, AFTER_DEC_25]) {
 				const context = makeFakeContext();
 				assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0', { now }), 'none');
 				assert.strictEqual(await newDatastores.showNewDatastoresNotice(context, '4.0.0', { now, hasLicense: true }), 'none');
@@ -530,14 +512,14 @@ describe('Promo notices', function () {
 			assert.deepStrictEqual(infoMessages, []);
 		});
 
-		it('off: no DevWorkspace Pro showcase in any workspace, even in the launch window', async () => {
+		it('off: no DevWorkspace Pro showcase in any workspace, at any date', async () => {
 			settings.showProNotices = false;
 			const t0 = new Date(2026, 9, 1).getTime();
 			for (const makeRoot of [makeDdevWorkspace, makePhpWorkspace, makeGitWorkspace]) {
 				const root = makeRoot();
 				const context = makeFakeContext({ [newDatastores.FULL_PAGE_SHOWN_AT_KEY]: t0 });
-				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(context, false, { now: BEFORE_OPT_OUTS }), false);
-				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: BEFORE_OPT_OUTS }), false);
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForDdevWorkspaces(context, false, { now: BEFORE_DEC_25 }), false);
+				assert.strictEqual(await devWorkspacePro.showDevWorkspaceProNoticeForOtherWorkspaces(context, false, { now: BEFORE_DEC_25 }), false);
 				assert.strictEqual(context.store.size, 1, `${makeRoot.name}: nothing stored`);
 				fs.rmSync(root, { recursive: true, force: true });
 			}

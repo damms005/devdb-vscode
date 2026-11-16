@@ -292,7 +292,7 @@
 					"type": "boolean",
 					"default": true,
 					"scope": "application",
-					"description": "Show notices about DevDb Pro and DevWorkspace Pro. Turn this off to stop the Pro pages and messages. Update messages still show."
+					"description": "Show notices about DevDb Pro and DevWorkspace Pro. Turn this off to stop the Pro pages and messages. This is the only setting that stops the Pro pages. Update messages still show."
 				},
 				"Devdb.customBasePath": {
 					"type": "string",

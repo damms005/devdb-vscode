@@ -4,6 +4,10 @@
 
 - `Devdb.showProNotices` setting: turn it off to stop all DevDb Pro and DevWorkspace Pro notices (full pages and messages). The message after an update still shows, but without the Pro offers.
 
+### Changed
+
+- The full-page Pro notices (DevDb v4 and the DevWorkspace Pro showcases) ignore "Don't show again" and the fewer-notifications settings. Turn off `Devdb.showProNotices` to stop them. Toasts are not changed.
+
 ## 4.0.1
 
 ### Added

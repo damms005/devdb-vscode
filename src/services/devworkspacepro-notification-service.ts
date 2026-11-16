@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
-import { FIRST_START_AT_KEY, FULL_PAGE_SHOWN_AT_KEY, userWantsFewerNotifications } from './new-datastores-notification-service';
-import { honorsFullPageNoticeOptOuts, userWantsProNotices } from './notice-opt-outs';
+import { FIRST_START_AT_KEY, FULL_PAGE_SHOWN_AT_KEY } from './new-datastores-notification-service';
+import { userWantsProNotices } from './notice-opt-outs';
 import { isDdevProject, isNonPhpProjectWithoutDdev, isPhpProjectWithoutDdev } from './workspace';
 
 export type DevWorkspaceProNoticeVariant = 'ddev' | 'php' | 'any-project';
@@ -31,8 +31,6 @@ export const ADVERTISED_RELEASE_KEY = 'devworkspacepro.notice.advertisedRelease'
 
 /** Days between the DevDb v4 notice (or the first 4.x start) and the PHP or any-project showcase. */
 export const FOLLOW_UP_NOTICE_WAIT_DAYS = 7;
-/** Set by earlier builds when the user dismissed the notice for good. */
-export const NOTICE_DISMISSED_KEY = 'devworkspacepro.notice.dismissed';
 const DELAY_MS = 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -87,6 +85,7 @@ interface ShowOptions {
 
 /**
  * Shows the DevWorkspace Pro showcase in DDEV workspaces, once per content version.
+ * Only `Devdb.showProNotices` stops it; the fewer-notifications settings do not.
  * Returns true when the notice will show on this launch.
  */
 export async function showDevWorkspaceProNoticeForDdevWorkspaces(
@@ -98,7 +97,7 @@ export async function showDevWorkspaceProNoticeForDdevWorkspaces(
         return false;
     }
 
-    if (!shouldShowDevWorkspaceProNotice(context, isDdevProject(), userWantsFewerNotifications(), options.now)) {
+    if (!shouldShowDevWorkspaceProNotice(context, isDdevProject())) {
         return false;
     }
 
@@ -108,12 +107,8 @@ export async function showDevWorkspaceProNoticeForDdevWorkspaces(
     return true;
 }
 
-export function shouldShowDevWorkspaceProNotice(context: vscode.ExtensionContext, isDdevWorkspace: boolean, fewerNotifications: boolean, now: Date = new Date()): boolean {
+export function shouldShowDevWorkspaceProNotice(context: vscode.ExtensionContext, isDdevWorkspace: boolean): boolean {
     if (!isDdevWorkspace) {
-        return false;
-    }
-
-    if (optedOut(context, fewerNotifications, now)) {
         return false;
     }
 
@@ -132,6 +127,7 @@ export function getFollowUpNoticeVariant(): FollowUpNoticeVariant | undefined {
 /**
  * Shows the DevWorkspace Pro showcase in PHP projects and other code projects without
  * DDEV, once per release, at least FOLLOW_UP_NOTICE_WAIT_DAYS after the DevDb v4 notice.
+ * Only `Devdb.showProNotices` stops it; the fewer-notifications settings do not.
  * Returns true when the notice will show on this launch.
  */
 export async function showDevWorkspaceProNoticeForOtherWorkspaces(
@@ -144,7 +140,7 @@ export async function showDevWorkspaceProNoticeForOtherWorkspaces(
     }
 
     const variant = getFollowUpNoticeVariant();
-    if (!variant || !shouldShowFollowUpNotice(context, variant, userWantsFewerNotifications(), options.now)) {
+    if (!variant || !shouldShowFollowUpNotice(context, variant, options.now)) {
         return false;
     }
 
@@ -154,12 +150,8 @@ export async function showDevWorkspaceProNoticeForOtherWorkspaces(
     return true;
 }
 
-export function shouldShowFollowUpNotice(context: vscode.ExtensionContext, variant: FollowUpNoticeVariant | undefined, fewerNotifications: boolean, now: Date = new Date()): boolean {
+export function shouldShowFollowUpNotice(context: vscode.ExtensionContext, variant: FollowUpNoticeVariant | undefined, now: Date = new Date()): boolean {
     if (!variant) {
-        return false;
-    }
-
-    if (optedOut(context, fewerNotifications, now)) {
         return false;
     }
 
@@ -196,14 +188,6 @@ function showLater(context: vscode.ExtensionContext, isNewInstall: boolean, vari
     setTimeout(() => {
         createDevWorkspaceProWebview(context, isNewInstall, variant);
     }, DELAY_MS);
-}
-
-function optedOut(context: vscode.ExtensionContext, fewerNotifications: boolean, now: Date): boolean {
-    if (!honorsFullPageNoticeOptOuts(now)) {
-        return false;
-    }
-
-    return fewerNotifications || context.globalState.get<boolean>(NOTICE_DISMISSED_KEY, false);
 }
 
 /** Dev preview: shows the notice without any gating. */

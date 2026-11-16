@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getNonce, NOTICES_FOLDER, NoticeWebview, renderNoticeTemplate } from './html';
-import { honorsFullPageNoticeOptOuts, userWantsProNotices } from './notice-opt-outs';
+import { userWantsProNotices } from './notice-opt-outs';
 import { parseVersion } from './version';
 
 export const NOTICE_SHOWN_KEY = 'devdb.v4.notice.shown';
@@ -48,11 +48,12 @@ export function userWantsFewerNotifications(): boolean {
 
 /**
  * Decides what (if anything) to show. Reads `globalState` only.
+ * Only `Devdb.showProNotices` stops the full page; the fewer-notifications settings do not.
  */
 export function getNewDatastoresNoticeAction(
 	context: vscode.ExtensionContext,
 	version: string,
-	options: NewDatastoresNoticeOptions & { fewerNotifications?: boolean; proNotices?: boolean } = {},
+	options: NewDatastoresNoticeOptions & { proNotices?: boolean } = {},
 ): NewDatastoresNoticeAction {
 	const kind: NewDatastoresNoticeAction = options.hasLicense ? 'toast' : 'webview';
 
@@ -76,10 +77,6 @@ export function getNewDatastoresNoticeAction(
 		return 'none';
 	}
 
-	if (kind === 'webview' && options.fewerNotifications && honorsFullPageNoticeOptOuts(options.now)) {
-		return 'none';
-	}
-
 	return kind;
 }
 
@@ -99,8 +96,6 @@ export async function showNewDatastoresNotice(
 
 	const action = getNewDatastoresNoticeAction(context, version, {
 		...options,
-		now,
-		fewerNotifications: options.forcePreview ? false : userWantsFewerNotifications(),
 		proNotices: options.forcePreview ? true : userWantsProNotices(),
 	});
 
