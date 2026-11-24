@@ -65,15 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
-	const settings = vscode.workspace.getConfiguration('Devdb');
-	if (settings.get<boolean>('enableMcpServer', true)) {
-		try {
-			await startHttpServer();
-			logToOutput('MCP HTTP server started', 'MCP Server');
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to start MCP server: ${error}`);
-		}
-	}
+	await applyMcpServerSetting();
 
 	context.subscriptions.push(provider);
 
@@ -139,9 +131,14 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('devdb.license.manage', () => licenseService.manageLicense())
 	);
 
-	vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+	vscode.workspace.onDidChangeConfiguration(async (event: vscode.ConfigurationChangeEvent) => {
 		if (event.affectsConfiguration('Devdb')) {
 			devDbViewProvider?.notifyConfigChange(event);
+		}
+
+		// The setting is a switch, not a startup flag: honour it while running.
+		if (event.affectsConfiguration('Devdb.enableMcpServer')) {
+			await applyMcpServerSetting();
 		}
 	});
 
@@ -200,6 +197,22 @@ function registerDevCommands(context: vscode.ExtensionContext) {
 			return connections.length;
 		})
 	);
+}
+
+async function applyMcpServerSetting() {
+	const enabled = vscode.workspace.getConfiguration('Devdb').get<boolean>('enableMcpServer', true);
+
+	if (!enabled) {
+		stopHttpServer();
+		return;
+	}
+
+	try {
+		await startHttpServer();
+		logToOutput('MCP HTTP server started', 'MCP Server');
+	} catch (error) {
+		vscode.window.showErrorMessage(`Failed to start MCP server: ${error}`);
+	}
 }
 
 export function deactivate() {
